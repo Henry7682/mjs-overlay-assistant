@@ -131,8 +131,9 @@ class RecognitionThread(QThread):
 class DataThread(QThread):
     done=Signal(object,str)
     progress=Signal(str)
-    def __init__(self,folder,board,path=None,force=False):
+    def __init__(self,folder,board,path=None,force=False,busy=None):
         super().__init__();self.folder=folder;self.board=copy.deepcopy(board);self.path=path;self.force=force
+        self.busy=busy or threading.Event()
 
     def run(self):
         try:
@@ -142,14 +143,24 @@ class DataThread(QThread):
             class LazyOcr:
                 obj=None
                 def __getattr__(self,key):
-                    if self.obj is None:self.obj=Ocr()
-                    return getattr(self.obj,key)
+                    def idle():
+                        while owner.busy.is_set():
+                            if owner.isInterruptionRequested():raise RuntimeError('已取消榜单OCR')
+                            owner.msleep(250)
+                        if owner.isInterruptionRequested():raise RuntimeError('已取消榜单OCR')
+                    def call(*args,**kwargs):
+                        idle()
+                        if self.obj is None:self.obj=Ocr()
+                        if key=='document':kwargs['before_read']=idle
+                        return getattr(self.obj,key)(*args,**kwargs)
+                    return call
+            owner=self
             engine=LazyOcr()
             if self.path:
                 self.progress.emit('正在识别导入的官方图片…')
                 board=import_image(self.path,engine,names);message='导入完成，请复核'
             else:
-                board,message=Updater(self.folder,engine,names,self.isInterruptionRequested).check(self.board,self.force,self.progress.emit)
+                board,message=Updater(self.folder,engine,names,self.isInterruptionRequested,self.busy.is_set).check(self.board,self.force,self.progress.emit)
             self.done.emit(board,message)
         except Exception as e:
             logging.exception('data update');self.done.emit(None,'更新失败，保留原榜单：'+str(e))
@@ -289,6 +300,9 @@ class MainWindow(GuideController,QMainWindow):
         self.configure()
 
     def receive(self,data):
+        if hasattr(self,'data_busy'):
+            if data.get('scene')=='selection' or self.provider.busy:self.data_busy.set()
+            else:self.data_busy.clear()
         metadata={k:data.get(k) for k in ('scene','phase','layout','seconds','rect')}
         metadata['mode']=data.get('mode_id')
         metadata['items']=[{k:getattr(x,k,None) for k in ('name','raw','box','confidence','confirmed','slot')} for x in data.get('items',[])]
@@ -497,6 +511,7 @@ class MainWindow(GuideController,QMainWindow):
     def open_feedback(self):
         from .feedback_ui import FeedbackDialog
         if diagnostics._recorder:FeedbackDialog(diagnostics._recorder,self).exec()
+        else:QMessageBox.information(self,'诊断不可用','诊断文件暂时无法写入，本地统计继续运行。请检查数据目录权限或剩余空间。')
 
     def diagnostic_notice(self):
         QMessageBox.information(self,'公开测试版与本地诊断',
@@ -516,7 +531,9 @@ class MainWindow(GuideController,QMainWindow):
     def start_data(self,force=False,path=None):
         if self.data_worker and self.data_worker.isRunning():return
         self.check_btn.setEnabled(False);self.import_btn.setEnabled(False)
-        self.data_worker=DataThread(self.folder,self.store.all_current(),path,force);self.data_worker.progress.connect(self.data_status.setText);self.data_worker.done.connect(self.data_done);self.data_worker.start()
+        if not hasattr(self,'data_busy'):self.data_busy=threading.Event()
+        if self.provider.busy or (self.latest and self.latest.get('scene')=='selection'):self.data_busy.set()
+        self.data_worker=DataThread(self.folder,self.store.all_current(),path,force,self.data_busy);self.data_worker.progress.connect(self.data_status.setText);self.data_worker.done.connect(self.data_done);self.data_worker.start()
 
     def data_done(self,board,message):
         self.check_btn.setEnabled(True);self.import_btn.setEnabled(True);self.data_status.setText(message)
@@ -600,9 +617,16 @@ def main():
         if request_settings(folder,info[1] if info[0] else None):return 0
         QMessageBox.information(None,'名将浮窗助手','助手已运行，但窗口唤出未成功；旧版本需从托盘打开。');return 0
     config=read_json(folder/'settings.json',{})
-    recorder=diagnostics.setup(folder,config.get('diagnostics',{}).get('capture_enabled',True),
-        {k:config[k] for k in ('selected_mode','mode_profiles','recommendation') if k in config})
-    app.aboutToQuit.connect(recorder.close)
+    try:
+        recorder=diagnostics.setup(folder,config.get('diagnostics',{}).get('capture_enabled',True),
+            {'selected_mode':config.get('selected_mode'),
+             'calibration_profiles':list(config.get('mode_profiles',{})),
+             'models':read_json(ASSETS/'models/manifest.json',{}),
+             'dependency_manifest':read_json(ASSETS/'dependencies.json',{}),
+             'boards':{k:{f:b.get(f) for f in ('period_start','period_end','image_sha256','mode_id')} for k,b in BoardStore(folder).all_current().items()}})
+        app.aboutToQuit.connect(recorder.close)
+    except Exception:
+        logging.exception('diagnostic initialization unavailable; statistics continue')
     try:
         window=MainWindow()
         ready=os.getenv('MJS_READY_FILE')

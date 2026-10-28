@@ -13,7 +13,8 @@ def import_data(source,destination):
     for path in (source/'boards').glob('*/*.json'):
         if path.name not in ('current.json','previous.json'):continue
         board=json.loads(path.read_text('utf8'))
-        if validate_board(board):raise ValueError('旧榜单校验失败，未修改当前配置')
+        from .modes import board_mode
+        if validate_board(board) or board_mode(board)!=path.parent.name:raise ValueError('旧榜单校验失败或模式目录不符，未修改当前配置')
         files[path.relative_to(source).as_posix()]=board
     backup=destination/'migration-backups'/uuid.uuid4().hex;backup.mkdir(parents=True)
     installed=[]

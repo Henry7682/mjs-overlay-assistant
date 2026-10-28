@@ -121,7 +121,8 @@ class WeChatMiniProgramProvider(QObject):
         self.active=dict(process=process,pipe=parent,snapshot=snapshot,id=request_id,began=began,
                          game=game_hwnd,mini=0,tick=None,physical_stop=physical_stop,watch=watch,budget=budget,
                          query=GuideQuery(snapshot.purpose,snapshot.context.mode_id,snapshot.context.game_id,request_id,tuple(names),budget))
-        diagnostics.event('query_start',request_id=request_id,round_id=snapshot.context.game_id,mode=snapshot.context.mode_id,selected=names)
+        from dataclasses import asdict
+        diagnostics.event('query_start',request_id=request_id,round_id=snapshot.context.game_id,mode=snapshot.context.mode_id,selected=names,config={'selection':asdict(snapshot)})
         try:
             process.start();child.close()
             # When a hotkey gave this process activation permission, pass it
@@ -189,12 +190,14 @@ class WeChatMiniProgramProvider(QObject):
                 if message.get('event')=='review_hint':
                     self.status.emit(message['text']);continue
                 if message.get('event')=='stage':
-                    diagnostics.event('query_stage',request_id=state['id'],round_id=state['snapshot'].context.game_id,stage=message['stage'],elapsed=time.monotonic()-state['began'])
+                    diagnostics.event('query_stage',request_id=state['id'],round_id=state['snapshot'].context.game_id,stage=message['stage'],elapsed=time.monotonic()-state['began'],config={'metrics':message.get('metrics',{})})
                     logging.info('mini stage: %s %.2fs',message['stage'],time.monotonic()-state['began']);continue
                 if message.get('event')=='batch':
                     try:result=WeChatMiniProgramProvider.make_result(state,message)
                     except ValueError as error:self.cancel(str(error));return
                     state['partial']=result
+                    diagnostics.event('query_batch',request_id=state['id'],round_id=state['snapshot'].context.game_id,
+                        selected=result.selected_candidates,cards=result.source_cards,complete=result.complete)
                     self.batch.emit(result)
                     continue
                 if not state.get('manual_review') and time.monotonic()-state['began']>=state.get('budget',15):
@@ -203,6 +206,8 @@ class WeChatMiniProgramProvider(QObject):
                     try:result=WeChatMiniProgramProvider.make_result(state,message)
                     except ValueError as error:self.cancel(str(error));return
                     cards=result.recommendations
+                    diagnostics.event('query_result',request_id=state['id'],round_id=state['snapshot'].context.game_id,
+                        selected=result.selected_candidates,cards=result.source_cards,complete=result.complete)
                     self._finish()
                     message_text=('未找到匹配组合' if result.no_match else
                         ('配阵已完成' if cards else '已读取组合中没有符合当前候选和座次的搭配'))
@@ -266,9 +271,10 @@ class WeChatMiniProgramProvider(QObject):
             logging.exception('temporary PNG cleanup failed; registry retained for next retry')
 
     def cancel(self,reason='配阵已取消'):
-        diagnostics.event('query_stop',reason=reason)
-        if any(x in reason for x in ('失败','超时','异常','未就绪')):diagnostics.fault(reason)
         state=self.active
+        diagnostics.event('query_stop',reason=reason,request_id=(state or {}).get('id'),
+            round_id=getattr(getattr((state or {}).get('snapshot'),'context',None),'game_id',None))
+        if any(x in reason for x in ('失败','超时','时限','异常','未就绪','断开')):diagnostics.fault(reason)
         partial=state.get('partial') if state else None
         if state:
             self._finish(restore=True)

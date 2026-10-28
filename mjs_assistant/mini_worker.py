@@ -32,7 +32,19 @@ def parse_document(text):
 
 
 def _worker(connection, path, expected, picker_only=False,physical_stop=None,bound_hwnd=None,game_hwnd=None,image_only=False,budget=15,deadline=None,read_existing=False):
-    def stage(name):connection.send({'event':'stage','stage':name})
+    metrics={}
+    def stage(name):connection.send({'event':'stage','stage':name,'metrics':{k:dict(v) for k,v in metrics.items()}})
+    def measured(category):
+        def decorate(fn):
+            def run(*args,**kwargs):
+                began=time.monotonic()
+                try:return fn(*args,**kwargs)
+                finally:
+                    seconds=time.monotonic()-began
+                    row=metrics.setdefault(category,{'count':0,'seconds':0.,'max_seconds':0.})
+                    row['count']+=1;row['seconds']+=seconds;row['max_seconds']=max(row['max_seconds'],seconds)
+            return run
+        return decorate
     stage('加载自动化组件')
     import ctypes
     ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
@@ -143,6 +155,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         time.sleep(.05)  # Let the target dispatch focus before a following key input.
     from .mini_page import WindowRoot
     window_root=WindowRoot(lambda:uia.ElementFromHandle(mini),(COMError,))
+    @measured('control_lookup_with_wait')
     def find(title, kind=None,timeout=None):
         from .uia_wait import wait_visible
         from .mini_page import locate_control
@@ -160,6 +173,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             pattern_id,interface=pattern_ids['Text']
             return element.GetCachedPattern(pattern_id).QueryInterface(interface).DocumentRange
         except Exception:return get_elem_interface(element,'Text').DocumentRange
+    @measured('document_including_lookup')
     def document(timeout=None,results_only=False):
         began=time.monotonic()
         element=find('Page-Frame','Document',timeout)

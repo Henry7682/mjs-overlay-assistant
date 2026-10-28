@@ -2,17 +2,34 @@
 Set-StrictMode -Version 2
 $ErrorActionPreference='Stop'
 $script:ReleaseOwner='Henry7682/mjs-overlay-assistant'
+$script:MirrorOwner='henry7682/mjs-overlay-assistant'
 $script:UpdateSkipped=$false
 function Assert-Platform {
     if (-not [Environment]::Is64BitOperatingSystem) { throw 'Only Windows x64 is supported.' }
     if (-not [Environment]::Is64BitProcess) { throw 'Please use 64-bit Windows PowerShell.' }
     [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
 }
+function Get-DependencyStatus {
+    $runtime=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64')
+    try { $installed=$runtime -and $runtime.GetValue('Installed',0) -eq 1 } finally { if($runtime){$runtime.Dispose()} }
+    return [pscustomobject]@{Windows64=[Environment]::Is64BitOperatingSystem;PowerShell=$PSVersionTable.PSVersion.ToString();VCRuntime=$installed;
+        SteamRunning=[bool](Get-Process -Name steam -ErrorAction SilentlyContinue);
+        WeChatRunning=[bool](Get-Process -Name WeChat,Weixin -ErrorAction SilentlyContinue)}
+}
+function Assert-Publisher([string]$Path,[string]$Publisher) {
+    Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.psd1') -ErrorAction Stop
+    $signature=Get-AuthenticodeSignature -LiteralPath $Path
+    if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch $Publisher) { throw 'Installer publisher signature rejected.' }
+}
 function Test-Cancel {
     try { if ([Console]::KeyAvailable) { if ([Console]::ReadKey($true).Key -eq 'S') { $script:UpdateSkipped=$true } } } catch {}
     if ($script:UpdateSkipped) { throw 'Skipped by user.' }
 }
-function Get-Sha256([string]$Path) { (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
+function Get-Sha256([string]$Path) {
+    $stream=[IO.File]::OpenRead($Path);$sha=[Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','').ToLowerInvariant() }
+    finally { $stream.Dispose();$sha.Dispose() }
+}
 function Assert-Hash([string]$Path,$Asset) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { throw 'Download missing.' }
     if ((Get-Item -LiteralPath $Path).Length -ne [long]$Asset.bytes -or (Get-Sha256 $Path) -ne $Asset.sha256) { throw 'File size / SHA256 mismatch.' }
@@ -29,11 +46,21 @@ function Get-RemoteBytes([string]$Url,[int]$Timeout=5000,[int]$Limit=1048576) {
     if (-not $Url.StartsWith('https://')) { throw 'HTTPS required.' }
     $request=[Net.HttpWebRequest]::Create($Url);$request.Timeout=$Timeout;$request.ReadWriteTimeout=$Timeout
     $request.UserAgent='MjsOverlay/1.0.0';$request.AllowAutoRedirect=$true
-    $response=$request.GetResponse()
+    $watch=[Diagnostics.Stopwatch]::StartNew();$response=$request.GetResponse()
     try {
         if ($response.ResponseUri.Scheme -ne 'https') { throw 'Insecure redirect.' }
         $stream=$response.GetResponseStream();$memory=New-Object IO.MemoryStream;$buffer=New-Object byte[] 16384
-        try { while (($count=$stream.Read($buffer,0,$buffer.Length)) -gt 0) { $memory.Write($buffer,0,$count);if ($memory.Length -gt $Limit) { throw 'Metadata too large.' } };return ,$memory.ToArray() }
+        try {
+            while ($true) {
+                $left=$Timeout-[int]$watch.ElapsedMilliseconds
+                if ($left -le 0) { throw 'Metadata time budget exceeded.' }
+                if ($stream.CanTimeout) { $stream.ReadTimeout=$left }
+                $count=$stream.Read($buffer,0,$buffer.Length)
+                if ($count -le 0) { break }
+                $memory.Write($buffer,0,$count);if ($memory.Length -gt $Limit) { throw 'Metadata too large.' }
+            }
+            return ,$memory.ToArray()
+        }
         finally { $stream.Dispose();$memory.Dispose() }
     } finally { $response.Dispose() }
 }
@@ -45,7 +72,7 @@ function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory
     } else {
         $origins=@()
         if ($Source -in @('Auto','GitHub')) { $origins+='https://raw.githubusercontent.com/'+$script:ReleaseOwner+'/main/release.json' }
-        if ($Source -in @('Auto','Gitee')) { $origins+='https://gitee.com/'+$script:ReleaseOwner+'/raw/main/release.json' }
+        if ($Source -in @('Auto','Gitee')) { $origins+='https://gitee.com/'+$script:MirrorOwner+'/raw/main/release.json' }
         $timer=[Diagnostics.Stopwatch]::StartNew();$found=@()
         foreach ($url in $origins) {
             Test-Cancel
@@ -77,8 +104,11 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
     }
     $urls=@($Asset.urls|Where-Object { $Source -eq 'Auto' -or ($Source -eq 'GitHub' -and $_ -match '^https://(github.com|objects.githubusercontent.com)/') -or ($Source -eq 'Gitee' -and $_ -match '^https://gitee.com/') })
     if (-not $OfflineDirectory) {
-        foreach ($url in $urls) {
-            try { Receive-File $url $target $Asset $Deadline;return $target } catch { Write-Host $_.Exception.Message;Test-Cancel }
+        for ($attempt=0;$attempt -lt 2;$attempt++) {
+            foreach ($url in $urls) {
+                try { Receive-File $url $target $Asset $Deadline;return $target } catch { Write-Host $_.Exception.Message;Test-Cancel }
+                if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
+            }
         }
     }
     if ($Asset.PSObject.Properties['parts'] -and $Asset.parts.Count) {
@@ -92,6 +122,7 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
 }
 function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline) {
     Test-Cancel
+    if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
     if (-not $Url.StartsWith('https://')) { throw 'HTTPS required.' }
     $partial=$Target+'.partial';$etagFile=$partial+'.json';$offset=0;$etag=$null
     if ((Test-Path $partial) -and (Test-Path $etagFile)) {
@@ -99,7 +130,8 @@ function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline) {
         if ($info.url -eq $Url -and $info.hash -eq $Asset.sha256 -and $info.etag) { $offset=(Get-Item $partial).Length;$etag=$info.etag }
     }
     if ($offset -ge $Asset.bytes) { $offset=0 }
-    $request=[Net.HttpWebRequest]::Create($Url);$request.Timeout=5000;$request.ReadWriteTimeout=15000;$request.UserAgent='MjsOverlay/1.0.0'
+    $remaining=[Math]::Max(1,[int]($Deadline-[datetime]::UtcNow).TotalMilliseconds)
+    $request=[Net.HttpWebRequest]::Create($Url);$request.Timeout=[Math]::Min(5000,$remaining);$request.ReadWriteTimeout=[Math]::Min(15000,$remaining);$request.UserAgent='MjsOverlay/1.0.0'
     if ($offset -gt 0) { $request.AddRange($offset);$request.Headers['If-Range']=$etag }
     $response=$request.GetResponse()
     try {
@@ -110,8 +142,11 @@ function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline) {
         $mode=[IO.FileMode]::Create;if ($offset -gt 0) { $mode=[IO.FileMode]::Append }
         $output=[IO.File]::Open($partial,$mode);$stream=$response.GetResponseStream();$buffer=New-Object byte[] 65536
         try {
-            while (($count=$stream.Read($buffer,0,$buffer.Length)) -gt 0) {
-                Test-Cancel;if ([datetime]::UtcNow -gt $Deadline) { throw 'Download time budget exceeded.' }
+            while ($true) {
+                Test-Cancel;$remaining=[int]($Deadline-[datetime]::UtcNow).TotalMilliseconds
+                if ($remaining -le 0) { throw 'Download time budget exceeded.' }
+                if ($stream.CanTimeout) { $stream.ReadTimeout=[Math]::Min(15000,$remaining) }
+                $count=$stream.Read($buffer,0,$buffer.Length);if($count -le 0){break}
                 $output.Write($buffer,0,$count);$offset+=$count
                 if ($offset -gt $Asset.bytes) { throw 'Download exceeds declared size.' }
                 Write-Progress -Activity $Asset.name -Status 'S: skip / cancel' -PercentComplete ([Math]::Min(100,100*$offset/$Asset.bytes))
@@ -151,5 +186,62 @@ function Expand-VerifiedZip([string]$Archive,[string]$Destination) {
 function Write-AtomicJson([string]$Path,$Value) {
     $temp=$Path+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
     [IO.File]::WriteAllText($temp,($Value|ConvertTo-Json -Depth 30),(New-Object Text.UTF8Encoding($false)))
-    if (Test-Path $Path) { [IO.File]::Replace($temp,$Path,$null) } else { [IO.File]::Move($temp,$Path) }
+    try {
+        if (Test-Path -LiteralPath $Path) {
+            # PowerShell 5.1 marshals $null to an empty string for this overload.
+            $previous=$Path+'.'+[guid]::NewGuid().ToString('N')+'.old'
+            [IO.File]::Replace($temp,$Path,$previous)
+            Remove-Item -LiteralPath $previous -ErrorAction SilentlyContinue
+        } else { [IO.File]::Move($temp,$Path) }
+    } finally { Remove-Item -LiteralPath $temp -ErrorAction SilentlyContinue }
+}
+
+function Assert-Version([string]$Version) {
+    if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid version path.' }
+}
+function Assert-Payload([string]$Archive,[string]$Directory) {
+    # Existing version folders are not trusted solely because the name matches.
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $root=[IO.Path]::GetFullPath($Directory).TrimEnd('\')+'\'
+    $zip=[IO.Compression.ZipFile]::OpenRead($Archive);$names=@{}
+    try {
+        foreach ($entry in $zip.Entries) {
+            if ($entry.FullName.EndsWith('/')) { continue }
+            $path=[IO.Path]::GetFullPath((Join-Path $Directory $entry.FullName))
+            if (-not $path.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe payload path.' }
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'Incomplete existing payload.' }
+            if ((Get-Item -LiteralPath $path).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked payload file.' }
+            $stream=$entry.Open();$sha=[Security.Cryptography.SHA256]::Create()
+            try { $expected=([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','').ToLowerInvariant() }
+            finally { $stream.Dispose();$sha.Dispose() }
+            if ((Get-Sha256 $path) -ne $expected) { throw 'Existing version differs from verified asset. Choose a new installation directory.' }
+            $names[$path]=$true
+        }
+        foreach ($file in Get-ChildItem -LiteralPath $Directory -Recurse -File) {
+            if (-not $names.ContainsKey($file.FullName)) { throw 'Unexpected file in immutable version directory.' }
+        }
+    } finally { $zip.Dispose() }
+}
+function Save-UserData([string]$Root) {
+    $backup=Join-Path $Root ('update-backups\'+[guid]::NewGuid().ToString('N'))
+    [IO.Directory]::CreateDirectory($backup)|Out-Null
+    foreach ($name in @('settings.json','boards')) {
+        $p=Join-Path (Join-Path $Root 'data') $name
+        if (Test-Path -LiteralPath $p) { Copy-Item -LiteralPath $p -Destination $backup -Recurse }
+    }
+    return $backup
+}
+function Restore-UserData([string]$Root,[string]$Backup) {
+    $rootPath=[IO.Path]::GetFullPath($Root).TrimEnd('\')+'\'
+    $backupPath=[IO.Path]::GetFullPath($Backup)
+    if (-not $backupPath.StartsWith($rootPath+'update-backups\',[StringComparison]::OrdinalIgnoreCase) -or -not (Test-Path -LiteralPath $backupPath -PathType Container)) { throw 'Invalid rollback backup.' }
+    $savedFailed=Join-Path $backupPath ('failed-data-'+[guid]::NewGuid().ToString('N'))
+    [IO.Directory]::CreateDirectory($savedFailed)|Out-Null
+    foreach ($name in @('settings.json','boards')) {
+        $current=[IO.Path]::GetFullPath((Join-Path (Join-Path $Root 'data') $name))
+        if (-not $current.StartsWith($rootPath+'data\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Rollback path escaped.' }
+        if (Test-Path -LiteralPath $current) { Move-Item -LiteralPath $current -Destination $savedFailed }
+        $old=Join-Path $backupPath $name
+        if (Test-Path -LiteralPath $old) { Copy-Item -LiteralPath $old -Destination (Join-Path $Root 'data') -Recurse }
+    }
 }

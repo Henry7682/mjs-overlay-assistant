@@ -14,6 +14,7 @@ TOOLS = (
     'smoke.py', 'restore_models.py', 'replay_diagnostics.py',
     'portable_worker_smoke.py', 'probe_focus_roundtrip.py', 'replay_provider.py',
     'package_release.py', 'export_public_source.py',
+    'lock_dependencies.py', 'build_release.py',
 )
 ROOT_FILES = (
     'main.py', 'setup.ps1', 'start.cmd', 'build.ps1', 'MjsOverlay.spec',
@@ -21,6 +22,7 @@ ROOT_FILES = (
     'launch.cmd', 'launch.ps1', '.gitignore', 'LICENSE', 'list.md',
     'README.md', 'TODO.md', 'TESTING.md', 'AGENTS.md',
     'PERFORMANCE-2026-10-28.md', 'CONTRIBUTING.md', 'THIRD_PARTY_NOTICES.md',
+    'requirements-runtime.in', 'requirements-dev.in', 'requirements-runtime.lock.txt', 'requirements-dev.lock.txt',
     'IMPLEMENTATION-0.2.md', 'README-0.1.md',
 )
 
@@ -37,11 +39,11 @@ def export(destination):
         'tests/fixtures': ('*.png', '*.md'),
         'assets/boards': ('*.json',), 'assets/sources': ('*.jpg',),
         'assets/licenses': ('*',), 'assets/models': ('manifest.json',),
-        'docs': ('*.md',), '.github': ('*.yml',), 'release': ('*.ps1',),
+        'docs': ('*.md',), '.github': ('*.yml',), 'release': ('*.ps1', 'dependencies.json', 'public-key.xml'),
     }.items():
         for pattern in patterns:
             selected += [p for p in (ROOT / folder).rglob(pattern) if p.is_file()]
-    selected += [ROOT / 'assets' / name for name in ('names.json', 'board.json', 'official-2026-10-22.jpg')]
+    selected += [ROOT / 'assets' / name for name in ('names.json', 'board.json', 'dependencies.json', 'ocr-selftest.png', 'official-2026-10-22.jpg')]
     forbidden = {'.git', '.research', '.venv', 'runtime', 'data', '__pycache__'}
     outputs = {}
     for path in sorted(set(selected)):

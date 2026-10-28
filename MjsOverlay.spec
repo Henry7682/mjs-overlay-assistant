@@ -16,7 +16,7 @@ datas += collect_data_files('rapidocr', excludes=['models/*'])
 datas += copy_metadata('rapidocr')
 hidden = collect_submodules('rapidocr') + collect_submodules('pywinauto')
 hidden += collect_submodules('comtypes.gen')
-bundle_name = os.environ.get('MJS_BUILD_NAME','MjsOverlay-0.3.10-preview')
+bundle_name = os.environ.get('MJS_BUILD_NAME','MjsOverlay')
 a = Analysis(['main.py'], pathex=[], binaries=[], datas=datas, hiddenimports=hidden,
              excludes=['PySide6.QtWebEngineCore','PySide6.QtWebEngineWidgets','PySide6.QtPdf',
                        'torch','tensorflow','paddle','openvino','tensorrt','pytest'],

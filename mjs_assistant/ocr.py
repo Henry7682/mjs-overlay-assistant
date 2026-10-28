@@ -48,11 +48,12 @@ class Ocr:
             words.append(Word(text.strip(), float(score), (float(p[:, 0].min()), float(p[:, 1].min()), float(p[:, 0].max()), float(p[:, 1].max()))))
         return words
 
-    def document(self, bgr):
+    def document(self, bgr, before_read=lambda:None):
         """Tile tall official charts without shrinking characters to unreadable sizes."""
         h, w = bgr.shape[:2]
         output = []
         for y in range(0, h, 1100):
+            before_read()
             start, end = max(0, y - 70), min(h, y + 1170)
             for word in self.read(bgr[start:end]):
                 x1, y1, x2, y2 = word.box

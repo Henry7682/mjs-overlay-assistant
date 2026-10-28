@@ -3,6 +3,9 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import re
+import time
+import json
+import copy
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -49,35 +52,62 @@ def post_images(html):
 
 
 class Updater:
-    def __init__(self, folder, ocr, names, cancelled=lambda: False):
+    def __init__(self, folder, ocr, names, cancelled=lambda: False, busy=lambda:False):
         self.folder, self.ocr, self.names = Path(folder), ocr, names
         self.cancelled = cancelled
+        self.busy=busy;self.failures=[]
 
-    def check(self, current, force=False, progress=lambda x: None):
+    def check(self,current,force=False,progress=lambda x:None):
+        state_path=self.folder/'update_state.json';state=read_json(state_path,{})
+        now=dt.datetime.now(dt.timezone.utc)
+        try:
+            last=dt.datetime.fromisoformat(state.get('last_attempt',state.get('checked_at','')))
+            if not force and 0<=(now-last).total_seconds()<86400:return None,'最近24小时已检查；可点击手动检查'
+        except (ValueError,TypeError):pass
+        state.update(last_attempt=now.isoformat(),status='checking');write_json(state_path,state)
+        try:
+            result=self._check(current,progress)
+            state.update(status='cancelled' if self.cancelled() else ('partial' if self.failures else 'success'),last_error=self.failures[:3])
+            if state['status']=='success':state['last_success']=dt.datetime.now(dt.timezone.utc).isoformat()
+            return result
+        except Exception as error:
+            state.update(status='error',last_error=[str(error)[:500]]);raise
+        finally:write_json(state_path,state)
+
+    def _html(self,client,url):
+        key=hashlib.sha256(url.encode()).hexdigest();folder=self.folder/'update-cache';folder.mkdir(parents=True,exist_ok=True)
+        path=folder/(key+'.json');cached=read_json(path,{})
+        headers={}
+        if cached.get('etag'):headers['If-None-Match']=cached['etag']
+        if cached.get('modified'):headers['If-Modified-Since']=cached['modified']
+        response=client.get(url,headers=headers) if headers else client.get(url)
+        if getattr(response,'status_code',200)==304 and cached.get('text'):return cached['text']
+        response.raise_for_status();text=response.text
+        if len(text)>4_000_000:raise ValueError('官方网页超过大小限制')
+        h=getattr(response,'headers',{})
+        write_json(path,{'text':text,'etag':h.get('etag'),'modified':h.get('last-modified')})
+        return text
+
+    def _idle(self,progress):
+        if self.busy():progress('选将／配阵中，榜单OCR等待空闲…')
+        while self.busy():
+            if self.cancelled():return False
+            time.sleep(.25)
+        return not self.cancelled()
+
+    def _check(self, current, progress=lambda x: None):
         legacy = "heroes" in current
         current = {MINGDAO: current} if legacy else current
         discovered = []
-        failures = []
+        failures = self.failures
         newest = {}
-        state_path = self.folder / "update_state.json"
-        now = dt.datetime.now(dt.timezone.utc)
-        state = read_json(state_path, {})
-        try:
-            last = dt.datetime.fromisoformat(state.get("checked_at", ""))
-            if not force and (now - last).total_seconds() < 86400:
-                return None, "最近24小时已检查；可点击手动检查"
-        except ValueError:
-            pass
-        write_json(state_path, {"checked_at": now.isoformat()})
-        headers = {"User-Agent": "MjsOverlay/0.2 (local official ranking reader)"}
+        headers = {"User-Agent": "MjsOverlay/1.0.0 (local official ranking reader)"}
         with httpx.Client(timeout=20, follow_redirects=True, headers=headers) as client:
             links = []
             for page in range(1, 4):
                 if self.cancelled():return None, "已取消检查"
                 progress(f"正在检查官方榜单，第{page}页…")
-                response = client.get(OFFICIAL_LIST.format(page))
-                response.raise_for_status()
-                links.extend(post_links(response.text))
+                links.extend(post_links(self._html(client,OFFICIAL_LIST.format(page))))
             if not links:
                 raise ValueError("官方列表未解析到榜单帖子，可手动导入；当前榜单已保留")
             for link in sorted(set(links), key=lambda s: int(s.rsplit("/", 1)[1]), reverse=True)[:4]:
@@ -86,9 +116,7 @@ class Updater:
                 if all(current.get(mode, {}).get("heroes") and link.split("?")[0] == current[mode].get("source_url", "").split("?")[0] for mode in MODES):
                     continue
                 try:
-                    response = client.get(link)
-                    response.raise_for_status()
-                    urls = post_images(response.text)
+                    urls = post_images(self._html(client,link))
                     if not urls:raise ValueError("官方帖子原图未能解析，请手动导入官方图片")
                 except (httpx.HTTPError,ValueError) as error:
                     failures.append(str(error));continue
@@ -98,13 +126,19 @@ class Updater:
                         continue
                     try:
                         progress("正在核对官方图片的模式与周期…")
-                        with client.stream("GET", url) as stream:
-                            stream.raise_for_status()
-                            data = bytearray()
-                            for chunk in stream.iter_bytes():
-                                data.extend(chunk)
-                                if len(data) > 20_000_000:
-                                    raise ValueError("榜单图片超过20MB")
+                        image_cache=self.folder/'update-cache'/(hashlib.sha256(url.encode()).hexdigest()+'.image')
+                        checksum=read_json(image_cache.with_suffix('.sha.json'),{})
+                        data=image_cache.read_bytes() if image_cache.is_file() and image_cache.stat().st_size<=20_000_000 else b''
+                        if not data or hashlib.sha256(data).hexdigest()!=checksum.get('sha256'):
+                            with client.stream("GET", url) as stream:
+                                stream.raise_for_status()
+                                data = bytearray()
+                                for chunk in stream.iter_bytes():
+                                    data.extend(chunk)
+                                    if len(data) > 20_000_000:raise ValueError("榜单图片超过20MB")
+                            image_cache.write_bytes(data)
+                            write_json(image_cache.with_suffix('.sha.json'),{'sha256':hashlib.sha256(data).hexdigest()})
+                        if not self._idle(progress):return None,'已取消检查'
                         img = decode_image(data)
                         header = self.ocr.read(img[:min(img.shape[0], 2100)])
                         text = " ".join(w.text for w in header)
@@ -113,7 +147,16 @@ class Updater:
                             continue
                         baseline = current.get(mode, {})
                         year_match = re.search(r"_(20\d{2})\d{4}", url)
-                        draft = parse_words(self.ocr.document(img), img.shape[1], self.names, link, hashlib.sha256(data).hexdigest(), int(year_match[1]) if year_match else None)
+                        from .storage import ASSETS
+                        model_manifest=read_json(ASSETS/'models/manifest.json',{})
+                        parse_key=hashlib.sha256(json.dumps([url,hashlib.sha256(data).hexdigest(),model_manifest,sorted(self.names.names),self.names.aliases,'parser-v1'],sort_keys=True).encode()).hexdigest()
+                        parsed_path=self.folder/'update-cache'/(parse_key+'.parsed.json')
+                        draft=read_json(parsed_path)
+                        if not draft:
+                            if not self._idle(progress):return None,'已取消检查'
+                            draft = parse_words(self.ocr.document(img), img.shape[1], self.names, link, hashlib.sha256(data).hexdigest(), int(year_match[1]) if year_match else None)
+                            write_json(parsed_path,draft)
+                        draft=copy.deepcopy(draft)
                         if draft["period_end"] and draft["period_end"] <= baseline.get("period_end", ""):
                             continue
                         if draft["expected_count"] < len(baseline.get("heroes", [])):

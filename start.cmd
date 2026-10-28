@@ -1,6 +1,8 @@
 @echo off
 cd /d "%~dp0"
-if exist "dist\MjsOverlay-0.3.10-preview\MjsOverlay-0.3.10-preview.exe" (
+if exist "dist\MjsOverlay\MjsOverlay.exe" (
+  start "" "dist\MjsOverlay\MjsOverlay.exe"
+) else if exist "dist\MjsOverlay-0.3.10-preview\MjsOverlay-0.3.10-preview.exe" (
   start "" "dist\MjsOverlay-0.3.10-preview\MjsOverlay-0.3.10-preview.exe"
 ) else if exist "dist\MjsOverlay-0.3.8-preview\MjsOverlay-0.3.8-preview.exe" (
   start "" "dist\MjsOverlay-0.3.8-preview\MjsOverlay-0.3.8-preview.exe"

@@ -20,10 +20,10 @@ def run(output, sample=None):
     def blocked(*a, **k): raise RuntimeError('offline smoke: network disabled')
     socket.socket.connect = blocked
     store=BoardStore(); engine=Ocr()
-    img=Image.new('RGB',(600,140),'white')
-    font=ImageFont.truetype('C:/Windows/Fonts/msyh.ttc',45)
-    ImageDraw.Draw(img).text((20,25),'司马睿 64.38%',font=font,fill='black')
-    words=engine.read(cv2.cvtColor(np.asarray(img),cv2.COLOR_RGB2BGR))
+    # A public generated glyph fixture avoids requiring an optional CJK font
+    # pack on an English Windows installation or hosted CI runner.
+    img=cv2.imdecode(np.fromfile(ASSETS/'ocr-selftest.png',np.uint8),cv2.IMREAD_COLOR)
+    words=engine.read(img)
     assert any('司马睿' in x.text for x in words), [x.text for x in words]
     assert not validate_board(store.board)
     boards=store.all_current()
@@ -47,12 +47,24 @@ def run(output, sample=None):
         assert settings.enabled.isChecked() and settings.guides.isChecked() and settings.auto.isChecked()
         assert settings.keys['request'].text()=='Ctrl+Alt+P'
         settings.close()
+    from mjs_assistant.app import MainWindow
+    from mjs_assistant.storage import user_dir,write_json,read_json
+    # Full settings construction, without game/mini windows, hotkeys, updates,
+    # or any input. This isolated home is supplied by the installer/CI caller.
+    config=read_json(user_dir()/'settings.json',{})
+    config['diagnostic_notice_v1']=True;write_json(user_dir()/'settings.json',config)
+    with patch('mjs_assistant.app.windows',return_value=[]),patch.object(MainWindow,'install_hotkeys'),patch.object(MainWindow,'start_data'):
+        window=MainWindow()
+        window.worker.requestInterruption()
+        assert window.worker.wait(15000),'recognition model startup did not exit'
+        window.timer.stop();window.scan_timer.stop();window.update_timer.stop()
+        window.tray.hide();window.overlay.close();window.guide_panel.close();window.quitting=True;window.close()
     result={'offline':True,'qt_version':qVersion(),'models':{x.name:x.stat().st_size for x in (ASSETS/'models').glob('*.onnx')},
             'board_rows':{key:len(b['heroes']) for key,b in boards.items()},'words':[x.text for x in words],
             'uia_initialized':True,'entry_detection_bundled':True,
             'yingzheng_alias':True,'gongsunzan_alias':True,'guides_default_on':True,
             'query_default_on':True,'automatic_default_on':True,'request_hotkey':'Ctrl+Alt+P',
-            'query_optimizations_bundled':True}
+            'query_optimizations_bundled':True,'settings_constructed':True}
     if sample:
         from mjs_assistant.recognition import Recognizer, Stabilizer
         frame=cv2.imdecode(np.fromfile(sample,dtype=np.uint8),cv2.IMREAD_COLOR)

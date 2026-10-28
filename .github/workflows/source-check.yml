@@ -12,3 +12,31 @@ jobs:
           python-version: '3.11'
       - name: Compile source without running Windows automation
         run: python -m compileall -q mjs_assistant tools tests main.py
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: x64
+      - name: Install hash-locked wheels
+        run: python -m pip --isolated install --only-binary=:all: --require-hashes -r requirements-dev.lock.txt
+      - name: Verify dependencies and models
+        run: |
+          python -m pip check
+          python tools/restore_models.py
+      - name: Unit and replay tests (no game or mini program input)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -X utf8 -m pytest -q
+      - name: Build candidate executable
+        run: python -X utf8 -m PyInstaller --noconfirm MjsOverlay.spec
+      - name: Offline frozen self-check
+        shell: pwsh
+        run: |
+          $env:MJS_ASSISTANT_HOME=Join-Path $env:RUNNER_TEMP 'mjs-smoke-data'
+          $report=Join-Path $env:RUNNER_TEMP 'mjs-smoke.json'
+          $p=Start-Process -FilePath '.\dist\MjsOverlay\MjsOverlay.exe' -ArgumentList @('--smoke',('"'+$report+'"')) -Wait -PassThru -WindowStyle Hidden
+          if ($p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Frozen smoke failed' }
+          Get-Content -LiteralPath $report
