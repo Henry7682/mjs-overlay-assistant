@@ -60,6 +60,9 @@ def main():
         if digest(path)!=row['sha256'] or path.stat().st_size!=row['bytes']:raise ValueError('Model integrity failed')
         shutil.copy2(path,models/name)
     shutil.copy2(ROOT/'assets/models/manifest.json',models/'manifest.json')
+    # Standalone model downloads must carry their own upstream notices, too.
+    for name in ('LICENSE','MODEL_LICENSES.md'):
+        shutil.copy2(ROOT/'assets/licenses/rapidocr'/name,models/name)
     wheels=work/'wheels';wheels.mkdir()
     deps=json.loads((ROOT/'release/dependencies.json').read_text('utf8'))
     for row in deps['components']:
