@@ -34,6 +34,6 @@ $modelArgs=@('tools/restore_models.py')
 if ($ModelDirectory) { $modelArgs+=@('--from-dir',$ModelDirectory) }
 & $venv @modelArgs
 if ($LASTEXITCODE -ne 0) { throw 'OCR model verification failed.' }
-& $venv -c 'from PySide6 import QtCore,QtGui,QtWidgets; import cv2,rapidocr,onnxruntime,windows_capture,pywinauto; print("Imports OK")'
+& $venv -c "from PySide6 import QtCore,QtGui,QtWidgets; import cv2,rapidocr,onnxruntime,windows_capture,pywinauto; print('Imports OK')"
 if ($LASTEXITCODE -ne 0) { throw 'Runtime import self-check failed.' }
 Write-Host 'Environment and models ready. Run .venv\Scripts\python.exe -X utf8 main.py'

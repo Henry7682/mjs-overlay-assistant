@@ -18,21 +18,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.11.9'
           architecture: x64
       - name: Install hash-locked wheels
         run: |
-          python -m pip --isolated install --only-binary=:all: --require-hashes -r requirements-dev.lock.txt
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Python (Get-Command python).Source -Development
       - name: Verify dependencies and models
         run: |
-          python -m pip check
-          python tools/restore_models.py
+          .\.venv\Scripts\python.exe -m pip check
+          .\.venv\Scripts\python.exe tools/restore_models.py
       - name: Unit and replay tests (no game or mini program input)
         env:
           QT_QPA_PLATFORM: offscreen
-        run: python -X utf8 -m pytest -q
+        run: .\.venv\Scripts\python.exe -X utf8 -m pytest -q
       - name: Build candidate executable
-        run: python -X utf8 -m PyInstaller --noconfirm MjsOverlay.spec
+        run: .\.venv\Scripts\python.exe -X utf8 -m PyInstaller --noconfirm MjsOverlay.spec
       - name: Offline frozen self-check
         shell: pwsh
         run: |

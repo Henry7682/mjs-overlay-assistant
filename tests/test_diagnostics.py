@@ -74,3 +74,16 @@ def test_clear_only_registered_incidents_and_stop_inflight_capture(tmp_path):
         assert not registered.exists() and (unregistered/'keep.png').read_bytes()==b'keep'
         assert r.active is None and not r.ring
     finally:r.close()
+
+@pytest.mark.parametrize('expired',[False,True])
+def test_prune_registered_incident_age_and_capacity(tmp_path,expired):
+    import os
+    r=d.Recorder(tmp_path,enabled=False)
+    try:
+        folder=r.root/'20260101-010101-abcdef';folder.mkdir()
+        (folder/'incident.json').write_text(json.dumps({'kind':'mjs-diagnostic-incident','id':folder.name}))
+        (folder/'0000-game.png').write_bytes(b'pixels')
+        if expired:os.utime(folder,(time.time()-8*86400,)*2)
+        r.prune(reserve=0 if expired else 500_000_000)
+        assert not folder.exists()
+    finally:r.close()

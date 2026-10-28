@@ -69,6 +69,7 @@ class Recorder:
         self.lock=threading.RLock();self.stopping=threading.Event();self.dropped=0;self.last_trigger={}
         self.mini_hwnd=0
         self.capture_generation=0
+        self.next_prune=time.monotonic()+3600
         self.handler=logging.handlers.RotatingFileHandler(self.root/'events.jsonl',maxBytes=5_000_000,backupCount=8,encoding='utf8')
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         self.thread=threading.Thread(target=self._run,name='diagnostic-encoder',daemon=True);self.thread.start()
@@ -156,6 +157,8 @@ class Recorder:
         import cv2
         while not self.stopping.is_set() or not self.q.empty():
             try:
+                if time.monotonic()>=self.next_prune:
+                    self.prune();self.next_prune=time.monotonic()+3600
                 self._flush_events()
                 source,image,stamp,meta,generation=self.q.get(timeout=.2)
                 if self.enabled and generation==self.capture_generation:

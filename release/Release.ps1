@@ -162,6 +162,7 @@ function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline) {
         if ([int]$response.StatusCode -eq 206 -and $offset -eq 0) { throw 'Unexpected partial response.' }
         @{url=$Url;hash=$Asset.sha256;etag=$response.Headers['ETag']}|ConvertTo-Json|Set-Content -LiteralPath $etagFile -Encoding UTF8
         $mode=[IO.FileMode]::Create;if ($offset -gt 0) { $mode=[IO.FileMode]::Append }
+        Write-ReleaseEvent 'transfer' $(if($offset -gt 0){'resumed'}else{'full'}) $Url
         $output=[IO.File]::Open($partial,$mode);$stream=$response.GetResponseStream();$buffer=New-Object byte[] 65536
         try {
             while ($true) {
