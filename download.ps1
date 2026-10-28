@@ -16,6 +16,7 @@ if ($CheckOnly) {
     Write-Host 'Missing registry entry alone does not imply failure: portable DLLs may suffice. No software was installed.'
     exit 0
 }
+Set-ReleaseLog (Join-Path $Destination 'download-cache\download-events.jsonl')
 Write-Host 'MjsOverlay 1.0.0 downloader. Press S to cancel. No global pip or PATH changes.'
 $manifest=Read-Release $Source $key $OfflineDirectory
 $cache=Join-Path $Destination 'download-cache';$deadline=[datetime]::UtcNow.AddMinutes(15)

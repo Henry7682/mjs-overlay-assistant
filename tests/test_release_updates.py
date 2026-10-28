@@ -61,3 +61,29 @@ def test_migration_backup_and_config_preserved(tmp_path):
     backup=import_data(src,dst)
     assert read_json(backup/'settings.json')=={'old':1}
     assert read_json(dst/'settings.json')==read_json(src/'settings.json')
+
+def test_one_list_failure_still_checks_other_official_pages(tmp_path,monkeypatch):
+    import mjs_assistant.updater as module
+    calls=[]
+    u=Updater(tmp_path,None,Names())
+    def html(client,url):
+        calls.append(url)
+        if len(calls)==1:raise ValueError('page 1 unavailable')
+        return 'valid official list'
+    monkeypatch.setattr(u,'_html',html)
+    monkeypatch.setattr(module,'post_links',lambda text:['https://www.taptap.cn/moment/123'])
+    current={mode:{'heroes':[1],'source_url':'https://www.taptap.cn/moment/123'} for mode in module.MODES}
+    with pytest.raises(ValueError,match='部分官方来源'):u.check(current,True)
+    assert len(calls)==3
+    assert read_json(tmp_path/'update_state.json')['status']=='error'
+
+def test_import_legacy_single_board_preserves_period_and_previous(tmp_path):
+    from mjs_assistant.modes import MINGDAO
+    src=tmp_path/'legacy';dst=tmp_path/'new'
+    board=BoardStore(tmp_path/'seed').board
+    write_json(src/'settings.json',{'profiles':{'selection':[]},'recommendation':{'enabled':False}})
+    write_json(src/'board.json',board);write_json(src/'board.previous.json',board)
+    import_data(src,dst)
+    assert read_json(dst/f'boards/{MINGDAO}/current.json')==board
+    assert read_json(dst/f'boards/{MINGDAO}/previous.json')==board
+    assert read_json(src/'board.json')==board

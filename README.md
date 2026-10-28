@@ -7,7 +7,7 @@ Steam《名将杀》的独立 Windows 悬浮助手：截图识别可见武将，
 ## 下载与使用
 
 - [GitHub Releases](https://github.com/Henry7682/mjs-overlay-assistant/releases)：正式公开测试包将发布在这里；目前没有 1.0.0 资产。
-- Gitee：由维护者手动导入，实际镜像地址和匿名附件下载尚未核验，暂不提供自动镜像下载承诺。
+- [Gitee 国内源码镜像](https://gitee.com/henry7682/mjs-overlay-assistant)：仓库已建立，匿名源码访问已验证；分卷下载附件仍在准备，当前不能替代完整安装包。
 - [使用说明](docs/USAGE.md)：模式、统计来源、小程序准备、战斗攻略及快捷键。
 - [反馈问题](https://github.com/Henry7682/mjs-overlay-assistant/issues/new/choose)：公开问题表单；QQ群 **104720192**。
 
@@ -31,13 +31,11 @@ Steam《名将杀》的独立 Windows 悬浮助手：截图识别可见武将，
 ```powershell
 git clone https://github.com/Henry7682/mjs-overlay-assistant.git
 cd mjs-overlay-assistant
-py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
-.\.venv\Scripts\python.exe tools/restore_models.py
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
 .\.venv\Scripts\python.exe -X utf8 main.py
 ```
 
-要求 Python 3.11 x64。本仓库尚未完成干净环境安装验收；`requirements.lock.txt` 是当前开发环境版本记录，运行／开发依赖拆分和文件哈希锁定仍在进行。不要使用系统全局 Python 安装这些依赖。
+要求 Python 3.11 x64。`setup.ps1` 在项目内建立 `.venv`，按 `requirements-runtime.lock.txt` 安装经过哈希锁定的wheel；官方PyPI失败后逐个尝试清华、阿里云，不修改全局pip配置。开发测试使用 `-Development`，安装 `requirements-dev.lock.txt`。旧 `requirements.lock.txt` 仅为历史记录。干净Windows验证结果见发布状态。
 
 模型不直接放入 Git。`restore_models.py` 会从已安装 RapidOCR 包内寻找并按清单校验模型；如提示缺失，可从自己已有完整便携包的 `_internal/assets/models` 恢复：
 
@@ -45,18 +43,18 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe tools/restore_models.py --from-dir "旧便携目录\_internal\assets\models"
 ```
 
-独立模型下载包尚待发布；没有匹配模型时暂不能完成源码运行，不要自行替换为不同模型绕过哈希检查。
+锁定的 RapidOCR wheel 已包含三份匹配模型，安装脚本会恢复并校验；另准备独立模型包和离线wheel包。缺失或校验不符时停止，不替换为不同模型。
 
 | 组件 | 用途／下载渠道 | 当前交付情况 |
 |---|---|---|
 | Python 3.11 x64 | [Python 官方](https://www.python.org/downloads/windows/) | 源码运行需要；未来便携包内置运行时 |
-| Python 库 | [PyPI](https://pypi.org/)、[清华镜像](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/)、[阿里云镜像](https://mirrors.aliyun.com/pypi/simple/) | 版本见 requirements.lock.txt；哈希锁定与离线包待完成 |
+| Python 库 | [PyPI](https://pypi.org/)、[清华镜像](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/)、[阿里云镜像](https://mirrors.aliyun.com/pypi/simple/) | 运行35项／开发45项，版本和哈希见两份lock文件；便携版内置 |
 | OCR 模型 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | 清单见 assets/models/manifest.json；独立模型包待发布 |
 | 微信 | [微信官方](https://weixin.qq.com/) | 仅配阵需要，用户自行登录并打开小程序 |
 | Steam／名将杀 | [Steam 官方](https://store.steampowered.com/) | 用户自行安装游戏，助手不代购或登录 |
-| VC++ 运行库 | [微软官方说明](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist) | 运行库检测与安装引导待验收，不从 DLL 下载站补文件 |
+| VC++ 运行库 | [微软官方说明](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)、[x64安装器](https://aka.ms/vs/17/release/vc_redist.x64.exe) | 下载器检测；便携自检失败且运行库缺失时下载并验证微软签名，用户自行安装 |
 
-需要换 pip 源时，可对上述安装命令添加 `--index-url https://pypi.tuna.tsinghua.edu.cn/simple`，仅本次命令生效，不更改全局设置。未来下载器将统一做版本和哈希验证；现在请勿将未完成的 `download.ps1`／`launch.ps1` 当正式安装入口。
+下载器、命令提示符／PowerShell完整命令、离线安装和更新回退步骤见 [下载安装](docs/INSTALL.md)。公开资产就绪前，在线安装命令不能完成安装；不要把开发快照当作正式发行包。
 
 ## 反馈与隐私
 
@@ -72,10 +70,10 @@ py -3.11 -m venv .venv
 - 更多皮肤、分辨率、6～12 人巅峰布局、冷启动和持续实战仍有待验收项目。
 - 签名更新、下载器、诊断功能和国内镜像未完成正式发布验收。
 
-见 [TODO](TODO.md)、[测试记录](TESTING.md)、[性能调查](PERFORMANCE-2026-10-28.md)、[贡献指南](CONTRIBUTING.md)。仓库 CI 当前仅做 Python 语法检查，不等同 Windows 功能、打包或实战通过。
+见 [TODO](TODO.md)、[测试记录](TESTING.md)、[性能调查](PERFORMANCE-2026-10-28.md)、[贡献指南](CONTRIBUTING.md)。CI包含语法检查、Windows哈希依赖安装、单元／回放测试、构建及冻结程序离线自检；实际通过状态以Actions与发布记录为准，CI不操作游戏或小程序，不代替实战。
 
 ## 许可与关系说明
 
-本项目自有源码采用 **GPL-3.0-only**，见 [LICENSE](LICENSE)。第三方库、模型、官方榜单、游戏名称及画面裁片分别遵循各自许可和权利声明，见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。当前 Qt 许可材料收集仍待补齐，二进制公开发布前必须完成。
+本项目自有源码采用 **GPL-3.0-only**，见 [LICENSE](LICENSE)。第三方库、模型、官方榜单、游戏名称及画面裁片分别遵循各自许可和权利声明，见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。Qt及其第三方通知、动态库替换和源码取得说明随包保留。
 
 本项目是独立助手，不代表游戏官方或名将小助手作者，不宣称合作授权，也不分发小程序配阵数据库。私人实战截图、日志、账户配置和工作区历史不进入公开快照。

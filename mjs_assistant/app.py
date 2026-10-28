@@ -307,6 +307,7 @@ class MainWindow(GuideController,QMainWindow):
             else:self.data_busy.clear()
         metadata={k:data.get(k) for k in ('scene','phase','layout','seconds','rect')}
         metadata['mode']=data.get('mode_id')
+        metadata['round_id']=self.game_id
         metadata['items']=[{k:getattr(x,k,None) for k in ('name','raw','box','confidence','confirmed','slot')} for x in data.get('items',[])]
         diagnostics.event('recognition',**metadata)
         if data.get('scene') in ('selection','battle'):diagnostics.frame('game',data.get('frame'),**metadata)
@@ -328,6 +329,8 @@ class MainWindow(GuideController,QMainWindow):
         if data.get('in_entry'):
             hint=data.get('entry_mode')
             self.entry_hits=self.entry_hits+1 if self.entry_candidate==hint else 1;self.entry_candidate=hint
+            if self.entry_hits>=2 and hint and self.mode_box.currentData() and hint!=self.current_mode():
+                diagnostics.fault('入口与手动模式不一致')
             if self.entry_hits>=2:
                 if self.previous_scene in ('selection','battle'):self.reset_round('已确认返回模式入口')
                 self.previous_scene='entry'
@@ -645,6 +648,12 @@ def main():
         from .instance_control import SettingsServer
         try:window.settings_server=SettingsServer(folder,window.open_settings,window)
         except Exception:logging.exception('settings reopen channel unavailable; tray remains usable')
+        if not getattr(sys,'frozen',False):
+            from .software_update import SourceUpdateCheck
+            window.software_check=SourceUpdateCheck(window)
+            window.software_check.message.connect(lambda text:window.tray.showMessage('助手更新',text))
+            window.software_check.start()
+            app.aboutToQuit.connect(lambda:window.software_check.wait(14000))
         if '--tray' not in sys.argv:window.show()
         return app.exec()
     except Exception as e:

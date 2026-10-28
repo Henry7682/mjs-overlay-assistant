@@ -93,7 +93,8 @@ def test_label_geometry(scale):
 
 
 def test_listing_filters_unrelated_posts():
-    html='<a href="/moment/12">武将胜率排行榜</a><a href="/moment/13">玩家攻略</a>'
+    html='<div class="moment-list-item"><a class="moment-avator__avator--content" href="/app/737825">名将杀</a><a class="moment-article__link" href="/moment/12">武将胜率排行榜</a></div>'
+    html+='<a href="/moment/13">武将胜率 玩家推荐</a><div class="moment-list-item"><a class="moment-avator__avator--content" href="/user/other">玩家</a><a class="moment-article__link" href="/moment/14">武将胜率</a></div>'
     assert post_links(html)==['https://www.taptap.cn/moment/12']
     assert post_links('captcha')==[]
 

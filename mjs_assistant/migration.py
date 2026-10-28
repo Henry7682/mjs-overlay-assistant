@@ -16,6 +16,15 @@ def import_data(source,destination):
         from .modes import board_mode
         if validate_board(board) or board_mode(board)!=path.parent.name:raise ValueError('旧榜单校验失败或模式目录不符，未修改当前配置')
         files[path.relative_to(source).as_posix()]=board
+    # Version 0.1 used root-level files. Preserve these official periods too;
+    # the explicit per-mode files take precedence when both layouts exist.
+    from .modes import MINGDAO,board_mode
+    for old,new in (('board.json','current.json'),('board.previous.json','previous.json')):
+        path=source/old
+        if not path.is_file():continue
+        board=json.loads(path.read_text('utf8'))
+        if validate_board(board) or board_mode(board)!=MINGDAO:raise ValueError('旧版明刀暗箭榜单校验失败，未修改当前配置')
+        files.setdefault(f'boards/{MINGDAO}/{new}',board)
     backup=destination/'migration-backups'/uuid.uuid4().hex;backup.mkdir(parents=True)
     installed=[]
     try:

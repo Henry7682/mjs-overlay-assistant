@@ -5,6 +5,7 @@ Assert-Platform
 $homePath=$PSScriptRoot;$statePath=Join-Path $homePath 'current.json'
 if (-not (Test-Path -LiteralPath $statePath)) { throw 'Run download.cmd to prepare the installation.' }
 $dataPath=Join-Path $homePath 'data';[IO.Directory]::CreateDirectory($dataPath)|Out-Null
+Set-ReleaseLog (Join-Path $dataPath 'diagnostics\events.jsonl.update')
 $env:MJS_ASSISTANT_HOME=$dataPath
 $state=Get-Content -Raw -LiteralPath $statePath|ConvertFrom-Json
 Assert-Version $state.version
@@ -65,10 +66,12 @@ try {
             catch { $success=$false;Write-Host ('Could not commit update: '+$_.Exception.Message) }
         }
         if ($success) {
+            Write-ReleaseEvent 'startup' 'committed' '' $manifest.version
             Remove-Item -LiteralPath $pendingPath
         } else {
             if ($process -and -not $process.HasExited) { $process.Kill();$process.WaitForExit(3000)|Out-Null }
             Restore-UserData $homePath $backup
+            Write-ReleaseEvent 'startup' 'rolled_back' '' $manifest.version
             Write-AtomicJson (Join-Path $homePath 'failed-update.json') @{version=$manifest.version;reason='startup handshake failed'}
             Remove-Item -LiteralPath $pendingPath
             Remove-Item Env:MJS_READY_FILE -ErrorAction SilentlyContinue

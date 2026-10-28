@@ -17,6 +17,8 @@ class FakeResponse:
 
 
 def fake_http(monkeypatch,listing,post='',error=None):
+    listing=('<div class="moment-list-item"><a class="moment-avator__avator--content" href="/app/737825">名将杀</a>'
+             +listing.replace('<a ','<a class="moment-article__link" ')+'</div>')
     class Client:
         def __init__(self,*a,**k):pass
         def __enter__(self):return self

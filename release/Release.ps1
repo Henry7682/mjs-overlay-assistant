@@ -4,6 +4,27 @@ $ErrorActionPreference='Stop'
 $script:ReleaseOwner='Henry7682/mjs-overlay-assistant'
 $script:MirrorOwner='henry7682/mjs-overlay-assistant'
 $script:UpdateSkipped=$false
+$script:ReleaseLog=$null
+function Set-ReleaseLog([string]$Path) {
+    try { [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($Path))|Out-Null;$script:ReleaseLog=$Path } catch { $script:ReleaseLog=$null }
+}
+function Write-ReleaseEvent([string]$Stage,[string]$Status,[string]$Source='',[string]$Version='') {
+    if (-not $script:ReleaseLog) { return }
+    try {
+        $origin='';if ($Source) { $origin=([uri]$Source).Host }
+        $row=@{schema_version=1;event='release';time=[datetime]::UtcNow.ToString('o');stage=$Stage;status=$Status;source=$origin;version=$Version}|ConvertTo-Json -Compress
+        $encoding=New-Object Text.UTF8Encoding($false);$bytes=$encoding.GetByteCount($row)+2
+        if ((Test-Path -LiteralPath $script:ReleaseLog) -and (Get-Item -LiteralPath $script:ReleaseLog).Length+$bytes -gt 1000000) {
+            for ($i=4;$i -ge 1;$i--) {
+                $old=if($i -eq 1){$script:ReleaseLog}else{$script:ReleaseLog+'.'+($i-1)}
+                $next=$script:ReleaseLog+'.'+$i
+                if(Test-Path -LiteralPath $next){Remove-Item -LiteralPath $next}
+                if(Test-Path -LiteralPath $old){Move-Item -LiteralPath $old -Destination $next}
+            }
+        }
+        [IO.File]::AppendAllText($script:ReleaseLog,$row+"`r`n",$encoding)
+    } catch {} # Logging cannot stop installation or the usable previous version.
+}
 function Assert-Platform {
     if (-not [Environment]::Is64BitOperatingSystem) { throw 'Only Windows x64 is supported.' }
     if (-not [Environment]::Is64BitProcess) { throw 'Please use 64-bit Windows PowerShell.' }
@@ -85,7 +106,8 @@ function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory
                 Assert-Signature $bytes $sig $KeyPath
                 $m=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
                 if ($m.schema_version -eq 1 -and $m.channel -eq 'stable' -and $m.version -match '^\d+\.\d+\.\d+$') { $found+=,$m }
-            } catch { Write-Host ('Source unavailable: '+$url+' ('+$_.Exception.Message+')') }
+                Write-ReleaseEvent 'metadata' 'verified' $url $m.version
+            } catch { Write-ReleaseEvent 'metadata' 'unavailable' $url;Write-Host ('Source unavailable: '+$url+' ('+$_.Exception.Message+')') }
         }
         if (-not $found) { throw 'No verified release source available.' }
         $manifest=$found|Sort-Object {[version]$_.version} -Descending|Select-Object -First 1
@@ -106,7 +128,7 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
     if (-not $OfflineDirectory) {
         for ($attempt=0;$attempt -lt 2;$attempt++) {
             foreach ($url in $urls) {
-                try { Receive-File $url $target $Asset $Deadline;return $target } catch { Write-Host $_.Exception.Message;Test-Cancel }
+                try { Write-ReleaseEvent 'download' 'attempt' $url;Receive-File $url $target $Asset $Deadline;Write-ReleaseEvent 'download' 'verified' $url;return $target } catch { Write-ReleaseEvent 'download' 'failed' $url;Write-Host $_.Exception.Message;Test-Cancel }
                 if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
             }
         }

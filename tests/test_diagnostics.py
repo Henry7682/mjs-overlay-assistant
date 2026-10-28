@@ -61,3 +61,16 @@ def test_export_parts_bounds_and_modified_bundle_rejected(tmp_path):
     assert all(inspect(p)['validated'] for p in parts)
     with zipfile.ZipFile(parts[0],'a') as z:z.writestr('unexpected.txt','x')
     with pytest.raises(ValueError):inspect(parts[0])
+
+def test_clear_only_registered_incidents_and_stop_inflight_capture(tmp_path):
+    r=d.Recorder(tmp_path)
+    try:
+        registered=r.root/'20260101-010101-abcdef';registered.mkdir()
+        (registered/'incident.json').write_text(json.dumps({'kind':'mjs-diagnostic-incident','id':registered.name}))
+        (registered/'0000-game.png').write_bytes(b'image')
+        unregistered=r.root/'20260101-010101-aaaaaa';unregistered.mkdir()
+        (unregistered/'incident.json').write_text('{}');(unregistered/'keep.png').write_bytes(b'keep')
+        r.trigger('before clear');r.clear_incidents()
+        assert not registered.exists() and (unregistered/'keep.png').read_bytes()==b'keep'
+        assert r.active is None and not r.ring
+    finally:r.close()

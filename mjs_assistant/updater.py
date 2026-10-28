@@ -23,7 +23,11 @@ def post_links(html):
     """Only the official listing is a discovery source; never related-post links."""
     soup = BeautifulSoup(html, "html.parser")
     result = []
-    for a in soup.select('a[href*="/moment/"]'):
+    # The page also includes popular/player recommendations outside the official
+    # feed. Require both a feed card and the game's official author link.
+    for a in soup.select('.moment-list-item a.moment-article__link[href*="/moment/"]'):
+        card=a.find_parent(class_='moment-list-item')
+        if card is None or not card.select_one('a.moment-avator__avator--content[href="/app/737825"]'):continue
         href = a.get("href", "")
         if "武将胜率" in a.get_text("", strip=True):
             m = re.search(r"/moment/(\d+)", href)
@@ -107,14 +111,19 @@ class Updater:
             for page in range(1, 4):
                 if self.cancelled():return None, "已取消检查"
                 progress(f"正在检查官方榜单，第{page}页…")
-                links.extend(post_links(self._html(client,OFFICIAL_LIST.format(page))))
+                try:links.extend(post_links(self._html(client,OFFICIAL_LIST.format(page))))
+                except (httpx.HTTPError,ValueError) as error:
+                    failures.append(str(error));continue
             if not links:
                 raise ValueError("官方列表未解析到榜单帖子，可手动导入；当前榜单已保留")
             for link in sorted(set(links), key=lambda s: int(s.rsplit("/", 1)[1]), reverse=True)[:4]:
                 if legacy and link.split('?')[0]==current[MINGDAO].get('source_url','').split('?')[0]:
                     return None,'已是最新发现的官方榜单'
                 if all(current.get(mode, {}).get("heroes") and link.split("?")[0] == current[mode].get("source_url", "").split("?")[0] for mode in MODES):
-                    continue
+                    # Links are newest-first. Once every mode already comes
+                    # from this official post, older posts cannot add a newer
+                    # publication; do not OCR historical charts on every boot.
+                    break
                 try:
                     urls = post_images(self._html(client,link))
                     if not urls:raise ValueError("官方帖子原图未能解析，请手动导入官方图片")

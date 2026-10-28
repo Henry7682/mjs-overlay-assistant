@@ -17,6 +17,14 @@ def ps(code):
 
 def quoted(path):return "'"+str(path).replace("'","''")+"'"
 
+def test_update_log_only_records_source_host_and_rotates(tmp_path):
+    path=tmp_path/'events.jsonl.update';path.write_bytes(b'x'*999990)
+    result=ps(f"Set-ReleaseLog {quoted(path)}; Write-ReleaseEvent download failed 'https://example.com/private?token=hidden' 1.0.0")
+    assert result.returncode==0,result.stderr
+    row=json.loads(path.read_text('utf8'))
+    assert row['source']=='example.com' and 'hidden' not in path.read_text('utf8')
+    assert path.with_name(path.name+'.1').stat().st_size==999990
+
 @pytest.mark.parametrize('name',['../escape.txt','/escape.txt','C:/escape','sub/../../escape','aux.txt','a:stream','trailing.','dir\\..\\escape'])
 def test_archive_rejects_paths_before_write(tmp_path,name):
     archive=tmp_path/'bad.zip'

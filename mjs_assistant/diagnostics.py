@@ -69,7 +69,7 @@ class Recorder:
         self.lock=threading.RLock();self.stopping=threading.Event();self.dropped=0;self.last_trigger={}
         self.mini_hwnd=0
         self.capture_generation=0
-        self.handler=logging.handlers.RotatingFileHandler(self.root/'events.jsonl',maxBytes=5_000_000,backupCount=9,encoding='utf8')
+        self.handler=logging.handlers.RotatingFileHandler(self.root/'events.jsonl',maxBytes=5_000_000,backupCount=8,encoding='utf8')
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         self.thread=threading.Thread(target=self._run,name='diagnostic-encoder',daemon=True);self.thread.start()
         self.capture_thread=threading.Thread(target=self._mini_loop,name='diagnostic-mini-capture',daemon=True);self.capture_thread.start()
@@ -209,7 +209,7 @@ class Recorder:
             if path.is_file() and now-path.stat().st_mtime>14*86400:path.unlink(missing_ok=True)
         for path in self.root.iterdir():
             if path.is_file() and path.name.startswith('events.jsonl') and now-path.stat().st_mtime>14*86400:path.unlink(missing_ok=True)
-            if path.is_dir() and re.fullmatch(r'\d{8}-\d{6}-[0-9a-f]{6}',path.name) and (path/'incident.json').is_file():
+            if path.is_dir() and not path.is_symlink() and path.resolve().parent==self.root.resolve() and re.fullmatch(r'\d{8}-\d{6}-[0-9a-f]{6}',path.name) and (path/'incident.json').is_file():
                 if self.active and self.active['id']==path.name:continue
                 marker=read_json(path/'incident.json',{})
                 if marker.get('kind')!='mjs-diagnostic-incident' or marker.get('id')!=path.name:continue
@@ -236,7 +236,7 @@ class Recorder:
                 try:self.q.get_nowait()
                 except queue.Empty:break
             for folder in self.root.iterdir():
-                if folder.is_symlink() or not folder.is_dir() or not re.fullmatch(r'\d{8}-\d{6}-[0-9a-f]{6}',folder.name):continue
+                if folder.is_symlink() or not folder.is_dir() or folder.resolve().parent!=self.root.resolve() or not re.fullmatch(r'\d{8}-\d{6}-[0-9a-f]{6}',folder.name):continue
                 meta=read_json(folder/'incident.json',{})
                 if meta.get('kind')!='mjs-diagnostic-incident' or meta.get('id')!=folder.name:continue
                 for p in folder.iterdir():
