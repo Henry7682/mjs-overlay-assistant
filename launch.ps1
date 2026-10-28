@@ -51,8 +51,18 @@ try {
         } catch { $candidate=$null;Write-Host ('Update unavailable; using installed version. '+$_.Exception.Message) }
     }
     if ($candidate) {
-        $backup=Save-UserData $homePath
-        Write-AtomicJson $pendingPath @{version=$manifest.version;backup=$backup}
+        # No new process has run yet. A full disk or denied backup must not
+        # prevent the unchanged, usable version from starting.
+        try {
+            $backup=Save-UserData $homePath
+            Write-AtomicJson $pendingPath @{version=$manifest.version;backup=$backup}
+        } catch {
+            Write-ReleaseEvent 'backup' 'failed' '' $manifest.version
+            Write-Host ('Could not prepare update backup; using installed version. '+$_.Exception.Message)
+            $candidate=$null
+        }
+    }
+    if ($candidate) {
         $ready=Join-Path $dataPath ('ready-'+[guid]::NewGuid().ToString('N')+'.txt');$env:MJS_READY_FILE=$ready
         $process=$null;$success=$false
         try {
@@ -72,8 +82,12 @@ try {
             if ($process -and -not $process.HasExited) { $process.Kill();$process.WaitForExit(3000)|Out-Null }
             Restore-UserData $homePath $backup
             Write-ReleaseEvent 'startup' 'rolled_back' '' $manifest.version
-            Write-AtomicJson (Join-Path $homePath 'failed-update.json') @{version=$manifest.version;reason='startup handshake failed'}
-            Remove-Item -LiteralPath $pendingPath
+            try {
+                Write-AtomicJson (Join-Path $homePath 'failed-update.json') @{version=$manifest.version;reason='startup handshake failed'}
+                Remove-Item -LiteralPath $pendingPath
+            } catch {
+                Write-Host ('Data restored; failure journal could not be finalized. '+$_.Exception.Message)
+            }
             Remove-Item Env:MJS_READY_FILE -ErrorAction SilentlyContinue
             Start-Process -FilePath $exe -WindowStyle Hidden
             Write-Host 'New version did not start. Previous version and data restored.'

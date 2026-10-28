@@ -13,11 +13,15 @@
 
 依赖更新使用 `tools/lock_dependencies.py`，从下载的wheel生成运行／开发闭包并向PyPI核对哈希。不要直接冻结整个开发环境。原生运行时、Qt源码与模型另列在dependencies.json，第三方许可材料和原始权利声明随包保留。
 
+运行 `python tools/collect_dependency_notices.py wheel目录` 从锁定wheel收集全部内嵌许可；`--check`逐字节核对。打包器会强制检查，FlatBuffers的上游同版本许可也须存在。仅补许可／文档或启动脚本时可复用已测试的EXE，但必须重新打归档并检查新哈希。
+
 ## 签名与镜像
 
 RSA3072私钥保存在仓库之外，离线备份；只分发`release/public-key.xml`。对最终release.json原始UTF-8字节运行 `release/sign.ps1 -Manifest 清单路径 -PrivateKey 仓库外私钥路径`。不能在文档、日志或CI输出私钥。哈希不是发布者身份认证；清单签名也不是Windows Authenticode签名。
 
 先准备GitHub草稿Release及Gitee附件。Gitee普通附件不足以放完整大包，上传全部90MB以内分卷，保留稳定文件名。逐个匿名下载核对大小／SHA256后，将真实HTTPS地址加入对应parts.urls，再签名。镜像落后不能降级；只保留本项目登记的当前与上一版镜像资产，清理需核对资产ID，Git标签及GitHub历史不删除。未验证Gitee时`mirror_verified`必须保持false。
+
+将页面实际返回的地址整理为JSON对象（文件名→HTTPS下载地址），运行 `python tools/verify_mirror.py --manifest 候选/release.json --mapping 地址.json --cache 验证缓存 --output 新清单.json`。工具不读取浏览器认证，要求五种镜像角色均可匿名下载，并验证分卷合并后的整包哈希；任何一项失败均不输出可启用清单。随后再次签名，保留匿名验证报告。普通项目页面当前提示总附件配额1GB：上传前核对本项目已有附件总大小和本批大小，保留安全余量，不只检查单附件100MB限制。
 
 签名清单`release.json`／`release.sig`放在两个仓库main根目录，并附在Release。先上传全部字节一致的资产，再公开指向它们的清单；禁止清单先行导致旧客户端自动获取未就绪版本。签名完成后不得再修改ZIP或清单，需修改则重新打包、签名、验证。更新器只接受stable清单和更高版本号。
 

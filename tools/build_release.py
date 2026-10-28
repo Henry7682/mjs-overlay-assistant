@@ -13,6 +13,7 @@ import zipfile
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from mjs_assistant.version import VERSION,REPOSITORY
 from tools.export_public_source import export
+from tools.collect_dependency_notices import collect
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -34,11 +35,13 @@ def main():
     p=argparse.ArgumentParser();p.add_argument('--frozen',type=Path,required=True);p.add_argument('--wheels',type=Path,required=True)
     p.add_argument('--installers',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
     if a.output.exists():raise ValueError('Choose a fresh output folder; do not replace published assets.')
+    collect(a.wheels, check=True)
     a.output.mkdir(parents=True);work=a.output/'staging';work.mkdir()
     public=work/'source';export(public)
     payload=work/'payload';shutil.copytree(a.frozen,payload)
     if not (payload/'MjsOverlay.exe').is_file():raise ValueError('Frozen executable missing')
     if (payload/'data').exists():raise ValueError('Never package runtime data')
+    shutil.copytree(ROOT/'assets/licenses',payload/'_internal/assets/licenses',dirs_exist_ok=True)
     for name in ('launch.cmd','launch.ps1','README.md','LICENSE','THIRD_PARTY_NOTICES.md'):shutil.copy2(ROOT/name,payload/name)
     (payload/'release').mkdir(exist_ok=True)
     for name in ('Release.ps1','public-key.xml'):shutil.copy2(ROOT/'release'/name,payload/'release'/name)

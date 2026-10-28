@@ -2,6 +2,8 @@
 
 本项目独立实现；未复制 `CXH0920/mjs_agent_project` 的代码或训练数据。
 
+1.0.0 按锁定的 45 份 wheel 逐包核对许可和内嵌通知，完整保留相对目录，索引见 `assets/licenses/dependency-notices.json`（102项）。FlatBuffers 25.12.19 的 wheel 未附 LICENSE，另从上游同版本标签补入 Apache-2.0 原文及来源。`tools/collect_dependency_notices.py` 可重复检查这些文件；打包前必须通过。历史收集目录中额外保留的许可不代表相应组件参与本次分发。
+
 运行与开发依赖分别锁定在 `requirements-runtime.lock.txt`（35项）和 `requirements-dev.lock.txt`（45项），每个发行文件均含 SHA-256。`release/dependencies.json` 记录来源、文件大小、版本、许可及哈希。`requirements.lock.txt` 仅保留历史开发环境记录，不是1.0.0安装入口。
 
 便携包使用 CPython 3.11.9、PySide6 Essentials / Qt 6.12.0、OpenCV、NumPy、RapidOCR、ONNX Runtime、windows-capture、Pillow、httpx、BeautifulSoup 等。各分发包附带的许可、版权与通知文件保存在 `_internal/assets/licenses/`（源码为 `assets/licenses/`），请连同便携目录保留。PySide6 Addons、Qt PDF、WebEngine不参与分发。两个OpenCV发行包分别由上游依赖声明要求，版本与哈希均锁定；不自行删除其中之一造成元数据依赖缺失。

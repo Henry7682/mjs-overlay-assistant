@@ -14,7 +14,7 @@ TOOLS = (
     'smoke.py', 'restore_models.py', 'replay_diagnostics.py',
     'portable_worker_smoke.py', 'probe_focus_roundtrip.py', 'replay_provider.py',
     'package_release.py', 'export_public_source.py',
-    'lock_dependencies.py', 'build_release.py',
+    'lock_dependencies.py', 'build_release.py', 'collect_dependency_notices.py', 'verify_mirror.py',
 )
 ROOT_FILES = (
     'main.py', 'setup.ps1', 'start.cmd', 'build.ps1', 'MjsOverlay.spec',

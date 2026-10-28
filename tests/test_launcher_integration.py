@@ -24,7 +24,7 @@ def test_exes(tmp_path_factory):
         result[name]=path
     return result
 
-@pytest.mark.parametrize('candidate',['new','fail'])
+@pytest.mark.parametrize('candidate',['new','fail','backup_fail','journal_fail'])
 def test_launcher_commits_after_handshake_or_restores(tmp_path,test_exes,candidate):
     root=tmp_path/'install';(root/'release').mkdir(parents=True);(root/'versions/1.0.0').mkdir(parents=True)
     (root/'data').mkdir();(root/'data/settings.json').write_text('{"preserved":true}')
@@ -32,13 +32,17 @@ def test_launcher_commits_after_handshake_or_restores(tmp_path,test_exes,candida
     shutil.copy2(ROOT/'launch.ps1',root/'launch.ps1')
     (root/'current.json').write_text(json.dumps({'version':'1.0.0','previous':None}))
     cache=root/'download-cache';cache.mkdir();archive=cache/'payload.zip'
-    with zipfile.ZipFile(archive,'w') as z:z.write(test_exes[candidate],'MjsOverlay.exe')
+    with zipfile.ZipFile(archive,'w') as z:z.write(test_exes.get(candidate,test_exes['new']),'MjsOverlay.exe')
     manifest={'version':'1.0.1','assets':{'portable':{'name':archive.name,'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'urls':[]}}}
     fixture=root/'fixture.json';fixture.write_text(json.dumps(manifest))
     # Signature/network tested separately: this fixture isolates installation,
     # startup handshake and data rollback using the unchanged real launcher.
     library=(ROOT/'release/Release.ps1').read_text('utf8')
     library+='\nfunction Read-Release { Get-Content -Raw '+quoted(fixture)+' | ConvertFrom-Json }\n'
+    if candidate=='backup_fail':
+        library+='\nfunction Save-UserData { throw "simulated disk full before candidate launch" }\n'
+    if candidate=='journal_fail':
+        library+='\nfunction Write-AtomicJson { throw "simulated journal write denied" }\n'
     (root/'release/Release.ps1').write_text(library,'utf8')
     env=dict(os.environ,MJS_TEST_TRACE=str(root/'trace.txt'))
     r=subprocess.run([str(PS),'-NoProfile','-NonInteractive','-File',str(root/'launch.ps1')],env=env,capture_output=True,text=True,timeout=30)
@@ -47,6 +51,13 @@ def test_launcher_commits_after_handshake_or_restores(tmp_path,test_exes,candida
     assert state['version']==('1.0.1' if candidate=='new' else '1.0.0')
     assert json.loads((root/'data/settings.json').read_text())=={'preserved':True}
     assert not (root/'pending-update.json').exists()
+    if candidate in ('backup_fail','journal_fail'):
+        # Start-Process returns before the tiny old fixture writes its marker.
+        import time
+        for _ in range(30):
+            if (root/'trace.txt').exists():break
+            time.sleep(.05)
+        assert (root/'trace.txt').read_text()=='old'
     if candidate=='fail':
         assert json.loads((root/'failed-update.json').read_text())['version']=='1.0.1'
         assert list((root/'update-backups').glob('*/failed-data-*/settings.json'))
