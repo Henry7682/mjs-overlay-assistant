@@ -73,7 +73,7 @@ class Recorder:
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         self.thread=threading.Thread(target=self._run,name='diagnostic-encoder',daemon=True);self.thread.start()
         self.capture_thread=threading.Thread(target=self._mini_loop,name='diagnostic-mini-capture',daemon=True);self.capture_thread.start()
-        self.event('session',version=VERSION,environment={'os':platform.platform(),'architecture':platform.machine()},config=self.context)
+        self.event('session',version=VERSION,environment={'os':platform.platform(),'architecture':platform.machine(),'python':platform.python_version()},config=self.context)
         self.prune()
 
     def event(self,kind,**fields):
@@ -227,6 +227,23 @@ class Recorder:
         if not self.thread.is_alive():self.handler.close()
         handler=getattr(self,'text_handler',None)
         if handler:logging.getLogger().removeHandler(handler);handler.close()
+
+    def clear_incidents(self):
+        """Explicit user action; remove only this application's registered files."""
+        with self.lock:
+            self.capture_generation+=1;self.active=None;self.ring.clear();self.bytes=0
+            while True:
+                try:self.q.get_nowait()
+                except queue.Empty:break
+            for folder in self.root.iterdir():
+                if folder.is_symlink() or not folder.is_dir() or not re.fullmatch(r'\d{8}-\d{6}-[0-9a-f]{6}',folder.name):continue
+                meta=read_json(folder/'incident.json',{})
+                if meta.get('kind')!='mjs-diagnostic-incident' or meta.get('id')!=folder.name:continue
+                for p in folder.iterdir():
+                    if p.is_file() and not p.is_symlink() and (p.name=='incident.json' or re.fullmatch(r'\d{4}-(game|mini)\.png',p.name)):p.unlink()
+                try:folder.rmdir()
+                except OSError:pass
+        self.event('incidents_cleared')
 
     def export(self,destination,selected=None):
         """selected maps approved image paths to replacement PNG bytes (redactions)."""

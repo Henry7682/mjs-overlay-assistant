@@ -78,11 +78,6 @@ class FeedbackDialog(QDialog):
     def open_issue(self):QDesktopServices.openUrl(QUrl(ISSUES_URL))
     def clear(self):
         if QMessageBox.question(self,'清理本地故障包','仅删除助手登记的故障图片和事件包，已导出的包不受影响。')!=QMessageBox.StandardButton.Yes:return
-        import re
-        for folder in self.recorder.root.iterdir():
-            if folder.is_dir() and re.fullmatch(r'\d{8}-\d{6}-[0-9a-f]{6}',folder.name) and (folder/'incident.json').is_file():
-                for p in folder.iterdir():
-                    if p.is_file() and not p.is_symlink():p.unlink()
-                try:folder.rmdir()
-                except OSError:pass
+        self.recorder.clear_incidents()
+        self.current=None;self.preview.edited=None;self.preview.original=None
         self.list.clear();self.edits.clear();self.preview.clear()

@@ -59,7 +59,7 @@ class RecognitionThread(QThread):
     def __init__(self):
         super().__init__();self.lock=threading.Lock();self.hwnd=0;self.enabled=True;self.scene='auto';self.profiles={};self.extra=[];self.generation=0
         self.stabilizer=Stabilizer();self.correction=None;self.mode_id=None;self.allow_background=False
-        self.progress=None
+        self.progress=None;self.models_ready=False
 
     def configure(self,hwnd,enabled,scene,profiles,extra,mode_id=None):
         with self.lock:
@@ -74,6 +74,7 @@ class RecognitionThread(QThread):
                 self.status.emit(s);laststatus=s
         try:
             status('正在加载本地 OCR 模型…');ocr=Ocr();recognizer=Recognizer(ocr,Names())
+            self.models_ready=True
             while not self.isInterruptionRequested():
                 began=time.monotonic()
                 with self.lock:
@@ -125,6 +126,7 @@ class RecognitionThread(QThread):
         except Exception as e:
             logging.exception('recognition startup');self.status.emit(f'OCR 启动失败：{e}')
         finally:
+            self.models_ready=False
             if cap:cap.stop()
 
 
@@ -630,7 +632,16 @@ def main():
     try:
         window=MainWindow()
         ready=os.getenv('MJS_READY_FILE')
-        if ready:QTimer.singleShot(1000,lambda:Path(ready).write_text(VERSION,encoding='utf8'))
+        if ready:
+            # A responsive settings window alone must not accept a broken OCR
+            # update. The launcher commits only after local models initialize.
+            window.ready_timer=QTimer(window)
+            def signal_ready():
+                if window.worker.models_ready and window.worker.isRunning():
+                    try:Path(ready).write_text(VERSION,encoding='utf8')
+                    except OSError:logging.exception('startup handshake unavailable')
+                    window.ready_timer.stop()
+            window.ready_timer.timeout.connect(signal_ready);window.ready_timer.start(200)
         from .instance_control import SettingsServer
         try:window.settings_server=SettingsServer(folder,window.open_settings,window)
         except Exception:logging.exception('settings reopen channel unavailable; tray remains usable')

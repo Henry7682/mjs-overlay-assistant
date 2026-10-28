@@ -21,7 +21,8 @@ jobs:
           python-version: '3.11'
           architecture: x64
       - name: Install hash-locked wheels
-        run: python -m pip --isolated install --only-binary=:all: --require-hashes -r requirements-dev.lock.txt
+        run: |
+          python -m pip --isolated install --only-binary=:all: --require-hashes -r requirements-dev.lock.txt
       - name: Verify dependencies and models
         run: |
           python -m pip check

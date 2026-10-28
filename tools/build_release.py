@@ -25,7 +25,8 @@ def digest(path):
 def zipped(folder,target):
     with zipfile.ZipFile(target,'x',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
         for p in sorted(folder.rglob('*')):
-            if p.is_file() and not {'__pycache__','.git','.venv','runtime','data'}.intersection(p.relative_to(folder).parts):z.write(p,p.relative_to(folder).as_posix())
+            rel=p.relative_to(folder)
+            if p.is_file() and rel.parts[0] not in {'runtime','data'} and not {'__pycache__','.git','.venv'}.intersection(rel.parts):z.write(p,rel.as_posix())
     with zipfile.ZipFile(target) as z:
         if z.testzip():raise ValueError('ZIP integrity failed')
 
