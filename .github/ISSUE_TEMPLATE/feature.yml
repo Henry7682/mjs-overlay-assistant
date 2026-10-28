@@ -1,0 +1,10 @@
+name: 功能建议
+description: 描述使用场景与希望改善的行为
+body:
+  - type: textarea
+    id: request
+    attributes:
+      label: 希望解决什么问题
+      description: 请说明场景、现在的行为及期望结果，不要填写私人信息。
+    validations:
+      required: true

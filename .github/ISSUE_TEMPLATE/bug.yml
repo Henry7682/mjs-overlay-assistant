@@ -1,0 +1,45 @@
+name: 问题反馈
+description: 识别、配阵、浮窗或安装更新问题
+title: "[问题] "
+body:
+  - type: markdown
+    attributes:
+      value: "此处公开可见。请勿上传密码、令牌、私人聊天或原始游戏截图。需要原图时，请联系QQ群104720192群主／管理员后私聊。1.0.0尚在发布准备中，请写明实际使用版本。"
+  - type: input
+    id: version
+    attributes:
+      label: 助手版本或源码提交号
+      placeholder: "例如 0.3.10 便携版，或源码 commit"
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: 问题类型
+      options:
+        - 武将／模式识别
+        - 小程序配阵
+        - 浮窗／设置
+        - 安装／更新／启动
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境与模式
+      description: Windows版本、分辨率、缩放比例、窗口模式、游戏玩法；配阵问题可补充微信版本。
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤、预期与实际结果
+      description: 请描述发生阶段、具体武将、是否每次出现，以及哪些功能仍正常。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 诊断编号与脱敏证据
+      description: 可附公开反馈包；新诊断功能仍在验收。没有日志也可先描述，不要求重复开局。

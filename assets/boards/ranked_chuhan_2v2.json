@@ -1,0 +1,3698 @@
+{
+  "schema_version": 2,
+  "mode": "排位·楚汉争霸（二二对战）",
+  "period_start": "2026-10-08",
+  "period_end": "2026-10-21",
+  "source_url": "https://www.taptap.cn/moment/862288428044126071",
+  "image_sha256": "6d3a110296af1a4e4524e12903f0add61353dd9fdfdcdd21105077b9528186e1",
+  "expected_count": 191,
+  "heroes": [
+    {
+      "name": "王羲之",
+      "win_rank": 1,
+      "win_rate": 71.24,
+      "pick_rank": 7
+    },
+    {
+      "name": "偃师",
+      "win_rank": 2,
+      "win_rate": 70.65,
+      "pick_rank": 68
+    },
+    {
+      "name": "赵奢",
+      "win_rank": 3,
+      "win_rate": 68.89,
+      "pick_rank": 1
+    },
+    {
+      "name": "王元姬",
+      "win_rank": 4,
+      "win_rate": 68.42,
+      "pick_rank": 43
+    },
+    {
+      "name": "白起",
+      "win_rank": 5,
+      "win_rate": 67.95,
+      "pick_rank": 3
+    },
+    {
+      "name": "王导",
+      "win_rank": 6,
+      "win_rate": 67.73,
+      "pick_rank": 9
+    },
+    {
+      "name": "司马炎",
+      "win_rank": 7,
+      "win_rate": 64.6,
+      "pick_rank": 109
+    },
+    {
+      "name": "祖逖",
+      "win_rank": 8,
+      "win_rate": 63.81,
+      "pick_rank": 5
+    },
+    {
+      "name": "羊献容",
+      "win_rank": 9,
+      "win_rate": 63.65,
+      "pick_rank": 46
+    },
+    {
+      "name": "杜预",
+      "win_rank": 10,
+      "win_rate": 61.25,
+      "pick_rank": 12
+    },
+    {
+      "name": "嬴政",
+      "win_rank": 11,
+      "win_rate": 61.08,
+      "pick_rank": 4
+    },
+    {
+      "name": "赵威后",
+      "win_rank": 12,
+      "win_rate": 59.85,
+      "pick_rank": 18
+    },
+    {
+      "name": "张华",
+      "win_rank": 13,
+      "win_rate": 59.08,
+      "pick_rank": 8
+    },
+    {
+      "name": "蔺相如",
+      "win_rank": 14,
+      "win_rate": 58.67,
+      "pick_rank": 57
+    },
+    {
+      "name": "韩娥",
+      "win_rank": 15,
+      "win_rate": 58.12,
+      "pick_rank": 14
+    },
+    {
+      "name": "萧何",
+      "win_rank": 16,
+      "win_rate": 57.69,
+      "pick_rank": 54
+    },
+    {
+      "name": "子婴",
+      "win_rank": 17,
+      "win_rate": 57.59,
+      "pick_rank": 60
+    },
+    {
+      "name": "司马睿",
+      "win_rank": 18,
+      "win_rate": 57.43,
+      "pick_rank": 11
+    },
+    {
+      "name": "孙权",
+      "win_rank": 19,
+      "win_rate": 57.24,
+      "pick_rank": 15
+    },
+    {
+      "name": "吕雉",
+      "win_rank": 20,
+      "win_rate": 56.89,
+      "pick_rank": 39
+    },
+    {
+      "name": "谢灵运",
+      "win_rank": 21,
+      "win_rate": 55.81,
+      "pick_rank": 24
+    },
+    {
+      "name": "张良",
+      "win_rank": 22,
+      "win_rate": 55.77,
+      "pick_rank": 63
+    },
+    {
+      "name": "卫玠",
+      "win_rank": 23,
+      "win_rate": 55.67,
+      "pick_rank": 33
+    },
+    {
+      "name": "霍去病",
+      "win_rank": 24,
+      "win_rate": 55.32,
+      "pick_rank": 10
+    },
+    {
+      "name": "主父偃",
+      "win_rank": 25,
+      "win_rate": 55.3,
+      "pick_rank": 69
+    },
+    {
+      "name": "潘安",
+      "win_rank": 26,
+      "win_rate": 55.23,
+      "pick_rank": 21
+    },
+    {
+      "name": "徐盛",
+      "win_rank": 27,
+      "win_rate": 54.97,
+      "pick_rank": 59
+    },
+    {
+      "name": "郭嘉",
+      "win_rank": 28,
+      "win_rate": 54.51,
+      "pick_rank": 13
+    },
+    {
+      "name": "夏侯惇",
+      "win_rank": 29,
+      "win_rate": 54.45,
+      "pick_rank": 23
+    },
+    {
+      "name": "袁术",
+      "win_rank": 30,
+      "win_rate": 54.39,
+      "pick_rank": 31
+    },
+    {
+      "name": "荀灌",
+      "win_rank": 31,
+      "win_rate": 54.13,
+      "pick_rank": 40
+    },
+    {
+      "name": "吕不韦",
+      "win_rank": 32,
+      "win_rate": 54.1,
+      "pick_rank": 29
+    },
+    {
+      "name": "张春华",
+      "win_rank": 33,
+      "win_rate": 53.99,
+      "pick_rank": 52
+    },
+    {
+      "name": "大乔",
+      "win_rank": 34,
+      "win_rate": 53.19,
+      "pick_rank": 48
+    },
+    {
+      "name": "陈宫",
+      "win_rank": 35,
+      "win_rate": 52.85,
+      "pick_rank": 26
+    },
+    {
+      "name": "平阳公主",
+      "win_rank": 36,
+      "win_rate": 52.74,
+      "pick_rank": 6
+    },
+    {
+      "name": "陶侃",
+      "win_rank": 37,
+      "win_rate": 51.92,
+      "pick_rank": 89
+    },
+    {
+      "name": "鲁仲连",
+      "win_rank": 38,
+      "win_rate": 51.87,
+      "pick_rank": 35
+    },
+    {
+      "name": "君王后",
+      "win_rank": 39,
+      "win_rate": 51.74,
+      "pick_rank": 80
+    },
+    {
+      "name": "庞统",
+      "win_rank": 40,
+      "win_rate": 51.34,
+      "pick_rank": 53
+    },
+    {
+      "name": "刘彻",
+      "win_rank": 41,
+      "win_rate": 51.25,
+      "pick_rank": 65
+    },
+    {
+      "name": "王异",
+      "win_rank": 42,
+      "win_rate": 51.18,
+      "pick_rank": 2
+    },
+    {
+      "name": "春申君",
+      "win_rank": 43,
+      "win_rate": 51.14,
+      "pick_rank": 96
+    },
+    {
+      "name": "法正",
+      "win_rank": 44,
+      "win_rate": 50.93,
+      "pick_rank": 25
+    },
+    {
+      "name": "乐毅",
+      "win_rank": 45,
+      "win_rate": 50.76,
+      "pick_rank": 49
+    },
+    {
+      "name": "韩安国",
+      "win_rank": 46,
+      "win_rate": 50.74,
+      "pick_rank": 34
+    },
+    {
+      "name": "王濬",
+      "win_rank": 47,
+      "win_rate": 50.73,
+      "pick_rank": 27
+    },
+    {
+      "name": "侯嬴",
+      "win_rank": 48,
+      "win_rate": 50.73,
+      "pick_rank": 161
+    },
+    {
+      "name": "陆机",
+      "win_rank": 49,
+      "win_rate": 50.57,
+      "pick_rank": 58
+    },
+    {
+      "name": "钟无艳",
+      "win_rank": 50,
+      "win_rate": 50.45,
+      "pick_rank": 61
+    },
+    {
+      "name": "陆逊",
+      "win_rank": 51,
+      "win_rate": 50.41,
+      "pick_rank": 28
+    },
+    {
+      "name": "曹仁",
+      "win_rank": 52,
+      "win_rate": 50.4,
+      "pick_rank": 108
+    },
+    {
+      "name": "马超",
+      "win_rank": 53,
+      "win_rate": 50.13,
+      "pick_rank": 95
+    },
+    {
+      "name": "高渐离",
+      "win_rank": 54,
+      "win_rate": 50.07,
+      "pick_rank": 70
+    },
+    {
+      "name": "荀彧",
+      "win_rank": 55,
+      "win_rate": 49.67,
+      "pick_rank": 38
+    },
+    {
+      "name": "桑弘羊",
+      "win_rank": 56,
+      "win_rate": 49.38,
+      "pick_rank": 140
+    },
+    {
+      "name": "吕蒙",
+      "win_rank": 57,
+      "win_rate": 49.29,
+      "pick_rank": 114
+    },
+    {
+      "name": "龙且",
+      "win_rank": 58,
+      "win_rate": 49.25,
+      "pick_rank": 92
+    },
+    {
+      "name": "巴清",
+      "win_rank": 59,
+      "win_rate": 49.05,
+      "pick_rank": 102
+    },
+    {
+      "name": "廉颇",
+      "win_rank": 60,
+      "win_rate": 48.91,
+      "pick_rank": 44
+    },
+    {
+      "name": "申不害",
+      "win_rank": 61,
+      "win_rate": 48.68,
+      "pick_rank": 19
+    },
+    {
+      "name": "李牧",
+      "win_rank": 62,
+      "win_rate": 48.67,
+      "pick_rank": 17
+    },
+    {
+      "name": "曹丕",
+      "win_rank": 63,
+      "win_rate": 48.55,
+      "pick_rank": 45
+    },
+    {
+      "name": "赵婕妤",
+      "win_rank": 64,
+      "win_rate": 48.34,
+      "pick_rank": 75
+    },
+    {
+      "name": "刘备",
+      "win_rank": 65,
+      "win_rate": 48.01,
+      "pick_rank": 87
+    },
+    {
+      "name": "周勃",
+      "win_rank": 66,
+      "win_rate": 47.99,
+      "pick_rank": 74
+    },
+    {
+      "name": "扶苏",
+      "win_rank": 67,
+      "win_rate": 47.93,
+      "pick_rank": 126
+    },
+    {
+      "name": "章邯",
+      "win_rank": 68,
+      "win_rate": 47.73,
+      "pick_rank": 56
+    },
+    {
+      "name": "诸葛亮",
+      "win_rank": 69,
+      "win_rate": 47.58,
+      "pick_rank": 20
+    },
+    {
+      "name": "赵云",
+      "win_rank": 70,
+      "win_rate": 47.55,
+      "pick_rank": 16
+    },
+    {
+      "name": "陈阿娇",
+      "win_rank": 71,
+      "win_rate": 47.54,
+      "pick_rank": 71
+    },
+    {
+      "name": "甘宁",
+      "win_rank": 72,
+      "win_rate": 47.45,
+      "pick_rank": 51
+    },
+    {
+      "name": "虞姬",
+      "win_rank": 73,
+      "win_rate": 47.35,
+      "pick_rank": 128
+    },
+    {
+      "name": "卫青",
+      "win_rank": 74,
+      "win_rate": 47.34,
+      "pick_rank": 42
+    },
+    {
+      "name": "袁绍",
+      "win_rank": 75,
+      "win_rate": 46.96,
+      "pick_rank": 78
+    },
+    {
+      "name": "孙策",
+      "win_rank": 76,
+      "win_rate": 46.66,
+      "pick_rank": 66
+    },
+    {
+      "name": "太子丹",
+      "win_rank": 77,
+      "win_rate": 45.77,
+      "pick_rank": 105
+    },
+    {
+      "name": "董仲舒",
+      "win_rank": 78,
+      "win_rate": 45.59,
+      "pick_rank": 106
+    },
+    {
+      "name": "魏延",
+      "win_rank": 79,
+      "win_rate": 45.59,
+      "pick_rank": 138
+    },
+    {
+      "name": "芈八子",
+      "win_rank": 80,
+      "win_rate": 45.53,
+      "pick_rank": 84
+    },
+    {
+      "name": "步练师",
+      "win_rank": 81,
+      "win_rate": 45.44,
+      "pick_rank": 112
+    },
+    {
+      "name": "左慈",
+      "win_rank": 82,
+      "win_rate": 45.22,
+      "pick_rank": 22
+    },
+    {
+      "name": "王翦",
+      "win_rank": 83,
+      "win_rate": 45.15,
+      "pick_rank": 73
+    },
+    {
+      "name": "孙尚香",
+      "win_rank": 84,
+      "win_rate": 45.04,
+      "pick_rank": 36
+    },
+    {
+      "name": "张辽",
+      "win_rank": 85,
+      "win_rate": 44.93,
+      "pick_rank": 85
+    },
+    {
+      "name": "甄宓",
+      "win_rank": 86,
+      "win_rate": 44.73,
+      "pick_rank": 82
+    },
+    {
+      "name": "贾诩",
+      "win_rank": 87,
+      "win_rate": 44.73,
+      "pick_rank": 155
+    },
+    {
+      "name": "鲁肃",
+      "win_rank": 88,
+      "win_rate": 44.63,
+      "pick_rank": 118
+    },
+    {
+      "name": "信陵君",
+      "win_rank": 89,
+      "win_rate": 44.57,
+      "pick_rank": 62
+    },
+    {
+      "name": "张角",
+      "win_rank": 90,
+      "win_rate": 44.43,
+      "pick_rank": 30
+    },
+    {
+      "name": "卓文君",
+      "win_rank": 91,
+      "win_rate": 44.38,
+      "pick_rank": 100
+    },
+    {
+      "name": "蒙恬",
+      "win_rank": 92,
+      "win_rate": 44.33,
+      "pick_rank": 99
+    },
+    {
+      "name": "陈平",
+      "win_rank": 93,
+      "win_rate": 44.3,
+      "pick_rank": 124
+    },
+    {
+      "name": "范增",
+      "win_rank": 94,
+      "win_rate": 44.18,
+      "pick_rank": 104
+    },
+    {
+      "name": "张宝",
+      "win_rank": 95,
+      "win_rate": 44.04,
+      "pick_rank": 67
+    },
+    {
+      "name": "左棻",
+      "win_rank": 96,
+      "win_rate": 43.87,
+      "pick_rank": 79
+    },
+    {
+      "name": "张郃",
+      "win_rank": 97,
+      "win_rate": 43.87,
+      "pick_rank": 133
+    },
+    {
+      "name": "张骞",
+      "win_rank": 98,
+      "win_rate": 43.76,
+      "pick_rank": 76
+    },
+    {
+      "name": "董卓",
+      "win_rank": 99,
+      "win_rate": 43.74,
+      "pick_rank": 93
+    },
+    {
+      "name": "刘邦",
+      "win_rank": 100,
+      "win_rate": 43.57,
+      "pick_rank": 37
+    },
+    {
+      "name": "终军",
+      "win_rank": 101,
+      "win_rate": 43.51,
+      "pick_rank": 98
+    },
+    {
+      "name": "马钧",
+      "win_rank": 102,
+      "win_rate": 43.5,
+      "pick_rank": 72
+    },
+    {
+      "name": "郑袖",
+      "win_rank": 103,
+      "win_rate": 43.44,
+      "pick_rank": 107
+    },
+    {
+      "name": "韩信",
+      "win_rank": 104,
+      "win_rate": 43.39,
+      "pick_rank": 77
+    },
+    {
+      "name": "吕布",
+      "win_rank": 105,
+      "win_rate": 43.37,
+      "pick_rank": 91
+    },
+    {
+      "name": "貂蝉",
+      "win_rank": 106,
+      "win_rate": 42.63,
+      "pick_rank": 83
+    },
+    {
+      "name": "黄月英",
+      "win_rank": 107,
+      "win_rate": 42.47,
+      "pick_rank": 32
+    },
+    {
+      "name": "姜维",
+      "win_rank": 108,
+      "win_rate": 42.42,
+      "pick_rank": 150
+    },
+    {
+      "name": "平原君",
+      "win_rank": 109,
+      "win_rate": 42.18,
+      "pick_rank": 132
+    },
+    {
+      "name": "周处",
+      "win_rank": 110,
+      "win_rate": 42.16,
+      "pick_rank": 136
+    },
+    {
+      "name": "张飞",
+      "win_rank": 111,
+      "win_rate": 42.06,
+      "pick_rank": 125
+    },
+    {
+      "name": "陈胜",
+      "win_rank": 112,
+      "win_rate": 41.88,
+      "pick_rank": 164
+    },
+    {
+      "name": "曹操",
+      "win_rank": 113,
+      "win_rate": 41.86,
+      "pick_rank": 115
+    },
+    {
+      "name": "羊祜",
+      "win_rank": 114,
+      "win_rate": 41.72,
+      "pick_rank": 131
+    },
+    {
+      "name": "霍光",
+      "win_rank": 115,
+      "win_rate": 41.35,
+      "pick_rank": 152
+    },
+    {
+      "name": "周瑜",
+      "win_rank": 116,
+      "win_rate": 41.29,
+      "pick_rank": 110
+    },
+    {
+      "name": "西门豹",
+      "win_rank": 117,
+      "win_rate": 41.1,
+      "pick_rank": 167
+    },
+    {
+      "name": "尉缭",
+      "win_rank": 118,
+      "win_rate": 40.81,
+      "pick_rank": 86
+    },
+    {
+      "name": "张仪",
+      "win_rank": 119,
+      "win_rate": 40.42,
+      "pick_rank": 55
+    },
+    {
+      "name": "金日磾",
+      "win_rank": 120,
+      "win_rate": 40.38,
+      "pick_rank": 134
+    },
+    {
+      "name": "项羽",
+      "win_rank": 121,
+      "win_rate": 40.31,
+      "pick_rank": 113
+    },
+    {
+      "name": "燕昭王",
+      "win_rank": 122,
+      "win_rate": 40.12,
+      "pick_rank": 143
+    },
+    {
+      "name": "苏秦",
+      "win_rank": 123,
+      "win_rate": 40.11,
+      "pick_rank": 64
+    },
+    {
+      "name": "赵姬",
+      "win_rank": 124,
+      "win_rate": 40.0,
+      "pick_rank": 88
+    },
+    {
+      "name": "太史慈",
+      "win_rank": 125,
+      "win_rate": 39.93,
+      "pick_rank": 94
+    },
+    {
+      "name": "蒙毅",
+      "win_rank": 126,
+      "win_rate": 39.74,
+      "pick_rank": 120
+    },
+    {
+      "name": "郑国",
+      "win_rank": 127,
+      "win_rate": 39.73,
+      "pick_rank": 156
+    },
+    {
+      "name": "孟姚",
+      "win_rank": 128,
+      "win_rate": 39.71,
+      "pick_rank": 97
+    },
+    {
+      "name": "曹植",
+      "win_rank": 129,
+      "win_rate": 39.65,
+      "pick_rank": 101
+    },
+    {
+      "name": "韩非",
+      "win_rank": 130,
+      "win_rate": 39.57,
+      "pick_rank": 41
+    },
+    {
+      "name": "卫子夫",
+      "win_rank": 131,
+      "win_rate": 39.52,
+      "pick_rank": 103
+    },
+    {
+      "name": "山涛",
+      "win_rank": 132,
+      "win_rate": 39.52,
+      "pick_rank": 169
+    },
+    {
+      "name": "小乔",
+      "win_rank": 133,
+      "win_rate": 39.37,
+      "pick_rank": 117
+    },
+    {
+      "name": "魏华存",
+      "win_rank": 134,
+      "win_rate": 39.32,
+      "pick_rank": 47
+    },
+    {
+      "name": "黄忠",
+      "win_rank": 135,
+      "win_rate": 39.26,
+      "pick_rank": 166
+    },
+    {
+      "name": "孙坚",
+      "win_rank": 136,
+      "win_rate": 39.23,
+      "pick_rank": 121
+    },
+    {
+      "name": "蔡文姬",
+      "win_rank": 137,
+      "win_rate": 39.07,
+      "pick_rank": 137
+    },
+    {
+      "name": "卢莫愁",
+      "win_rank": 138,
+      "win_rate": 38.98,
+      "pick_rank": 123
+    },
+    {
+      "name": "项梁",
+      "win_rank": 139,
+      "win_rate": 38.96,
+      "pick_rank": 50
+    },
+    {
+      "name": "李信",
+      "win_rank": 140,
+      "win_rate": 38.66,
+      "pick_rank": 116
+    },
+    {
+      "name": "谢安",
+      "win_rank": 141,
+      "win_rate": 38.28,
+      "pick_rank": 188
+    },
+    {
+      "name": "田单",
+      "win_rank": 142,
+      "win_rate": 38.27,
+      "pick_rank": 157
+    },
+    {
+      "name": "英布",
+      "win_rank": 143,
+      "win_rate": 38.08,
+      "pick_rank": 139
+    },
+    {
+      "name": "范雎",
+      "win_rank": 144,
+      "win_rate": 38.05,
+      "pick_rank": 127
+    },
+    {
+      "name": "司马相如",
+      "win_rank": 145,
+      "win_rate": 38.03,
+      "pick_rank": 111
+    },
+    {
+      "name": "傅玄",
+      "win_rank": 146,
+      "win_rate": 37.95,
+      "pick_rank": 159
+    },
+    {
+      "name": "项燕",
+      "win_rank": 147,
+      "win_rate": 37.9,
+      "pick_rank": 142
+    },
+    {
+      "name": "庞煖",
+      "win_rank": 148,
+      "win_rate": 37.89,
+      "pick_rank": 145
+    },
+    {
+      "name": "张梁",
+      "win_rank": 149,
+      "win_rate": 37.6,
+      "pick_rank": 129
+    },
+    {
+      "name": "吴国太",
+      "win_rank": 150,
+      "win_rate": 37.53,
+      "pick_rank": 119
+    },
+    {
+      "name": "杨艳",
+      "win_rank": 151,
+      "win_rate": 37.48,
+      "pick_rank": 151
+    },
+    {
+      "name": "魏咎",
+      "win_rank": 152,
+      "win_rate": 37.45,
+      "pick_rank": 182
+    },
+    {
+      "name": "左思",
+      "win_rank": 153,
+      "win_rate": 37.06,
+      "pick_rank": 141
+    },
+    {
+      "name": "凌统",
+      "win_rank": 154,
+      "win_rate": 37.05,
+      "pick_rank": 122
+    },
+    {
+      "name": "孟尝君",
+      "win_rank": 155,
+      "win_rate": 36.77,
+      "pick_rank": 154
+    },
+    {
+      "name": "公孙瓒",
+      "win_rank": 156,
+      "win_rate": 36.67,
+      "pick_rank": 90
+    },
+    {
+      "name": "关羽",
+      "win_rank": 157,
+      "win_rate": 36.61,
+      "pick_rank": 130
+    },
+    {
+      "name": "宋玉",
+      "win_rank": 158,
+      "win_rate": 36.6,
+      "pick_rank": 81
+    },
+    {
+      "name": "徐晃",
+      "win_rank": 159,
+      "win_rate": 36.49,
+      "pick_rank": 149
+    },
+    {
+      "name": "黄盖",
+      "win_rank": 160,
+      "win_rate": 35.73,
+      "pick_rank": 163
+    },
+    {
+      "name": "季布",
+      "win_rank": 161,
+      "win_rate": 35.59,
+      "pick_rank": 170
+    },
+    {
+      "name": "祝融夫人",
+      "win_rank": 162,
+      "win_rate": 35.59,
+      "pick_rank": 172
+    },
+    {
+      "name": "刘协",
+      "win_rank": 163,
+      "win_rate": 35.57,
+      "pick_rank": 179
+    },
+    {
+      "name": "樊哙",
+      "win_rank": 164,
+      "win_rate": 35.41,
+      "pick_rank": 148
+    },
+    {
+      "name": "刘禅",
+      "win_rank": 165,
+      "win_rate": 35.04,
+      "pick_rank": 135
+    },
+    {
+      "name": "李夫人",
+      "win_rank": 166,
+      "win_rate": 34.75,
+      "pick_rank": 168
+    },
+    {
+      "name": "郭解",
+      "win_rank": 167,
+      "win_rate": 34.75,
+      "pick_rank": 174
+    },
+    {
+      "name": "李广",
+      "win_rank": 168,
+      "win_rate": 34.4,
+      "pick_rank": 162
+    },
+    {
+      "name": "秦舞阳",
+      "win_rank": 169,
+      "win_rate": 34.21,
+      "pick_rank": 185
+    },
+    {
+      "name": "如姬",
+      "win_rank": 170,
+      "win_rate": 34.19,
+      "pick_rank": 158
+    },
+    {
+      "name": "华佗",
+      "win_rank": 171,
+      "win_rate": 34.01,
+      "pick_rank": 165
+    },
+    {
+      "name": "孟获",
+      "win_rank": 172,
+      "win_rate": 33.36,
+      "pick_rank": 175
+    },
+    {
+      "name": "钟离眜",
+      "win_rank": 173,
+      "win_rate": 33.27,
+      "pick_rank": 144
+    },
+    {
+      "name": "郭隗",
+      "win_rank": 174,
+      "win_rate": 32.63,
+      "pick_rank": 153
+    },
+    {
+      "name": "临海公主",
+      "win_rank": 175,
+      "win_rate": 32.11,
+      "pick_rank": 147
+    },
+    {
+      "name": "乐广",
+      "win_rank": 176,
+      "win_rate": 31.56,
+      "pick_rank": 171
+    },
+    {
+      "name": "苏武",
+      "win_rank": 177,
+      "win_rate": 31.49,
+      "pick_rank": 180
+    },
+    {
+      "name": "许褚",
+      "win_rank": 178,
+      "win_rate": 31.45,
+      "pick_rank": 189
+    },
+    {
+      "name": "刘表",
+      "win_rank": 179,
+      "win_rate": 31.21,
+      "pick_rank": 183
+    },
+    {
+      "name": "荀勖",
+      "win_rank": 180,
+      "win_rate": 31.2,
+      "pick_rank": 176
+    },
+    {
+      "name": "典韦",
+      "win_rank": 181,
+      "win_rate": 30.86,
+      "pick_rank": 177
+    },
+    {
+      "name": "李斯",
+      "win_rank": 182,
+      "win_rate": 30.84,
+      "pick_rank": 146
+    },
+    {
+      "name": "荆轲",
+      "win_rank": 183,
+      "win_rate": 30.82,
+      "pick_rank": 173
+    },
+    {
+      "name": "刘据",
+      "win_rank": 184,
+      "win_rate": 30.67,
+      "pick_rank": 178
+    },
+    {
+      "name": "暴鸢",
+      "win_rank": 185,
+      "win_rate": 30.59,
+      "pick_rank": 186
+    },
+    {
+      "name": "郭舍人",
+      "win_rank": 186,
+      "win_rate": 30.51,
+      "pick_rank": 191
+    },
+    {
+      "name": "东方朔",
+      "win_rank": 187,
+      "win_rate": 30.44,
+      "pick_rank": 190
+    },
+    {
+      "name": "司马懿",
+      "win_rank": 188,
+      "win_rate": 30.33,
+      "pick_rank": 181
+    },
+    {
+      "name": "王戎",
+      "win_rank": 189,
+      "win_rate": 30.28,
+      "pick_rank": 184
+    },
+    {
+      "name": "朱亥",
+      "win_rank": 190,
+      "win_rate": 30.19,
+      "pick_rank": 187
+    },
+    {
+      "name": "陶渊明",
+      "win_rank": 191,
+      "win_rate": 29.92,
+      "pick_rank": 160
+    }
+  ],
+  "issues": [],
+  "review_status": "visual-reviewed",
+  "raw_win_rows": [
+    {
+      "name": "王羲之",
+      "win_rank": 1,
+      "win_rate": 71.24,
+      "raw_name": "王羲之",
+      "y": 2171.5
+    },
+    {
+      "name": "偃师",
+      "win_rank": 2,
+      "win_rate": 70.65,
+      "raw_name": "偃师",
+      "y": 2207.5
+    },
+    {
+      "name": "赵奢",
+      "win_rank": 3,
+      "win_rate": 68.89,
+      "raw_name": "赵奢",
+      "y": 2243.5
+    },
+    {
+      "name": "王元姬",
+      "win_rank": 4,
+      "win_rate": 68.42,
+      "raw_name": "王元姬",
+      "y": 2279.5
+    },
+    {
+      "name": "白起",
+      "win_rank": 5,
+      "win_rate": 67.95,
+      "raw_name": "白起",
+      "y": 2315.5
+    },
+    {
+      "name": "王导",
+      "win_rank": 6,
+      "win_rate": 67.73,
+      "raw_name": "王导",
+      "y": 2351.5
+    },
+    {
+      "name": "司马炎",
+      "win_rank": 7,
+      "win_rate": 64.6,
+      "raw_name": "司马炎",
+      "y": 2388.0
+    },
+    {
+      "name": "祖逖",
+      "win_rank": 8,
+      "win_rate": 63.81,
+      "raw_name": "祖逖",
+      "y": 2424.5
+    },
+    {
+      "name": "羊献容",
+      "win_rank": 9,
+      "win_rate": 63.65,
+      "raw_name": "羊献容",
+      "y": 2460.5
+    },
+    {
+      "name": "杜预",
+      "win_rank": 10,
+      "win_rate": 61.25,
+      "raw_name": "杜预",
+      "y": 2496.5
+    },
+    {
+      "name": "嬴政",
+      "win_rank": 11,
+      "win_rate": 61.08,
+      "raw_name": "赢政",
+      "y": 2532.0
+    },
+    {
+      "name": "赵威后",
+      "win_rank": 12,
+      "win_rate": 59.85,
+      "raw_name": "赵威后",
+      "y": 2568.0
+    },
+    {
+      "name": "张华",
+      "win_rank": 13,
+      "win_rate": 59.08,
+      "raw_name": "张华",
+      "y": 2605.5
+    },
+    {
+      "name": "蔺相如",
+      "win_rank": 14,
+      "win_rate": 58.67,
+      "raw_name": "蔺相如",
+      "y": 2641.0
+    },
+    {
+      "name": "韩娥",
+      "win_rank": 15,
+      "win_rate": 58.12,
+      "raw_name": "韩娥",
+      "y": 2677.0
+    },
+    {
+      "name": "萧何",
+      "win_rank": 16,
+      "win_rate": 57.69,
+      "raw_name": "萧何",
+      "y": 2713.0
+    },
+    {
+      "name": "子婴",
+      "win_rank": 17,
+      "win_rate": 57.59,
+      "raw_name": "子婴",
+      "y": 2749.5
+    },
+    {
+      "name": "司马睿",
+      "win_rank": 18,
+      "win_rate": 57.43,
+      "raw_name": "司马睿",
+      "y": 2785.5
+    },
+    {
+      "name": "孙权",
+      "win_rank": 19,
+      "win_rate": 57.24,
+      "raw_name": "孙权",
+      "y": 2822.0
+    },
+    {
+      "name": "吕雉",
+      "win_rank": 20,
+      "win_rate": 56.89,
+      "raw_name": "吕雉",
+      "y": 2858.0
+    },
+    {
+      "name": "谢灵运",
+      "win_rank": 21,
+      "win_rate": 55.81,
+      "raw_name": "谢灵运",
+      "y": 2892.5
+    },
+    {
+      "name": "张良",
+      "win_rank": 22,
+      "win_rate": 55.77,
+      "raw_name": "张良",
+      "y": 2930.0
+    },
+    {
+      "name": "卫玠",
+      "win_rank": 23,
+      "win_rate": 55.67,
+      "raw_name": "卫玠",
+      "y": 2966.0
+    },
+    {
+      "name": "霍去病",
+      "win_rank": 24,
+      "win_rate": 55.32,
+      "raw_name": "霍去病",
+      "y": 3001.5
+    },
+    {
+      "name": "主父偃",
+      "win_rank": 25,
+      "win_rate": 55.3,
+      "raw_name": "主父偃",
+      "y": 3037.5
+    },
+    {
+      "name": "潘安",
+      "win_rank": 26,
+      "win_rate": 55.23,
+      "raw_name": "潘安",
+      "y": 3074.5
+    },
+    {
+      "name": "徐盛",
+      "win_rank": 27,
+      "win_rate": 54.97,
+      "raw_name": "徐盛",
+      "y": 3111.0
+    },
+    {
+      "name": "郭嘉",
+      "win_rank": 28,
+      "win_rate": 54.51,
+      "raw_name": "郭嘉",
+      "y": 3146.0
+    },
+    {
+      "name": "夏侯惇",
+      "win_rank": 29,
+      "win_rate": 54.45,
+      "raw_name": "夏侯惇",
+      "y": 3182.5
+    },
+    {
+      "name": "袁术",
+      "win_rank": 30,
+      "win_rate": 54.39,
+      "raw_name": "袁术",
+      "y": 3218.5
+    },
+    {
+      "name": "荀灌",
+      "win_rank": 31,
+      "win_rate": 54.13,
+      "raw_name": "荀灌",
+      "y": 3255.5
+    },
+    {
+      "name": "吕不韦",
+      "win_rank": 32,
+      "win_rate": 54.1,
+      "raw_name": "吕不韦",
+      "y": 3291.5
+    },
+    {
+      "name": "张春华",
+      "win_rank": 33,
+      "win_rate": 53.99,
+      "raw_name": "张春华",
+      "y": 3325.5
+    },
+    {
+      "name": "大乔",
+      "win_rank": 34,
+      "win_rate": 53.19,
+      "raw_name": "大乔",
+      "y": 3363.5
+    },
+    {
+      "name": "陈宫",
+      "win_rank": 35,
+      "win_rate": 52.85,
+      "raw_name": "陈宫",
+      "y": 3399.5
+    },
+    {
+      "name": "平阳公主",
+      "win_rank": 36,
+      "win_rate": 52.74,
+      "raw_name": "平阳公主",
+      "y": 3434.5
+    },
+    {
+      "name": "陶侃",
+      "win_rank": 37,
+      "win_rate": 51.92,
+      "raw_name": "陶侃",
+      "y": 3470.5
+    },
+    {
+      "name": "鲁仲连",
+      "win_rank": 38,
+      "win_rate": 51.87,
+      "raw_name": "鲁仲连",
+      "y": 3507.5
+    },
+    {
+      "name": "君王后",
+      "win_rank": 39,
+      "win_rate": 51.74,
+      "raw_name": "君王后",
+      "y": 3543.5
+    },
+    {
+      "name": "庞统",
+      "win_rank": 40,
+      "win_rate": 51.34,
+      "raw_name": "庞统",
+      "y": 3580.5
+    },
+    {
+      "name": "刘彻",
+      "win_rank": 41,
+      "win_rate": 51.25,
+      "raw_name": "刘彻",
+      "y": 3616.5
+    },
+    {
+      "name": "王异",
+      "win_rank": 42,
+      "win_rate": 51.18,
+      "raw_name": "王异",
+      "y": 3652.5
+    },
+    {
+      "name": "春申君",
+      "win_rank": 43,
+      "win_rate": 51.14,
+      "raw_name": "春申君",
+      "y": 3688.5
+    },
+    {
+      "name": "法正",
+      "win_rank": 44,
+      "win_rate": 50.93,
+      "raw_name": "法正",
+      "y": 3723.5
+    },
+    {
+      "name": "乐毅",
+      "win_rank": 45,
+      "win_rate": 50.76,
+      "raw_name": "乐毅",
+      "y": 3760.5
+    },
+    {
+      "name": "韩安国",
+      "win_rank": 46,
+      "win_rate": 50.74,
+      "raw_name": "韩安国",
+      "y": 3797.5
+    },
+    {
+      "name": "王濬",
+      "win_rank": 47,
+      "win_rate": 50.73,
+      "raw_name": "王濬",
+      "y": 3833.5
+    },
+    {
+      "name": "侯嬴",
+      "win_rank": 48,
+      "win_rate": 50.73,
+      "raw_name": "侯嬴",
+      "y": 3869.5
+    },
+    {
+      "name": "陆机",
+      "win_rank": 49,
+      "win_rate": 50.57,
+      "raw_name": "陆机",
+      "y": 3904.5
+    },
+    {
+      "name": "钟无艳",
+      "win_rank": 50,
+      "win_rate": 50.45,
+      "raw_name": "钟无艳",
+      "y": 3940.5
+    },
+    {
+      "name": "陆逊",
+      "win_rank": 51,
+      "win_rate": 50.41,
+      "raw_name": "陆逊",
+      "y": 4171.0
+    },
+    {
+      "name": "曹仁",
+      "win_rank": 52,
+      "win_rate": 50.4,
+      "raw_name": "曹仁",
+      "y": 4207.0
+    },
+    {
+      "name": "马超",
+      "win_rank": 53,
+      "win_rate": 50.13,
+      "raw_name": "马超",
+      "y": 4243.0
+    },
+    {
+      "name": "高渐离",
+      "win_rank": 54,
+      "win_rate": 50.07,
+      "raw_name": "高渐离",
+      "y": 4279.5
+    },
+    {
+      "name": "荀彧",
+      "win_rank": 55,
+      "win_rate": 49.67,
+      "raw_name": "荀彧",
+      "y": 4315.0
+    },
+    {
+      "name": "桑弘羊",
+      "win_rank": 56,
+      "win_rate": 49.38,
+      "raw_name": "桑弘羊",
+      "y": 4351.5
+    },
+    {
+      "name": "吕蒙",
+      "win_rank": 57,
+      "win_rate": 49.29,
+      "raw_name": "吕蒙",
+      "y": 4388.0
+    },
+    {
+      "name": "龙且",
+      "win_rank": 58,
+      "win_rate": 49.25,
+      "raw_name": "龙且",
+      "y": 4423.5
+    },
+    {
+      "name": "巴清",
+      "win_rank": 59,
+      "win_rate": 49.05,
+      "raw_name": "巴清",
+      "y": 4460.0
+    },
+    {
+      "name": "廉颇",
+      "win_rank": 60,
+      "win_rate": 48.91,
+      "raw_name": "廉颇",
+      "y": 4495.0
+    },
+    {
+      "name": "申不害",
+      "win_rank": 61,
+      "win_rate": 48.68,
+      "raw_name": "申不害",
+      "y": 4532.0
+    },
+    {
+      "name": "李牧",
+      "win_rank": 62,
+      "win_rate": 48.67,
+      "raw_name": "李牧",
+      "y": 4568.0
+    },
+    {
+      "name": "曹丕",
+      "win_rank": 63,
+      "win_rate": 48.55,
+      "raw_name": "曹丕",
+      "y": 4603.5
+    },
+    {
+      "name": "赵婕妤",
+      "win_rank": 64,
+      "win_rate": 48.34,
+      "raw_name": "赵婕妤",
+      "y": 4640.5
+    },
+    {
+      "name": "刘备",
+      "win_rank": 65,
+      "win_rate": 48.01,
+      "raw_name": "刘备",
+      "y": 4677.0
+    },
+    {
+      "name": "周勃",
+      "win_rank": 66,
+      "win_rate": 47.99,
+      "raw_name": "周勃",
+      "y": 4713.0
+    },
+    {
+      "name": "扶苏",
+      "win_rank": 67,
+      "win_rate": 47.93,
+      "raw_name": "扶苏",
+      "y": 4749.0
+    },
+    {
+      "name": "章邯",
+      "win_rank": 68,
+      "win_rate": 47.73,
+      "raw_name": "章邯",
+      "y": 4784.5
+    },
+    {
+      "name": "诸葛亮",
+      "win_rank": 69,
+      "win_rate": 47.58,
+      "raw_name": "诸葛亮",
+      "y": 4821.0
+    },
+    {
+      "name": "赵云",
+      "win_rank": 70,
+      "win_rate": 47.55,
+      "raw_name": "赵云",
+      "y": 4857.0
+    },
+    {
+      "name": "陈阿娇",
+      "win_rank": 71,
+      "win_rate": 47.54,
+      "raw_name": "陈阿娇",
+      "y": 4894.0
+    },
+    {
+      "name": "甘宁",
+      "win_rank": 72,
+      "win_rate": 47.45,
+      "raw_name": "甘宁",
+      "y": 4929.0
+    },
+    {
+      "name": "虞姬",
+      "win_rank": 73,
+      "win_rate": 47.35,
+      "raw_name": "虞姬",
+      "y": 4965.5
+    },
+    {
+      "name": "卫青",
+      "win_rank": 74,
+      "win_rate": 47.34,
+      "raw_name": "卫青",
+      "y": 5001.0
+    },
+    {
+      "name": "袁绍",
+      "win_rank": 75,
+      "win_rate": 46.96,
+      "raw_name": "袁绍",
+      "y": 5036.5
+    },
+    {
+      "name": "孙策",
+      "win_rank": 76,
+      "win_rate": 46.66,
+      "raw_name": "孙策",
+      "y": 5074.0
+    },
+    {
+      "name": "太子丹",
+      "win_rank": 77,
+      "win_rate": 45.77,
+      "raw_name": "太子丹",
+      "y": 5110.0
+    },
+    {
+      "name": "董仲舒",
+      "win_rank": 78,
+      "win_rate": 45.59,
+      "raw_name": "董仲舒",
+      "y": 5144.5
+    },
+    {
+      "name": "魏延",
+      "win_rank": 79,
+      "win_rate": 45.59,
+      "raw_name": "魏延",
+      "y": 5180.5
+    },
+    {
+      "name": "芈八子",
+      "win_rank": 80,
+      "win_rate": 45.53,
+      "raw_name": "芈八子",
+      "y": 5217.0
+    },
+    {
+      "name": "步练师",
+      "win_rank": 81,
+      "win_rate": 45.44,
+      "raw_name": "步练师",
+      "y": 5254.5
+    },
+    {
+      "name": "左慈",
+      "win_rank": 82,
+      "win_rate": 45.22,
+      "raw_name": "左慈",
+      "y": 5289.0
+    },
+    {
+      "name": "王翦",
+      "win_rank": 83,
+      "win_rate": 45.15,
+      "raw_name": "王翦",
+      "y": 5325.0
+    },
+    {
+      "name": "孙尚香",
+      "win_rank": 84,
+      "win_rate": 45.04,
+      "raw_name": "孙尚香",
+      "y": 5363.0
+    },
+    {
+      "name": "张辽",
+      "win_rank": 85,
+      "win_rate": 44.93,
+      "raw_name": "张辽",
+      "y": 5399.5
+    },
+    {
+      "name": "甄宓",
+      "win_rank": 86,
+      "win_rate": 44.73,
+      "raw_name": "甄宓",
+      "y": 5435.0
+    },
+    {
+      "name": "贾诩",
+      "win_rank": 87,
+      "win_rate": 44.73,
+      "raw_name": "贾诩",
+      "y": 5471.0
+    },
+    {
+      "name": "鲁肃",
+      "win_rank": 88,
+      "win_rate": 44.63,
+      "raw_name": "鲁肃",
+      "y": 5507.0
+    },
+    {
+      "name": "信陵君",
+      "win_rank": 89,
+      "win_rate": 44.57,
+      "raw_name": "信陵君",
+      "y": 5543.0
+    },
+    {
+      "name": "张角",
+      "win_rank": 90,
+      "win_rate": 44.43,
+      "raw_name": "张角",
+      "y": 5579.0
+    },
+    {
+      "name": "卓文君",
+      "win_rank": 91,
+      "win_rate": 44.38,
+      "raw_name": "卓文君",
+      "y": 5614.0
+    },
+    {
+      "name": "蒙恬",
+      "win_rank": 92,
+      "win_rate": 44.33,
+      "raw_name": "蒙恬",
+      "y": 5650.0
+    },
+    {
+      "name": "陈平",
+      "win_rank": 93,
+      "win_rate": 44.3,
+      "raw_name": "陈平",
+      "y": 5687.5
+    },
+    {
+      "name": "范增",
+      "win_rank": 94,
+      "win_rate": 44.18,
+      "raw_name": "范增",
+      "y": 5724.0
+    },
+    {
+      "name": "张宝",
+      "win_rank": 95,
+      "win_rate": 44.04,
+      "raw_name": "张宝",
+      "y": 5760.0
+    },
+    {
+      "name": "左棻",
+      "win_rank": 96,
+      "win_rate": 43.87,
+      "raw_name": "左棻",
+      "y": 5795.0
+    },
+    {
+      "name": "张郃",
+      "win_rank": 97,
+      "win_rate": 43.87,
+      "raw_name": "张郃",
+      "y": 5832.0
+    },
+    {
+      "name": "张骞",
+      "win_rank": 98,
+      "win_rate": 43.76,
+      "raw_name": "张骞",
+      "y": 5868.5
+    },
+    {
+      "name": "董卓",
+      "win_rank": 99,
+      "win_rate": 43.74,
+      "raw_name": "董卓",
+      "y": 5903.5
+    },
+    {
+      "name": "刘邦",
+      "win_rank": 100,
+      "win_rate": 43.57,
+      "raw_name": "刘邦",
+      "y": 5941.0
+    },
+    {
+      "name": "终军",
+      "win_rank": 101,
+      "win_rate": 43.51,
+      "raw_name": "终军",
+      "y": 6169.5
+    },
+    {
+      "name": "马钧",
+      "win_rank": 102,
+      "win_rate": 43.5,
+      "raw_name": "马钧",
+      "y": 6206.5
+    },
+    {
+      "name": "郑袖",
+      "win_rank": 103,
+      "win_rate": 43.44,
+      "raw_name": "郑袖",
+      "y": 6242.5
+    },
+    {
+      "name": "韩信",
+      "win_rank": 104,
+      "win_rate": 43.39,
+      "raw_name": "韩信",
+      "y": 6278.5
+    },
+    {
+      "name": "吕布",
+      "win_rank": 105,
+      "win_rate": 43.37,
+      "raw_name": "吕布",
+      "y": 6313.5
+    },
+    {
+      "name": "貂蝉",
+      "win_rank": 106,
+      "win_rate": 42.63,
+      "raw_name": "貂蝉",
+      "y": 6351.0
+    },
+    {
+      "name": "黄月英",
+      "win_rank": 107,
+      "win_rate": 42.47,
+      "raw_name": "黄月英",
+      "y": 6387.0
+    },
+    {
+      "name": "姜维",
+      "win_rank": 108,
+      "win_rate": 42.42,
+      "raw_name": "姜维",
+      "y": 6421.5
+    },
+    {
+      "name": "平原君",
+      "win_rank": 109,
+      "win_rate": 42.18,
+      "raw_name": "平原君",
+      "y": 6459.5
+    },
+    {
+      "name": "周处",
+      "win_rank": 110,
+      "win_rate": 42.16,
+      "raw_name": "周处",
+      "y": 6495.5
+    },
+    {
+      "name": "张飞",
+      "win_rank": 111,
+      "win_rate": 42.06,
+      "raw_name": "张飞",
+      "y": 6531.5
+    },
+    {
+      "name": "陈胜",
+      "win_rank": 112,
+      "win_rate": 41.88,
+      "raw_name": "陈胜",
+      "y": 6567.0
+    },
+    {
+      "name": "曹操",
+      "win_rank": 113,
+      "win_rate": 41.86,
+      "raw_name": "曹操",
+      "y": 6603.5
+    },
+    {
+      "name": "羊祜",
+      "win_rank": 114,
+      "win_rate": 41.72,
+      "raw_name": "羊祜",
+      "y": 6640.0
+    },
+    {
+      "name": "霍光",
+      "win_rank": 115,
+      "win_rate": 41.35,
+      "raw_name": "霍光",
+      "y": 6676.0
+    },
+    {
+      "name": "周瑜",
+      "win_rank": 116,
+      "win_rate": 41.29,
+      "raw_name": "周瑜",
+      "y": 6712.5
+    },
+    {
+      "name": "西门豹",
+      "win_rank": 117,
+      "win_rate": 41.1,
+      "raw_name": "西门豹",
+      "y": 6747.0
+    },
+    {
+      "name": "尉缭",
+      "win_rank": 118,
+      "win_rate": 40.81,
+      "raw_name": "尉缭",
+      "y": 6784.5
+    },
+    {
+      "name": "张仪",
+      "win_rank": 119,
+      "win_rate": 40.42,
+      "raw_name": "张仪",
+      "y": 6820.0
+    },
+    {
+      "name": "金日磾",
+      "win_rank": 120,
+      "win_rate": 40.38,
+      "raw_name": "金日磾",
+      "y": 6857.0
+    },
+    {
+      "name": "项羽",
+      "win_rank": 121,
+      "win_rate": 40.31,
+      "raw_name": "项羽",
+      "y": 6893.0
+    },
+    {
+      "name": "燕昭王",
+      "win_rank": 122,
+      "win_rate": 40.12,
+      "raw_name": "燕昭王",
+      "y": 6929.5
+    },
+    {
+      "name": "苏秦",
+      "win_rank": 123,
+      "win_rate": 40.11,
+      "raw_name": "苏秦",
+      "y": 6965.5
+    },
+    {
+      "name": "赵姬",
+      "win_rank": 124,
+      "win_rate": 40.0,
+      "raw_name": "赵姬",
+      "y": 7000.0
+    },
+    {
+      "name": "太史慈",
+      "win_rank": 125,
+      "win_rate": 39.93,
+      "raw_name": "太史慈",
+      "y": 7037.5
+    },
+    {
+      "name": "蒙毅",
+      "win_rank": 126,
+      "win_rate": 39.74,
+      "raw_name": "蒙毅",
+      "y": 7072.5
+    },
+    {
+      "name": "郑国",
+      "win_rank": 127,
+      "win_rate": 39.73,
+      "raw_name": "郑国",
+      "y": 7109.5
+    },
+    {
+      "name": "孟姚",
+      "win_rank": 128,
+      "win_rate": 39.71,
+      "raw_name": "孟姚",
+      "y": 7145.0
+    },
+    {
+      "name": "曹植",
+      "win_rank": 129,
+      "win_rate": 39.65,
+      "raw_name": "曹植",
+      "y": 7182.0
+    },
+    {
+      "name": "韩非",
+      "win_rank": 130,
+      "win_rate": 39.57,
+      "raw_name": "韩非",
+      "y": 7218.0
+    },
+    {
+      "name": "卫子夫",
+      "win_rank": 131,
+      "win_rate": 39.52,
+      "raw_name": "卫子夫",
+      "y": 7254.0
+    },
+    {
+      "name": "山涛",
+      "win_rank": 132,
+      "win_rate": 39.52,
+      "raw_name": "山涛",
+      "y": 7290.0
+    },
+    {
+      "name": "小乔",
+      "win_rank": 133,
+      "win_rate": 39.37,
+      "raw_name": "小乔",
+      "y": 7326.0
+    },
+    {
+      "name": "魏华存",
+      "win_rank": 134,
+      "win_rate": 39.32,
+      "raw_name": "魏华存",
+      "y": 7362.5
+    },
+    {
+      "name": "黄忠",
+      "win_rank": 135,
+      "win_rate": 39.26,
+      "raw_name": "黄忠",
+      "y": 7398.5
+    },
+    {
+      "name": "孙坚",
+      "win_rank": 136,
+      "win_rate": 39.23,
+      "raw_name": "孙坚",
+      "y": 7434.5
+    },
+    {
+      "name": "蔡文姬",
+      "win_rank": 137,
+      "win_rate": 39.07,
+      "raw_name": "蔡文姬",
+      "y": 7471.0
+    },
+    {
+      "name": "卢莫愁",
+      "win_rank": 138,
+      "win_rate": 38.98,
+      "raw_name": "卢莫愁",
+      "y": 7507.0
+    },
+    {
+      "name": "项梁",
+      "win_rank": 139,
+      "win_rate": 38.96,
+      "raw_name": "项梁",
+      "y": 7543.0
+    },
+    {
+      "name": "李信",
+      "win_rank": 140,
+      "win_rate": 38.66,
+      "raw_name": "李信",
+      "y": 7579.5
+    },
+    {
+      "name": "谢安",
+      "win_rank": 141,
+      "win_rate": 38.28,
+      "raw_name": "谢安",
+      "y": 7616.0
+    },
+    {
+      "name": "田单",
+      "win_rank": 142,
+      "win_rate": 38.27,
+      "raw_name": "田单",
+      "y": 7651.5
+    },
+    {
+      "name": "英布",
+      "win_rank": 143,
+      "win_rate": 38.08,
+      "raw_name": "英布",
+      "y": 7688.0
+    },
+    {
+      "name": "范雎",
+      "win_rank": 144,
+      "win_rate": 38.05,
+      "raw_name": "范雎",
+      "y": 7724.0
+    },
+    {
+      "name": "司马相如",
+      "win_rank": 145,
+      "win_rate": 38.03,
+      "raw_name": "司马相如",
+      "y": 7760.5
+    },
+    {
+      "name": "傅玄",
+      "win_rank": 146,
+      "win_rate": 37.95,
+      "raw_name": "傅玄",
+      "y": 7796.0
+    },
+    {
+      "name": "项燕",
+      "win_rank": 147,
+      "win_rate": 37.9,
+      "raw_name": "项燕",
+      "y": 7832.0
+    },
+    {
+      "name": "庞煖",
+      "win_rank": 148,
+      "win_rate": 37.89,
+      "raw_name": "庞煖",
+      "y": 7869.0
+    },
+    {
+      "name": "张梁",
+      "win_rank": 149,
+      "win_rate": 37.6,
+      "raw_name": "张梁",
+      "y": 7904.5
+    },
+    {
+      "name": "吴国太",
+      "win_rank": 150,
+      "win_rate": 37.53,
+      "raw_name": "吴国太",
+      "y": 7940.5
+    },
+    {
+      "name": "杨艳",
+      "win_rank": 151,
+      "win_rate": 37.48,
+      "raw_name": "杨艳",
+      "y": 8170.5
+    },
+    {
+      "name": "魏咎",
+      "win_rank": 152,
+      "win_rate": 37.45,
+      "raw_name": "魏咎",
+      "y": 8206.5
+    },
+    {
+      "name": "左思",
+      "win_rank": 153,
+      "win_rate": 37.06,
+      "raw_name": "左思",
+      "y": 8242.5
+    },
+    {
+      "name": "凌统",
+      "win_rank": 154,
+      "win_rate": 37.05,
+      "raw_name": "凌统",
+      "y": 8278.5
+    },
+    {
+      "name": "孟尝君",
+      "win_rank": 155,
+      "win_rate": 36.77,
+      "raw_name": "孟尝君",
+      "y": 8314.0
+    },
+    {
+      "name": "公孙瓒",
+      "win_rank": 156,
+      "win_rate": 36.67,
+      "raw_name": "公孙瓒",
+      "y": 8351.5
+    },
+    {
+      "name": "关羽",
+      "win_rank": 157,
+      "win_rate": 36.61,
+      "raw_name": "关羽",
+      "y": 8387.0
+    },
+    {
+      "name": "宋玉",
+      "win_rank": 158,
+      "win_rate": 36.6,
+      "raw_name": "宋玉",
+      "y": 8423.5
+    },
+    {
+      "name": "徐晃",
+      "win_rank": 159,
+      "win_rate": 36.49,
+      "raw_name": "徐晃",
+      "y": 8459.0
+    },
+    {
+      "name": "黄盖",
+      "win_rank": 160,
+      "win_rate": 35.73,
+      "raw_name": "黄盖",
+      "y": 8495.5
+    },
+    {
+      "name": "季布",
+      "win_rank": 161,
+      "win_rate": 35.59,
+      "raw_name": "季布",
+      "y": 8531.5
+    },
+    {
+      "name": "祝融夫人",
+      "win_rank": 162,
+      "win_rate": 35.59,
+      "raw_name": "祝融夫人",
+      "y": 8568.0
+    },
+    {
+      "name": "刘协",
+      "win_rank": 163,
+      "win_rate": 35.57,
+      "raw_name": "刘协",
+      "y": 8604.0
+    },
+    {
+      "name": "樊哙",
+      "win_rank": 164,
+      "win_rate": 35.41,
+      "raw_name": "樊哙",
+      "y": 8640.5
+    },
+    {
+      "name": "刘禅",
+      "win_rank": 165,
+      "win_rate": 35.04,
+      "raw_name": "刘禅",
+      "y": 8676.5
+    },
+    {
+      "name": "李夫人",
+      "win_rank": 166,
+      "win_rate": 34.75,
+      "raw_name": "李夫人",
+      "y": 8712.5
+    },
+    {
+      "name": "郭解",
+      "win_rank": 167,
+      "win_rate": 34.75,
+      "raw_name": "郭解",
+      "y": 8748.5
+    },
+    {
+      "name": "李广",
+      "win_rank": 168,
+      "win_rate": 34.4,
+      "raw_name": "李广",
+      "y": 8784.5
+    },
+    {
+      "name": "秦舞阳",
+      "win_rank": 169,
+      "win_rate": 34.21,
+      "raw_name": "秦舞阳",
+      "y": 8820.0
+    },
+    {
+      "name": "如姬",
+      "win_rank": 170,
+      "win_rate": 34.19,
+      "raw_name": "如姬",
+      "y": 8856.5
+    },
+    {
+      "name": "华佗",
+      "win_rank": 171,
+      "win_rate": 34.01,
+      "raw_name": "华佗",
+      "y": 8892.0
+    },
+    {
+      "name": "孟获",
+      "win_rank": 172,
+      "win_rate": 33.36,
+      "raw_name": "孟获",
+      "y": 8929.0
+    },
+    {
+      "name": "钟离眜",
+      "win_rank": 173,
+      "win_rate": 33.27,
+      "raw_name": "钟离昧",
+      "y": 8965.0
+    },
+    {
+      "name": "郭隗",
+      "win_rank": 174,
+      "win_rate": 32.63,
+      "raw_name": "郭隗",
+      "y": 9001.0
+    },
+    {
+      "name": "临海公主",
+      "win_rank": 175,
+      "win_rate": 32.11,
+      "raw_name": "临海公主",
+      "y": 9037.5
+    },
+    {
+      "name": "乐广",
+      "win_rank": 176,
+      "win_rate": 31.56,
+      "raw_name": "乐广",
+      "y": 9073.5
+    },
+    {
+      "name": "苏武",
+      "win_rank": 177,
+      "win_rate": 31.49,
+      "raw_name": "苏武",
+      "y": 9109.5
+    },
+    {
+      "name": "许褚",
+      "win_rank": 178,
+      "win_rate": 31.45,
+      "raw_name": "许褚",
+      "y": 9145.0
+    },
+    {
+      "name": "刘表",
+      "win_rank": 179,
+      "win_rate": 31.21,
+      "raw_name": "刘表",
+      "y": 9182.0
+    },
+    {
+      "name": "荀勖",
+      "win_rank": 180,
+      "win_rate": 31.2,
+      "raw_name": "荀勖",
+      "y": 9218.0
+    },
+    {
+      "name": "典韦",
+      "win_rank": 181,
+      "win_rate": 30.86,
+      "raw_name": "典韦",
+      "y": 9254.0
+    },
+    {
+      "name": "李斯",
+      "win_rank": 182,
+      "win_rate": 30.84,
+      "raw_name": "李斯",
+      "y": 9290.0
+    },
+    {
+      "name": "荆轲",
+      "win_rank": 183,
+      "win_rate": 30.82,
+      "raw_name": "荆轲",
+      "y": 9326.0
+    },
+    {
+      "name": "刘据",
+      "win_rank": 184,
+      "win_rate": 30.67,
+      "raw_name": "刘据",
+      "y": 9362.0
+    },
+    {
+      "name": "暴鸢",
+      "win_rank": 185,
+      "win_rate": 30.59,
+      "raw_name": "暴鸢",
+      "y": 9398.0
+    },
+    {
+      "name": "郭舍人",
+      "win_rank": 186,
+      "win_rate": 30.51,
+      "raw_name": "郭舍人",
+      "y": 9435.0
+    },
+    {
+      "name": "东方朔",
+      "win_rank": 187,
+      "win_rate": 30.44,
+      "raw_name": "东方朔",
+      "y": 9471.0
+    },
+    {
+      "name": "司马懿",
+      "win_rank": 188,
+      "win_rate": 30.33,
+      "raw_name": "司马懿",
+      "y": 9507.0
+    },
+    {
+      "name": "王戎",
+      "win_rank": 189,
+      "win_rate": 30.28,
+      "raw_name": "王戎",
+      "y": 9542.0
+    },
+    {
+      "name": "朱亥",
+      "win_rank": 190,
+      "win_rate": 30.19,
+      "raw_name": "朱亥",
+      "y": 9578.0
+    },
+    {
+      "name": "陶渊明",
+      "win_rank": 191,
+      "win_rate": 29.92,
+      "raw_name": "陶渊明",
+      "y": 9614.0
+    }
+  ],
+  "raw_pick_rows": [
+    {
+      "name": "赵奢",
+      "raw_name": "赵奢",
+      "pick_rank": 1,
+      "y": 2171.5
+    },
+    {
+      "name": "王异",
+      "pick_rank": 2,
+      "raw_name": "王异",
+      "y": 2207.5
+    },
+    {
+      "name": "白起",
+      "pick_rank": 3,
+      "raw_name": "白起",
+      "y": 2243.5
+    },
+    {
+      "name": "嬴政",
+      "pick_rank": 4,
+      "raw_name": "嬴政",
+      "y": 2279.5
+    },
+    {
+      "name": "祖逖",
+      "pick_rank": 5,
+      "raw_name": "祖逖",
+      "y": 2316.0
+    },
+    {
+      "name": "平阳公主",
+      "pick_rank": 6,
+      "raw_name": "平阳公主",
+      "y": 2352.0
+    },
+    {
+      "name": "王羲之",
+      "pick_rank": 7,
+      "raw_name": "王羲之",
+      "y": 2389.0
+    },
+    {
+      "name": "张华",
+      "pick_rank": 8,
+      "raw_name": "张华",
+      "y": 2424.5
+    },
+    {
+      "name": "王导",
+      "pick_rank": 9,
+      "raw_name": "王导",
+      "y": 2460.5
+    },
+    {
+      "name": "霍去病",
+      "pick_rank": 10,
+      "raw_name": "霍去病",
+      "y": 2497.0
+    },
+    {
+      "name": "司马睿",
+      "pick_rank": 11,
+      "raw_name": "司马睿",
+      "y": 2532.0
+    },
+    {
+      "name": "杜预",
+      "pick_rank": 12,
+      "raw_name": "杜预",
+      "y": 2569.5
+    },
+    {
+      "name": "郭嘉",
+      "pick_rank": 13,
+      "raw_name": "郭嘉",
+      "y": 2605.5
+    },
+    {
+      "name": "韩娥",
+      "pick_rank": 14,
+      "raw_name": "韩娥",
+      "y": 2641.0
+    },
+    {
+      "name": "孙权",
+      "pick_rank": 15,
+      "raw_name": "孙权",
+      "y": 2677.0
+    },
+    {
+      "name": "赵云",
+      "pick_rank": 16,
+      "raw_name": "赵云",
+      "y": 2713.0
+    },
+    {
+      "name": "李牧",
+      "pick_rank": 17,
+      "raw_name": "李牧",
+      "y": 2749.5
+    },
+    {
+      "name": "赵威后",
+      "pick_rank": 18,
+      "raw_name": "赵威后",
+      "y": 2786.0
+    },
+    {
+      "name": "申不害",
+      "pick_rank": 19,
+      "raw_name": "申不害",
+      "y": 2821.0
+    },
+    {
+      "name": "诸葛亮",
+      "pick_rank": 20,
+      "raw_name": "诸葛亮",
+      "y": 2858.0
+    },
+    {
+      "name": "潘安",
+      "pick_rank": 21,
+      "raw_name": "潘安",
+      "y": 2894.0
+    },
+    {
+      "name": "左慈",
+      "pick_rank": 22,
+      "raw_name": "左慈",
+      "y": 2930.0
+    },
+    {
+      "name": "夏侯惇",
+      "pick_rank": 23,
+      "raw_name": "夏侯惇",
+      "y": 2966.0
+    },
+    {
+      "name": "谢灵运",
+      "pick_rank": 24,
+      "raw_name": "谢灵运",
+      "y": 3002.5
+    },
+    {
+      "name": "法正",
+      "pick_rank": 25,
+      "raw_name": "法正",
+      "y": 3038.5
+    },
+    {
+      "name": "陈宫",
+      "pick_rank": 26,
+      "raw_name": "陈宫",
+      "y": 3074.5
+    },
+    {
+      "name": "王濬",
+      "pick_rank": 27,
+      "raw_name": "王濬",
+      "y": 3111.0
+    },
+    {
+      "name": "陆逊",
+      "pick_rank": 28,
+      "raw_name": "陆逊",
+      "y": 3147.0
+    },
+    {
+      "name": "吕不韦",
+      "pick_rank": 29,
+      "raw_name": "吕不韦",
+      "y": 3183.5
+    },
+    {
+      "name": "张角",
+      "pick_rank": 30,
+      "raw_name": "张角",
+      "y": 3219.5
+    },
+    {
+      "name": "袁术",
+      "pick_rank": 31,
+      "raw_name": "袁术",
+      "y": 3255.5
+    },
+    {
+      "name": "黄月英",
+      "pick_rank": 32,
+      "raw_name": "黄月英",
+      "y": 3291.0
+    },
+    {
+      "name": "卫玠",
+      "pick_rank": 33,
+      "raw_name": "卫玠",
+      "y": 3327.0
+    },
+    {
+      "name": "韩安国",
+      "pick_rank": 34,
+      "raw_name": "韩安国",
+      "y": 3363.5
+    },
+    {
+      "name": "鲁仲连",
+      "pick_rank": 35,
+      "raw_name": "鲁仲连",
+      "y": 3400.0
+    },
+    {
+      "name": "孙尚香",
+      "pick_rank": 36,
+      "raw_name": "孙尚香",
+      "y": 3436.0
+    },
+    {
+      "name": "刘邦",
+      "pick_rank": 37,
+      "raw_name": "刘邦",
+      "y": 3471.5
+    },
+    {
+      "name": "荀彧",
+      "pick_rank": 38,
+      "raw_name": "荀彧",
+      "y": 3507.5
+    },
+    {
+      "name": "吕雉",
+      "pick_rank": 39,
+      "raw_name": "吕雉",
+      "y": 3544.5
+    },
+    {
+      "name": "荀灌",
+      "pick_rank": 40,
+      "raw_name": "荀灌",
+      "y": 3580.5
+    },
+    {
+      "name": "韩非",
+      "pick_rank": 41,
+      "raw_name": "韩非",
+      "y": 3616.0
+    },
+    {
+      "name": "卫青",
+      "pick_rank": 42,
+      "raw_name": "卫青",
+      "y": 3652.5
+    },
+    {
+      "name": "王元姬",
+      "pick_rank": 43,
+      "raw_name": "王元姬",
+      "y": 3688.5
+    },
+    {
+      "name": "廉颇",
+      "pick_rank": 44,
+      "raw_name": "廉颇",
+      "y": 3725.5
+    },
+    {
+      "name": "曹丕",
+      "pick_rank": 45,
+      "raw_name": "曹丕",
+      "y": 3761.5
+    },
+    {
+      "name": "羊献容",
+      "pick_rank": 46,
+      "raw_name": "羊献容",
+      "y": 3797.5
+    },
+    {
+      "name": "魏华存",
+      "pick_rank": 47,
+      "raw_name": "魏华存",
+      "y": 3833.0
+    },
+    {
+      "name": "大乔",
+      "pick_rank": 48,
+      "raw_name": "大乔",
+      "y": 3869.5
+    },
+    {
+      "name": "乐毅",
+      "pick_rank": 49,
+      "raw_name": "乐毅",
+      "y": 3905.5
+    },
+    {
+      "name": "项梁",
+      "pick_rank": 50,
+      "raw_name": "项梁",
+      "y": 3942.0
+    },
+    {
+      "name": "甘宁",
+      "pick_rank": 51,
+      "raw_name": "甘宁",
+      "y": 4171.0
+    },
+    {
+      "name": "张春华",
+      "pick_rank": 52,
+      "raw_name": "张春华",
+      "y": 4206.0
+    },
+    {
+      "name": "庞统",
+      "pick_rank": 53,
+      "raw_name": "庞统",
+      "y": 4244.0
+    },
+    {
+      "name": "萧何",
+      "pick_rank": 54,
+      "raw_name": "萧何",
+      "y": 4280.5
+    },
+    {
+      "name": "张仪",
+      "pick_rank": 55,
+      "raw_name": "张仪",
+      "y": 4316.5
+    },
+    {
+      "name": "章邯",
+      "pick_rank": 56,
+      "raw_name": "章邯",
+      "y": 4351.5
+    },
+    {
+      "name": "蔺相如",
+      "pick_rank": 57,
+      "raw_name": "蔺相如",
+      "y": 4388.0
+    },
+    {
+      "name": "陆机",
+      "pick_rank": 58,
+      "raw_name": "陆机",
+      "y": 4424.0
+    },
+    {
+      "name": "徐盛",
+      "pick_rank": 59,
+      "raw_name": "徐盛",
+      "y": 4460.0
+    },
+    {
+      "name": "子婴",
+      "pick_rank": 60,
+      "raw_name": "子婴",
+      "y": 4496.0
+    },
+    {
+      "name": "钟无艳",
+      "pick_rank": 61,
+      "raw_name": "钟无艳",
+      "y": 4532.0
+    },
+    {
+      "name": "信陵君",
+      "pick_rank": 62,
+      "raw_name": "信陵君",
+      "y": 4567.5
+    },
+    {
+      "name": "张良",
+      "pick_rank": 63,
+      "raw_name": "张良",
+      "y": 4604.0
+    },
+    {
+      "name": "苏秦",
+      "pick_rank": 64,
+      "raw_name": "苏秦",
+      "y": 4641.0
+    },
+    {
+      "name": "刘彻",
+      "pick_rank": 65,
+      "raw_name": "刘彻",
+      "y": 4677.0
+    },
+    {
+      "name": "孙策",
+      "pick_rank": 66,
+      "raw_name": "孙策",
+      "y": 4713.0
+    },
+    {
+      "name": "张宝",
+      "pick_rank": 67,
+      "raw_name": "张宝",
+      "y": 4749.0
+    },
+    {
+      "name": "偃师",
+      "pick_rank": 68,
+      "raw_name": "偃师",
+      "y": 4785.0
+    },
+    {
+      "name": "主父偃",
+      "pick_rank": 69,
+      "raw_name": "主父偃",
+      "y": 4821.5
+    },
+    {
+      "name": "高渐离",
+      "pick_rank": 70,
+      "raw_name": "高渐离",
+      "y": 4857.5
+    },
+    {
+      "name": "陈阿娇",
+      "pick_rank": 71,
+      "raw_name": "陈阿娇",
+      "y": 4894.0
+    },
+    {
+      "name": "马钧",
+      "pick_rank": 72,
+      "raw_name": "马钧",
+      "y": 4930.0
+    },
+    {
+      "name": "王翦",
+      "pick_rank": 73,
+      "raw_name": "王翦",
+      "y": 4965.5
+    },
+    {
+      "name": "周勃",
+      "pick_rank": 74,
+      "raw_name": "周勃",
+      "y": 5002.0
+    },
+    {
+      "name": "赵婕妤",
+      "pick_rank": 75,
+      "raw_name": "赵婕妤",
+      "y": 5037.0
+    },
+    {
+      "name": "张骞",
+      "pick_rank": 76,
+      "raw_name": "张骞",
+      "y": 5075.0
+    },
+    {
+      "name": "韩信",
+      "pick_rank": 77,
+      "raw_name": "韩信",
+      "y": 5111.0
+    },
+    {
+      "name": "袁绍",
+      "pick_rank": 78,
+      "raw_name": "袁绍",
+      "y": 5147.0
+    },
+    {
+      "name": "左棻",
+      "pick_rank": 79,
+      "raw_name": "左棻",
+      "y": 5182.0
+    },
+    {
+      "name": "君王后",
+      "pick_rank": 80,
+      "raw_name": "君王后",
+      "y": 5218.5
+    },
+    {
+      "name": "宋玉",
+      "pick_rank": 81,
+      "raw_name": "宋玉",
+      "y": 5254.5
+    },
+    {
+      "name": "甄宓",
+      "pick_rank": 82,
+      "raw_name": "甄宓",
+      "y": 5292.0
+    },
+    {
+      "name": "貂蝉",
+      "pick_rank": 83,
+      "raw_name": "貂蝉",
+      "y": 5327.5
+    },
+    {
+      "name": "芈八子",
+      "pick_rank": 84,
+      "raw_name": "半八子",
+      "y": 5363.5
+    },
+    {
+      "name": "张辽",
+      "pick_rank": 85,
+      "raw_name": "张辽",
+      "y": 5399.5
+    },
+    {
+      "name": "尉缭",
+      "pick_rank": 86,
+      "raw_name": "尉缭",
+      "y": 5436.0
+    },
+    {
+      "name": "刘备",
+      "pick_rank": 87,
+      "raw_name": "刘备",
+      "y": 5471.0
+    },
+    {
+      "name": "赵姬",
+      "pick_rank": 88,
+      "raw_name": "赵姬",
+      "y": 5507.0
+    },
+    {
+      "name": "陶侃",
+      "pick_rank": 89,
+      "raw_name": "陶侃",
+      "y": 5544.0
+    },
+    {
+      "name": "公孙瓒",
+      "pick_rank": 90,
+      "raw_name": "公孙瓒",
+      "y": 5579.5
+    },
+    {
+      "name": "吕布",
+      "pick_rank": 91,
+      "raw_name": "吕布",
+      "y": 5617.0
+    },
+    {
+      "name": "龙且",
+      "pick_rank": 92,
+      "raw_name": "龙且",
+      "y": 5652.0
+    },
+    {
+      "name": "董卓",
+      "pick_rank": 93,
+      "raw_name": "董卓",
+      "y": 5688.0
+    },
+    {
+      "name": "太史慈",
+      "pick_rank": 94,
+      "raw_name": "太史慈",
+      "y": 5724.0
+    },
+    {
+      "name": "马超",
+      "pick_rank": 95,
+      "raw_name": "马超",
+      "y": 5760.0
+    },
+    {
+      "name": "春申君",
+      "pick_rank": 96,
+      "raw_name": "春申君",
+      "y": 5797.0
+    },
+    {
+      "name": "孟姚",
+      "pick_rank": 97,
+      "raw_name": "孟姚",
+      "y": 5833.0
+    },
+    {
+      "name": "终军",
+      "pick_rank": 98,
+      "raw_name": "终军",
+      "y": 5868.5
+    },
+    {
+      "name": "蒙恬",
+      "pick_rank": 99,
+      "raw_name": "蒙恬",
+      "y": 5905.5
+    },
+    {
+      "name": "卓文君",
+      "pick_rank": 100,
+      "raw_name": "卓文君",
+      "y": 5941.5
+    },
+    {
+      "name": "曹植",
+      "pick_rank": 101,
+      "raw_name": "曹植",
+      "y": 6170.0
+    },
+    {
+      "name": "巴清",
+      "pick_rank": 102,
+      "raw_name": "巴清",
+      "y": 6206.5
+    },
+    {
+      "name": "卫子夫",
+      "pick_rank": 103,
+      "raw_name": "卫子夫",
+      "y": 6242.5
+    },
+    {
+      "name": "范增",
+      "pick_rank": 104,
+      "raw_name": "范增",
+      "y": 6278.5
+    },
+    {
+      "name": "太子丹",
+      "pick_rank": 105,
+      "raw_name": "太子丹",
+      "y": 6314.5
+    },
+    {
+      "name": "董仲舒",
+      "pick_rank": 106,
+      "raw_name": "董仲舒",
+      "y": 6351.0
+    },
+    {
+      "name": "郑袖",
+      "pick_rank": 107,
+      "raw_name": "郑袖",
+      "y": 6388.0
+    },
+    {
+      "name": "曹仁",
+      "pick_rank": 108,
+      "raw_name": "曹仁",
+      "y": 6424.0
+    },
+    {
+      "name": "司马炎",
+      "pick_rank": 109,
+      "raw_name": "司马炎",
+      "y": 6460.0
+    },
+    {
+      "name": "周瑜",
+      "pick_rank": 110,
+      "raw_name": "周瑜",
+      "y": 6496.0
+    },
+    {
+      "name": "司马相如",
+      "pick_rank": 111,
+      "raw_name": "司马相如",
+      "y": 6532.0
+    },
+    {
+      "name": "步练师",
+      "pick_rank": 112,
+      "raw_name": "步练师",
+      "y": 6568.0
+    },
+    {
+      "name": "项羽",
+      "pick_rank": 113,
+      "raw_name": "项羽",
+      "y": 6604.5
+    },
+    {
+      "name": "吕蒙",
+      "pick_rank": 114,
+      "raw_name": "吕蒙",
+      "y": 6639.5
+    },
+    {
+      "name": "曹操",
+      "pick_rank": 115,
+      "raw_name": "曹操",
+      "y": 6677.0
+    },
+    {
+      "name": "李信",
+      "pick_rank": 116,
+      "raw_name": "李信",
+      "y": 6712.5
+    },
+    {
+      "name": "小乔",
+      "pick_rank": 117,
+      "raw_name": "小乔",
+      "y": 6749.0
+    },
+    {
+      "name": "鲁肃",
+      "pick_rank": 118,
+      "raw_name": "鲁肃",
+      "y": 6785.0
+    },
+    {
+      "name": "吴国太",
+      "pick_rank": 119,
+      "raw_name": "吴国太",
+      "y": 6821.5
+    },
+    {
+      "name": "蒙毅",
+      "pick_rank": 120,
+      "raw_name": "蒙毅",
+      "y": 6857.0
+    },
+    {
+      "name": "孙坚",
+      "pick_rank": 121,
+      "raw_name": "孙坚",
+      "y": 6893.0
+    },
+    {
+      "name": "凌统",
+      "pick_rank": 122,
+      "raw_name": "凌统",
+      "y": 6929.5
+    },
+    {
+      "name": "卢莫愁",
+      "pick_rank": 123,
+      "raw_name": "卢莫愁",
+      "y": 6965.5
+    },
+    {
+      "name": "陈平",
+      "pick_rank": 124,
+      "raw_name": "陈平",
+      "y": 7002.0
+    },
+    {
+      "name": "张飞",
+      "pick_rank": 125,
+      "raw_name": "张飞",
+      "y": 7038.0
+    },
+    {
+      "name": "扶苏",
+      "pick_rank": 126,
+      "raw_name": "扶苏",
+      "y": 7073.5
+    },
+    {
+      "name": "范雎",
+      "pick_rank": 127,
+      "raw_name": "范雎",
+      "y": 7110.0
+    },
+    {
+      "name": "虞姬",
+      "pick_rank": 128,
+      "raw_name": "虞姬",
+      "y": 7146.5
+    },
+    {
+      "name": "张梁",
+      "pick_rank": 129,
+      "raw_name": "张梁",
+      "y": 7183.0
+    },
+    {
+      "name": "关羽",
+      "pick_rank": 130,
+      "raw_name": "关羽",
+      "y": 7218.5
+    },
+    {
+      "name": "羊祜",
+      "pick_rank": 131,
+      "raw_name": "羊祜",
+      "y": 7255.0
+    },
+    {
+      "name": "平原君",
+      "pick_rank": 132,
+      "raw_name": "平原君",
+      "y": 7290.0
+    },
+    {
+      "name": "张郃",
+      "pick_rank": 133,
+      "raw_name": "张郃",
+      "y": 7326.0
+    },
+    {
+      "name": "金日磾",
+      "pick_rank": 134,
+      "raw_name": "金日磾",
+      "y": 7362.5
+    },
+    {
+      "name": "刘禅",
+      "pick_rank": 135,
+      "raw_name": "刘禅",
+      "y": 7399.0
+    },
+    {
+      "name": "周处",
+      "pick_rank": 136,
+      "raw_name": "周处",
+      "y": 7435.0
+    },
+    {
+      "name": "蔡文姬",
+      "pick_rank": 137,
+      "raw_name": "蔡文姬",
+      "y": 7471.0
+    },
+    {
+      "name": "魏延",
+      "pick_rank": 138,
+      "raw_name": "魏延",
+      "y": 7507.5
+    },
+    {
+      "name": "英布",
+      "pick_rank": 139,
+      "raw_name": "英布",
+      "y": 7543.0
+    },
+    {
+      "name": "桑弘羊",
+      "pick_rank": 140,
+      "raw_name": "桑弘羊",
+      "y": 7580.5
+    },
+    {
+      "name": "左思",
+      "pick_rank": 141,
+      "raw_name": "左思",
+      "y": 7616.0
+    },
+    {
+      "name": "项燕",
+      "pick_rank": 142,
+      "raw_name": "项燕",
+      "y": 7652.5
+    },
+    {
+      "name": "燕昭王",
+      "pick_rank": 143,
+      "raw_name": "燕昭王",
+      "y": 7688.0
+    },
+    {
+      "name": "钟离眜",
+      "pick_rank": 144,
+      "raw_name": "钟离眛",
+      "y": 7723.5
+    },
+    {
+      "name": "庞煖",
+      "pick_rank": 145,
+      "raw_name": "庞煖",
+      "y": 7760.5
+    },
+    {
+      "name": "李斯",
+      "pick_rank": 146,
+      "raw_name": "李斯",
+      "y": 7796.0
+    },
+    {
+      "name": "临海公主",
+      "pick_rank": 147,
+      "raw_name": "临海公主",
+      "y": 7833.0
+    },
+    {
+      "name": "樊哙",
+      "pick_rank": 148,
+      "raw_name": "樊哙",
+      "y": 7869.5
+    },
+    {
+      "name": "徐晃",
+      "pick_rank": 149,
+      "raw_name": "徐晃",
+      "y": 7905.0
+    },
+    {
+      "name": "姜维",
+      "pick_rank": 150,
+      "raw_name": "姜维",
+      "y": 7941.0
+    },
+    {
+      "name": "杨艳",
+      "pick_rank": 151,
+      "raw_name": "杨艳",
+      "y": 8168.0
+    },
+    {
+      "name": "霍光",
+      "pick_rank": 152,
+      "raw_name": "霍光",
+      "y": 8204.5
+    },
+    {
+      "name": "郭隗",
+      "pick_rank": 153,
+      "raw_name": "郭隗",
+      "y": 8240.0
+    },
+    {
+      "name": "孟尝君",
+      "pick_rank": 154,
+      "raw_name": "孟尝君",
+      "y": 8276.5
+    },
+    {
+      "name": "贾诩",
+      "pick_rank": 155,
+      "raw_name": "贾诩",
+      "y": 8312.0
+    },
+    {
+      "name": "郑国",
+      "pick_rank": 156,
+      "raw_name": "郑国",
+      "y": 8348.5
+    },
+    {
+      "name": "田单",
+      "pick_rank": 157,
+      "raw_name": "田单",
+      "y": 8384.5
+    },
+    {
+      "name": "如姬",
+      "pick_rank": 158,
+      "raw_name": "如姬",
+      "y": 8420.5
+    },
+    {
+      "name": "傅玄",
+      "pick_rank": 159,
+      "raw_name": "傅玄",
+      "y": 8456.5
+    },
+    {
+      "name": "陶渊明",
+      "pick_rank": 160,
+      "raw_name": "陶渊明",
+      "y": 8493.0
+    },
+    {
+      "name": "侯嬴",
+      "pick_rank": 161,
+      "raw_name": "侯嬴",
+      "y": 8529.0
+    },
+    {
+      "name": "李广",
+      "pick_rank": 162,
+      "raw_name": "李广",
+      "y": 8565.5
+    },
+    {
+      "name": "黄盖",
+      "pick_rank": 163,
+      "raw_name": "黄盖",
+      "y": 8601.5
+    },
+    {
+      "name": "陈胜",
+      "pick_rank": 164,
+      "raw_name": "陈胜",
+      "y": 8637.5
+    },
+    {
+      "name": "华佗",
+      "pick_rank": 165,
+      "raw_name": "华佗",
+      "y": 8673.0
+    },
+    {
+      "name": "黄忠",
+      "pick_rank": 166,
+      "raw_name": "黄忠",
+      "y": 8709.5
+    },
+    {
+      "name": "西门豹",
+      "pick_rank": 167,
+      "raw_name": "西门豹",
+      "y": 8745.0
+    },
+    {
+      "name": "李夫人",
+      "pick_rank": 168,
+      "raw_name": "李夫人",
+      "y": 8782.5
+    },
+    {
+      "name": "山涛",
+      "pick_rank": 169,
+      "raw_name": "山涛",
+      "y": 8818.0
+    },
+    {
+      "name": "季布",
+      "pick_rank": 170,
+      "raw_name": "季布",
+      "y": 8854.0
+    },
+    {
+      "name": "乐广",
+      "pick_rank": 171,
+      "raw_name": "乐广",
+      "y": 8890.5
+    },
+    {
+      "name": "祝融夫人",
+      "pick_rank": 172,
+      "raw_name": "祝融夫人",
+      "y": 8924.0
+    },
+    {
+      "name": "荆轲",
+      "pick_rank": 173,
+      "raw_name": "荆轲",
+      "y": 8962.5
+    },
+    {
+      "name": "郭解",
+      "pick_rank": 174,
+      "raw_name": "郭解",
+      "y": 8999.0
+    },
+    {
+      "name": "孟获",
+      "pick_rank": 175,
+      "raw_name": "孟获",
+      "y": 9034.0
+    },
+    {
+      "name": "荀勖",
+      "pick_rank": 176,
+      "raw_name": "荀勖",
+      "y": 9070.0
+    },
+    {
+      "name": "典韦",
+      "pick_rank": 177,
+      "raw_name": "典韦",
+      "y": 9106.5
+    },
+    {
+      "name": "刘据",
+      "pick_rank": 178,
+      "raw_name": "刘据",
+      "y": 9143.0
+    },
+    {
+      "name": "刘协",
+      "pick_rank": 179,
+      "raw_name": "刘协",
+      "y": 9179.0
+    },
+    {
+      "name": "苏武",
+      "pick_rank": 180,
+      "raw_name": "苏武",
+      "y": 9214.0
+    },
+    {
+      "name": "司马懿",
+      "pick_rank": 181,
+      "raw_name": "司马懿",
+      "y": 9250.5
+    },
+    {
+      "name": "魏咎",
+      "pick_rank": 182,
+      "raw_name": "魏咎",
+      "y": 9287.0
+    },
+    {
+      "name": "刘表",
+      "pick_rank": 183,
+      "raw_name": "刘表",
+      "y": 9323.0
+    },
+    {
+      "name": "王戎",
+      "pick_rank": 184,
+      "raw_name": "王戎",
+      "y": 9360.0
+    },
+    {
+      "name": "秦舞阳",
+      "pick_rank": 185,
+      "raw_name": "秦舞阳",
+      "y": 9396.0
+    },
+    {
+      "name": "暴鸢",
+      "pick_rank": 186,
+      "raw_name": "暴鸢",
+      "y": 9431.0
+    },
+    {
+      "name": "朱亥",
+      "pick_rank": 187,
+      "raw_name": "朱亥",
+      "y": 9468.0
+    },
+    {
+      "name": "谢安",
+      "pick_rank": 188,
+      "raw_name": "谢安",
+      "y": 9504.0
+    },
+    {
+      "name": "许褚",
+      "pick_rank": 189,
+      "raw_name": "许褚",
+      "y": 9540.5
+    },
+    {
+      "name": "东方朔",
+      "pick_rank": 190,
+      "raw_name": "东方朔",
+      "y": 9576.5
+    },
+    {
+      "name": "郭舍人",
+      "pick_rank": 191,
+      "raw_name": "郭舍人",
+      "y": 9613.0
+    }
+  ],
+  "mode_id": "ranked_chuhan_2v2",
+  "corrections": [
+    {
+      "table": "raw_win_rows",
+      "rank": 11,
+      "before": "赢政",
+      "after": "嬴政",
+      "basis": "官方原图疑点行及游戏姓名词典核对"
+    },
+    {
+      "table": "raw_win_rows",
+      "rank": 173,
+      "before": "钟离昧",
+      "after": "钟离眜",
+      "basis": "官方原图疑点行及游戏姓名词典核对"
+    },
+    {
+      "table": "raw_pick_rows",
+      "rank": 84,
+      "before": "半八子",
+      "after": "芈八子",
+      "basis": "官方原图疑点行及游戏姓名词典核对"
+    },
+    {
+      "table": "raw_pick_rows",
+      "rank": 144,
+      "before": "钟离眛",
+      "after": "钟离眜",
+      "basis": "官方原图疑点行及游戏姓名词典核对"
+    },
+    {
+      "table": "raw_pick_rows",
+      "rank": 1,
+      "after": "赵奢",
+      "basis": "官方原图首行目视补全"
+    }
+  ],
+  "image_path": "assets/sources/ranked_chuhan_2v2-20261008.jpg",
+  "review": {
+    "date": "2026-10-26",
+    "method": "逐行对照原图与解析结果，共6页，胜率及出场各191行",
+    "pages": [
+      "review-3-0.png",
+      "review-3-1.png",
+      "review-3-2.png",
+      "review-3-3.png",
+      "review-3-4.png",
+      "review-3-5.png"
+    ],
+    "reviewer": "Codex image inspection",
+    "name_normalization": "详见 corrections；保留 raw_name"
+  }
+}

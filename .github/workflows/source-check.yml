@@ -1,0 +1,14 @@
+name: Source syntax
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile source without running Windows automation
+        run: python -m compileall -q mjs_assistant tools tests main.py

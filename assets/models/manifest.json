@@ -1,0 +1,20 @@
+{
+  "rapidocr": "3.10.0",
+  "models": {
+    "cls.onnx": {
+      "sha256": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",
+      "bytes": 585532,
+      "package_name": "ch_ppocr_mobile_v2.0_cls_mobile.onnx"
+    },
+    "det.onnx": {
+      "sha256": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f",
+      "bytes": 9929594,
+      "package_name": "PP-OCRv6_det_small.onnx"
+    },
+    "rec.onnx": {
+      "sha256": "6f327246b50388f3c176ae304bd95767ea6dc0c9ae92153ef8cbe210b3c14884",
+      "bytes": 21234383,
+      "package_name": "PP-OCRv6_rec_small.onnx"
+    }
+  }
+}
