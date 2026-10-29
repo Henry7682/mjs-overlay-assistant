@@ -8,7 +8,7 @@
 
 [下载使用](#下载与快速开始) · [功能介绍](#能帮你做什么) · [参与测试](#参与测试与反馈) · [参与开发](#一起完善助手) · [使用手册](docs/USAGE.md)
 
-名将浮窗助手是一款面向 Steam《名将杀》的独立 Windows 桌面工具。它从游戏窗口截图中识别可见武将，将官方榜单统计显示在姓名旁；玩楚汉争霸时，还可以配合微信 **“名将小助手”** 查询组合攻略，并在游戏中阅读。
+名将浮窗助手是一款面向 Steam《名将杀》的独立 Windows 桌面工具。它从游戏窗口截图中识别可见武将，将官方榜单统计实时显示在游戏窗口内的姓名旁；玩楚汉争霸与巅峰楚汉时，还可以配合微信 **“名将小助手”** 查询组合攻略，并在游戏中实时阅读，当场提供配阵推荐。
 
 > **1.0.0 已发布，现招募公开测试与共同开发。**
 > 当前仍有姓名识别、布局适配和小程序查询耗时等问题。欢迎反馈成功与失败的使用情况，帮助我们扩大验证范围。详细证据见[发布状态](docs/RELEASE_STATUS.md)。
@@ -170,4 +170,3 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\download.ps1 -Mode Portabl
 
 本项目是独立辅助工具，不代表《名将杀》官方或“名将小助手”作者，也不宣称合作授权。官方榜单和游戏素材归相应权利人；攻略通过小程序公开界面取得，不分发其配阵数据库。
 
-首页的信息组织参考了 [MAA](https://github.com/MaaAssistantArknights/MaaAssistantArknights)、[Auto Simulated Universe](https://github.com/CHNZYX/Auto_Simulated_Universe) 和 [DiceFrame](https://github.com/diceframe/diceframe) 的项目文档；上述项目与本助手不存在集成或隶属关系。
