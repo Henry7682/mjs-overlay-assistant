@@ -503,3 +503,11 @@ Gitee用户导入后，匿名HTTP读取仓库页、README原文与发布列表�
 阅读MAA、Auto Simulated Universe和DiceFrame的公开README后，按下载使用／参与测试／共同开发重写根README；独立docs/DEVELOPMENT.md维护Python环境、依赖渠道、模块入口和测试构建步骤。贡献指南、使用手册修正尚未发布的过期文字。保留原README私有备份，不改运行逻辑、用户配置或已发布资产。
 
 4份面向用户／开发者文档的34个相对文件及标题链接检查通过；GitHub Markdown API实际渲染确认6张表格、1个折叠命令区和开发入口有效。首次验证器假设table无属性及API生成标题id，断言失败；按实际HTML结构修正验证器后通过，不是页面内容或业务测试失败。公开快照使用既有白名单和隐私扫描；不把私人备份发布。仅文档未重跑业务测试／构建，无新增实战或性能证据，既有TODO待验收项继续开放。
+
+## 2026-10-29 双平台 Release 介绍整理（1.0.0，仅文档）
+
+参考MAA的重点与分类说明、DiceFrame的升级与附件选择、Auto Simulated Universe的可用性说明，重写GitHub发布介绍，并提供Gitee专用下载器／分卷／离线清单说明。保留测试定位、15／40秒预算、已知UIA波动、隐私、迁移与反馈入口；没有新增功能或改变验收结论。
+
+两份Markdown均通过GitHub渲染，每份2张表格，所有文档链接使用HTTPS绝对地址，避免Release相对链接失效。GitHub线上正文与本地文件相同，发布标签、普通Release状态和11项资产元数据前后一致。Gitee匿名HTML中发布正文逐字与本地文件一致，原8个附件链接保留；浏览器渲染检查通过。首次附件验证按旧attach_files路径提取为空，改按实际releases/download链接核对通过；没有重传或修改附件。文档源分别为RELEASE-1.0.0.md和docs/RELEASE-1.0.0-GITEE.md。
+
+本轮没有业务修改、打包、游戏／小程序操作或新实战。公开源码仅同步4份文档；原历史TODO继续开放。
