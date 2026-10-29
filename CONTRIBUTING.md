@@ -1,6 +1,6 @@
 # 参与开发与测试
 
-当前为 1.0.0 发布准备阶段，发布状态见 [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md)。
+当前已发布 1.0.0 公开测试版，欢迎测试反馈和代码贡献。发布状态见 [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md)，环境搭建、模块入口和测试命令见[本地开发 README](docs/DEVELOPMENT.md)。
 
 1. 修改前阅读 `AGENTS.md`、`TODO.md` 和相关 `TESTING.md` 记录。
 2. 使用独立分支与 Python 3.11 x64 虚拟环境，避免污染系统 Python。

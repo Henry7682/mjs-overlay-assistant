@@ -1,79 +1,173 @@
 # 名将浮窗助手
 
-Steam《名将杀》的独立 Windows 悬浮助手：截图识别可见武将，查询本地官方榜单；楚汉争霸可通过微信“名将小助手”公开界面获取阵容参考。
+**在《名将杀》的选将与战斗画面旁，查看武将统计和二二阵容参考。**
 
-> **1.0.0 公开测试版，招募测试与反馈。** 已知识别布局和小程序延迟问题会持续跟踪，不承诺所有环境都已实战验收。功能与验证边界见[发布状态](docs/RELEASE_STATUS.md)。
+[![版本](https://img.shields.io/github/v/release/Henry7682/mjs-overlay-assistant?label=Release)](https://github.com/Henry7682/mjs-overlay-assistant/releases/latest)
+[![Windows](https://img.shields.io/badge/Windows-11%20x64-0078D4)](#运行环境)
+[![License](https://img.shields.io/badge/License-GPL--3.0--only-blue)](LICENSE)
 
-## 下载与使用
+[下载使用](#下载与快速开始) · [功能介绍](#能帮你做什么) · [参与测试](#参与测试与反馈) · [参与开发](#一起完善助手) · [使用手册](docs/USAGE.md)
 
-- **[下载完整便携包（GitHub）](https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-win64.zip)**：完整解压，双击根目录 `launch.cmd`。无需另装Python。
-- **[国内下载器（Gitee）](https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-downloader.zip)**：解压后双击 `download.cmd`；固定国内源、源码安装和离线分卷见[下载安装](docs/INSTALL.md)。[国内发行页](https://gitee.com/henry7682/mjs-overlay-assistant/releases/tag/v1.0.0)另提供源码、模型和离线依赖。
-- [使用说明](docs/USAGE.md)：模式、统计来源、小程序准备、战斗攻略及快捷键。
-- [反馈问题](https://github.com/Henry7682/mjs-overlay-assistant/issues/new/choose)：公开问题表单；QQ群 **104720192**。
+名将浮窗助手是一款面向 Steam《名将杀》的独立 Windows 桌面工具。它从游戏窗口截图中识别可见武将，将官方榜单统计显示在姓名旁；玩楚汉争霸时，还可以配合微信 **“名将小助手”** 查询组合攻略，并在游戏中阅读。
 
-首发目标为 **Windows 11 x64、Steam 版、窗口化或无边框**。推荐显示环境为 **2560×1440、150% 缩放**。Windows 10、其他分辨率和部分布局待社区验证；独占全屏不在首发验收范围。
+> **1.0.0 已发布，现招募公开测试与共同开发。**
+> 当前仍有姓名识别、布局适配和小程序查询耗时等问题。欢迎反馈成功与失败的使用情况，帮助我们扩大验证范围。详细证据见[发布状态](docs/RELEASE_STATUS.md)。
 
-数据浮窗查询本地榜单，离线可用。攻略浮窗额外依赖已登录的微信和已打开的“名将小助手 → 一键配阵”；查询可能切换前台窗口。助手不在游戏中禁将、选将、锁将或出牌。
+## 能帮你做什么
 
-| 模式 | 数据浮窗 | 阵容参考 |
-|---|---|---|
-| 明刀暗箭·八人身份 | 支持 | 不提供 |
-| 排位·楚汉争霸 | 使用巅峰楚汉统计，明确显示来源 | 小程序截图查询 |
-| 巅峰·楚汉争霸 | 支持 | 小程序公开选将页查询、局内缓存 |
-| 巅峰·双龙争鼎 | 支持 | 不提供 |
+- **选将时查统计**：显示胜率、胜率排名、出场排名与统计周期；榜单中的强力单将有“强势”标记。
+- **战斗中查武将**：统计浮窗跟随游戏窗口，支持偃师傀儡三选一候选；武将标注默认鼠标穿透。
+- **二二模式看攻略**：通过名将小助手公开界面查询搭配，保留原始座次与说明；战斗中以可拖动的“攻略”按钮查看己方、敌方参考。
+- **持续识别模式入口**：可自动跟随入口切换，也可手动固定玩法；入口状态条提示当前状态和模式冲突。
+- **更新与反馈**：启动检查软件和官方榜单更新；支持姓名纠正、区域校准、问题记录和诊断包导出。
 
-默认重新配阵 **Ctrl+Alt+P**，展开／收起攻略 **Ctrl+Alt+D**，取消 **Ctrl+Alt+X**。升级时保留旧配置和用户自定义按键；冲突时在设置中修改。统计周期始终按实际榜单显示，不把旧数据标为当期。
+**数据浮窗**查询本地官方榜单，离线也能使用。**攻略浮窗**需要微信和名将小助手，可以单独关闭；小程序查询失败不应影响本地统计。
 
-## 源码下载与运行（开发者）
+### 支持的玩法
 
-可使用 Git，或点击本页 **Code → Download ZIP**，下载后完整解压：
+| 游戏模式 | 选将／战斗统计 | 阵容攻略 |
+| --- | --- | --- |
+| 明刀暗箭 · 八人身份 | 支持 | 不提供 |
+| 排位 · 楚汉争霸（二二对战） | 支持，使用巅峰楚汉榜单 | 小程序截图查询，保留本局攻略 |
+| 巅峰竞技场 · 楚汉争霸 | 支持 | 本地识别姓名后查询，禁将筛选与本局缓存 |
+| 巅峰竞技场 · 双龙争鼎 | 支持 | 不提供 |
+
+普通楚汉的统计来源会在浮窗上明确标注。统计周期以实际加载的榜单为准，缺少数据时显示未收录；不补造出场率百分比。攻略来自小程序，单将胜率不能解释为组合胜率，推荐也不代表必胜。
+
+## 下载与快速开始
+
+### 1. 下载
+
+| 下载方式 | 适合谁 | 操作 |
+| --- | --- | --- |
+| **[GitHub 完整便携包](https://github.com/Henry7682/mjs-overlay-assistant/releases/latest)** | 希望下载后直接运行 | 在 Assets 中选择 `MjsOverlay-版本号-win64.zip`，完整解压 |
+| **[Gitee 国内下载](https://gitee.com/henry7682/mjs-overlay-assistant/releases)** | GitHub 下载较慢 | 下载 `MjsOverlay-版本号-downloader.zip`，解压后双击 `download.cmd` |
+| [源码与离线部署](docs/INSTALL.md#源码与离线安装) | 开发者、离线环境 | 按文档准备独立环境或离线资产 |
+
+普通用户请选择便携版或下载器。GitHub 自动生成的 **Source code (zip)** 是源码，不是可直接双击运行的便携包。Gitee 的 `.partNN` 是分卷，下载器会自动合并和校验，不要单独解压。
+
+便携版内置 Python、Qt、OCR 库和模型，通常无需另装开发依赖。下载器的依赖检测、VC++ 运行库处理、PowerShell／命令提示符命令见[安装说明](docs/INSTALL.md)。
+
+<details>
+<summary>下载器指定国内源（PowerShell）</summary>
+
+先从上述 Gitee 发行页下载并解压下载器，在其目录打开 PowerShell，执行：
 
 ```powershell
-git clone https://github.com/Henry7682/mjs-overlay-assistant.git
-cd mjs-overlay-assistant
-powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
-.\.venv\Scripts\python.exe -X utf8 main.py
+powershell -NoProfile -ExecutionPolicy Bypass -File .\download.ps1 -Mode Portable -Source Gitee -Destination .\MjsOverlay
 ```
 
-要求 Python 3.11 x64。`setup.ps1` 在项目内建立 `.venv`，按 `requirements-runtime.lock.txt` 安装经过哈希锁定的wheel；官方PyPI失败后逐个尝试清华、阿里云，不修改全局pip配置。开发测试使用 `-Development`，安装 `requirements-dev.lock.txt`。旧 `requirements.lock.txt` 仅为历史记录。干净Windows验证结果见发布状态。
+安装后启动 `MjsOverlay\launch.cmd`。此命令仅对本次 PowerShell 进程设置执行策略，不修改系统全局策略。
 
-模型不直接放入 Git。`restore_models.py` 会从已安装 RapidOCR 包内寻找并按清单校验模型；如提示缺失，可从自己已有完整便携包的 `_internal/assets/models` 恢复：
+</details>
 
-```powershell
-.\.venv\Scripts\python.exe tools/restore_models.py --from-dir "旧便携目录\_internal\assets\models"
+### 2. 启动统计
+
+1. 将游戏设为窗口化或无边框，启动完整解压目录根部的 **`launch.cmd`**。
+2. 阅读首次运行说明，在设置中保留自动模式，或手动选择当前玩法。
+3. 进入选将或战斗，观察姓名旁统计和左上角的模式／周期。托盘图标可打开设置、暂停识别和隐藏浮窗。
+
+仅看统计时，无需打开微信。请保留整个程序目录，不要单独移动版本目录中的 EXE。
+
+### 3. 开启二二攻略（可选）
+
+自行登录微信，搜索并打开 **“名将小助手 → 一键配阵”**，准备好“按强度／位置不限”页面，再进入楚汉争霸。首次配置默认开启攻略、小程序查询和自动查询；旧配置会保留原有开关。
+
+满足条件时助手会切换到小程序进行查询，再返回游戏。普通楚汉自动操作预算为 **15 秒**，巅峰楚汉为 **40 秒**；查询期间尽量让小程序保持前台。人工复核、禁将筛选和战斗攻略的具体行为见[使用手册](docs/USAGE.md#小程序配阵)。
+
+| 默认快捷键 | 功能 |
+| --- | --- |
+| `Ctrl+Alt+P` | 重新配阵；战斗中重试敌方查询 |
+| `Ctrl+Alt+D` | 展开／收起攻略 |
+| `Ctrl+Alt+X` | 取消当前自动操作 |
+
+快捷键可在设置中修改，升级保留已有配置。助手不替你禁将、选将、锁将或出牌。
+
+## 运行环境
+
+| 项目 | 建议与支持范围 |
+| --- | --- |
+| 系统 | Windows 11 x64 |
+| 游戏 | Steam《名将杀》，窗口化／无边框 |
+| 显示 | 推荐开发测试环境：2560×1440、Windows 缩放 150% |
+| 配阵 | 已登录的微信，以及已打开的名将小助手“一键配阵”页 |
+| 网络 | 本地统计可离线；更新和小程序查询需要网络 |
+
+推荐显示配置不是最低硬件要求。Windows 10、其他分辨率／DPI 和更多皮肤布局仍需社区验证；独占全屏不在当前验收范围。便携版无需安装 Python、Git 或独立 OCR 模型，也无需配置 AI API Key。
+
+## 参与测试与反馈
+
+**不需要会写代码，也可以帮助改进助手。** 我们尤其希望收到这些场景的反馈：
+
+- 四种模式的选将／战斗，特殊身份布局、皮肤和偃师傀儡候选。
+- 微信或电脑重启后的首次配阵，以及连续多局查询。
+- 不同分辨率／缩放、窗口移动与最小化后的浮窗表现。
+- 新电脑首次安装、国内下载、版本更新与旧配置迁移。
+
+### 遇到问题怎么报
+
+1. 在助手设置的反馈入口**记录问题并导出诊断包**；先预览内容。
+2. [提交 GitHub Issue](https://github.com/Henry7682/mjs-overlay-assistant/issues/new/choose)，选择对应表单，并附默认无图的公开反馈包。
+3. 不方便使用 GitHub，可加入 **QQ群：104720192**。需要原始画面时，联系群主／管理员后**私聊发送**。
+
+一份有用的反馈应包含：
+
+```text
+助手版本：
+游戏模式与阶段：例如巅峰楚汉／禁将结束后
+具体武将或操作：
+预期结果与实际结果：
+复现步骤、发生频率和大致时间：
+分辨率／Windows 缩放：
+哪些功能仍正常：例如统计正常，攻略未出现
+诊断编号／附件：
 ```
 
-锁定的 RapidOCR wheel 已包含三份匹配模型，安装脚本会恢复并校验；另准备独立模型包和离线wheel包。缺失或校验不符时停止，不替换为不同模型。
+成功测试也欢迎反馈，请写明版本、环境和实际验证的场景。已有待验收项及通过条件见 [TODO](TODO.md)，单元测试、图片回放与完整实战分开记录。
 
-| 组件 | 用途／下载渠道 | 当前交付情况 |
-|---|---|---|
-| Python 3.11 x64 | [Python 官方](https://www.python.org/downloads/windows/) | 源码运行需要；便携包已内置运行时 |
-| Python 库 | [PyPI](https://pypi.org/)、[清华镜像](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/)、[阿里云镜像](https://mirrors.aliyun.com/pypi/simple/) | 运行35项／开发45项，版本和哈希见两份lock文件；便携版内置 |
-| OCR 模型 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | 清单见 assets/models/manifest.json；独立模型包见Release |
-| 微信 | [微信官方](https://weixin.qq.com/) | 仅配阵需要，用户自行登录并打开小程序 |
-| Steam／名将杀 | [Steam 官方](https://store.steampowered.com/) | 用户自行安装游戏，助手不代购或登录 |
-| VC++ 运行库 | [微软官方说明](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)、[x64安装器](https://aka.ms/vs/17/release/vc_redist.x64.exe) | 下载器检测；便携自检失败且运行库缺失时下载并验证微软签名，用户自行安装 |
+### 画面与隐私
 
-下载器、命令提示符／PowerShell完整命令、离线安装和更新回退步骤见 [下载安装](docs/INSTALL.md)。推荐通过下载器获取签名清单；Gitee大包使用分卷，下载器自动合并并校验，不能单独解压某一卷。
+默认开启**本地故障画面记录**，范围限于绑定的游戏窗口及查询期间的小程序窗口，可在反馈页面关闭和清理。诊断包不会自动上传；公开包默认不含图片，分享前仍请检查。
 
-## 反馈与隐私
+普通楚汉配阵会把完整游戏截图交给小程序，可能包含昵称；小程序可能上传或保留图片。原始截图、私人聊天、账号凭据不要提交到公开 Issue。详见[隐私说明](docs/PRIVACY.md)。
 
-请描述**实际版本、游戏模式、阶段、具体武将、分辨率／缩放、复现步骤**及哪些功能仍正常。设置中的反馈入口支持记录问题、预览／遮挡画面和导出诊断包。先分享默认无图的公开反馈包，需要原图时再私聊发送；日志不能复现所有Windows控件延迟。
+## 已知问题与常见疑问
 
-公开 Issue 不要附原始私人截图。需要原图时，请加入QQ群 **104720192**，联系群主／管理员后私聊发送。助手不自动上传反馈包。普通楚汉查询会把完整游戏 PNG 交给小程序，可能含昵称，小程序可能上传并保留；详情见 [隐私说明](docs/PRIVACY.md)。
+| 情况 | 当前说明／建议 |
+| --- | --- |
+| 小程序操作变慢、页面未就绪 | Windows 控件读取存在波动，尚无稳定消除延迟的方法。确认小程序在一键配阵页；必要时重新进入小程序，再手动重查并记录问题 |
+| 攻略少于小程序页面 | 超时或未确认列表末尾时仅保留已读内容，并标明不完整；不要据此认为其余组合不存在 |
+| 姓名漏识别或认错 | 可尝试姓名纠正和区域校准，并反馈模式、皮肤与画面。遮挡、区域截断和低清文字仍可能影响结果 |
+| 统计日期不是今天 | 官方榜单按周期发布。无更新或新图校验存疑时继续使用旧榜，浮窗显示真实周期 |
+| 不想自动切到微信 | 在配阵设置中关闭自动查询，或关闭攻略功能；本地统计可以独立使用 |
 
-助手默认启用本地故障画面记录，可在反馈页面关闭。请在运行前阅读首次提示，并在分享任何诊断文件前自行检查。
+发布时已完成 309 项自动测试及 Windows CI，并验证国内便携／源码下载器安装。这些证据不等于全部布局、环境和完整实战都已通过。请参阅[验证范围](docs/RELEASE_STATUS.md)及[小程序性能调查](PERFORMANCE-2026-10-28.md)。
 
-## 已知问题与开发
+## 更新与旧版迁移
 
-- 小程序 UIA 控件读取速度会波动，可能超时；不能保证攻略全部读取完毕，不完整结果会提示。
-- 更多皮肤、分辨率、6～12 人巅峰布局、冷启动和持续实战仍有待验收项目。
-- 真实小程序查询期间的诊断性能、全新物理机及极端网络仍需社区反馈；本机／CI／回放证据分别记录。
+从根目录 `launch.cmd` 启动会检查软件更新；下载或验证失败时继续使用当前可用版本。官方榜单另行检查，有疑点的新数据进入复核区。软件更新与榜单更新相互独立。
 
-见 [TODO](TODO.md)、[测试记录](TESTING.md)、[性能调查](PERFORMANCE-2026-10-28.md)、[贡献指南](CONTRIBUTING.md)。CI包含语法检查、Windows哈希依赖安装、单元／回放测试、构建及冻结程序离线自检；实际通过状态以Actions与发布记录为准，CI不操作游戏或小程序，不代替实战。
+旧版用户可通过设置中的“导入旧版 data 目录”迁移配置和榜单，迁移前会备份。不要覆盖或删除自己的 `data` 目录。签名清单、离线安装与回退说明见[安装文档](docs/INSTALL.md#更新数据与回退)。
 
-## 许可与关系说明
+## 一起完善助手
 
-本项目自有源码采用 **GPL-3.0-only**，见 [LICENSE](LICENSE)。第三方库、模型、官方榜单、游戏名称及画面裁片分别遵循各自许可和权利声明，见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。Qt及其第三方通知、动态库替换和源码取得说明随包保留。
+欢迎提交 Issue 和 Pull Request。目前最需要帮助的方向是：
 
-本项目是独立助手，不代表游戏官方或名将小助手作者，不宣称合作授权，也不分发小程序配阵数据库。私人实战截图、日志、账户配置和工作区历史不进入公开快照。
+| 方向 | 可以从哪里开始 |
+| --- | --- |
+| OCR 与布局适配 | 姓名漏识别、皮肤、不同分辨率及选将阶段检测 |
+| 小程序查询可靠性 | UIA 延迟、页面恢复、完整攻略读取；先阅读已有性能调查 |
+| 安装与诊断 | 干净环境安装、更新回退、故障包脱敏与只读回放 |
+| 文档与测试 | 补充清晰复现步骤、脱敏样本和使用说明 |
+
+技术栈为 **Python 3.11、PySide6、OpenCV、RapidOCR／ONNX Runtime CPU**；游戏截图使用 Windows Graphics Capture，小程序交互使用 Windows UI Automation。
+
+**[本地开发 README](docs/DEVELOPMENT.md)** 提供环境搭建、代码目录、测试与构建入口；**[贡献指南](CONTRIBUTING.md)** 说明提交流程和证据要求。本页面向下载、使用和参与测试，开发操作集中维护在上述文档。
+
+## 许可与致谢
+
+自有源码采用 **[GPL-3.0-only](LICENSE)**。第三方库与模型的许可、版权及源码获取说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。感谢提供图像识别、桌面界面与自动化基础组件的开源项目，以及提供复现素材和测试反馈的玩家。
+
+本项目是独立辅助工具，不代表《名将杀》官方或“名将小助手”作者，也不宣称合作授权。官方榜单和游戏素材归相应权利人；攻略通过小程序公开界面取得，不分发其配阵数据库。
+
+首页的信息组织参考了 [MAA](https://github.com/MaaAssistantArknights/MaaAssistantArknights)、[Auto Simulated Universe](https://github.com/CHNZYX/Auto_Simulated_Universe) 和 [DiceFrame](https://github.com/diceframe/diceframe) 的项目文档；上述项目与本助手不存在集成或隶属关系。
