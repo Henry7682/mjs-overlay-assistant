@@ -1,6 +1,6 @@
 # 下载、安装与更新
 
-1.0.0 仍在发布验收。以下命令是发行资产就绪后的安装入口；当前状态见 [发布状态](RELEASE_STATUS.md)。无需VPN的Gitee自动下载必须有已验证附件，不能仅导入源码仓库。
+1.0.0 为公开测试版。GitHub提供完整便携包，Gitee提供下载器和经匿名校验的分卷附件；验证边界见[发布状态](RELEASE_STATUS.md)。
 
 ## 最简单：完整便携包
 
@@ -26,6 +26,14 @@ powershell -NoProfile -Command "Invoke-WebRequest -UseBasicParsing 'https://gith
 MjsDownloader\download.cmd -Mode Portable -Source Auto -Destination "%CD%\MjsOverlay"
 ```
 
+GitHub下载较慢时，改从Gitee取得同一下载器，并固定国内资产源：
+
+```powershell
+Invoke-WebRequest -UseBasicParsing 'https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-downloader.zip' -OutFile '.\MjsOverlay-downloader.zip'
+Expand-Archive -LiteralPath '.\MjsOverlay-downloader.zip' -DestinationPath '.\MjsDownloader'
+powershell -NoProfile -ExecutionPolicy Bypass -File .\MjsDownloader\download.ps1 -Source Gitee -Destination '.\MjsOverlay'
+```
+
 `ExecutionPolicy Bypass`仅对本次子进程生效，不修改系统策略。首次下载器的可信性来自你核对的仓库／Release来源；后续清单签名不能证明最初引导脚本未被篡改。
 
 | 参数 | 用途 |
@@ -38,7 +46,7 @@ MjsDownloader\download.cmd -Mode Portable -Source Auto -Destination "%CD%\MjsOve
 | `-OfflineDirectory '路径'` | 从本地清单、完整包或分卷读取，不联网取助手资产 |
 | `-CheckOnly` | 仅报告系统／运行库及程序状态，不安装 |
 
-Gitee镜像入口：[发行页](https://gitee.com/henry7682/mjs-overlay-assistant/releases)。下载器ZIP可从该页手动保存，然后运行相同命令。镜像未通过匿名校验前，不会写入自动清单；页面返回登录页／验证码不能作为文件使用。QQ群104720192仅为人工备用，不提供自动群文件接口。
+Gitee镜像入口：[发行页](https://gitee.com/henry7682/mjs-overlay-assistant/releases)。下载器ZIP可从该页手动保存，然后运行相同命令。镜像地址均经过匿名校验；若以后页面变为登录页／验证码，下载器拒绝将其作为文件使用。QQ群104720192仅为人工备用，不提供自动群文件接口。
 
 ## 源码与离线安装
 
@@ -46,7 +54,7 @@ Gitee镜像入口：[发行页](https://gitee.com/henry7682/mjs-overlay-assistan
 
 下载器的Source模式若找不到兼容Python，会验证官方Python安装器哈希和PSF发布者签名，然后按用户范围安装，不改系统PATH或替换其他Python。Steam、游戏和微信由用户自行安装登录。
 
-离线目录需包含 `release.json`、`release.sig` 以及清单对应资产：Portable需要payload；Source需要source、models、offline-wheels；无Python时还需官方Python安装器。完整ZIP或全部`.partNN`均可，下载器自动合并、逐卷及整包校验，不需要7-Zip。分卷必须来自同一版；不要自行拼接不同版本。
+离线目录需包含 `release.json`、`release.sig` 以及清单对应资产：Portable需要payload；Source需要source、models、offline-wheels；无Python时还需官方Python安装器。完整ZIP或全部`.partNN`均可，下载器自动合并、逐卷及整包校验，不需要7-Zip。清单可从发行附件或Gitee仓库根目录的[release.json](https://gitee.com/henry7682/mjs-overlay-assistant/raw/main/release.json)及[release.sig](https://gitee.com/henry7682/mjs-overlay-assistant/raw/main/release.sig)保存；两者须来自同一版。分卷必须来自同一版；不要自行拼接不同版本。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\MjsDownloader\download.ps1 -Mode Portable -OfflineDirectory '.\MjsOffline' -Destination '.\MjsOverlay'

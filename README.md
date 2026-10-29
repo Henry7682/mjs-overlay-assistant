@@ -2,12 +2,12 @@
 
 Steam《名将杀》的独立 Windows 悬浮助手：截图识别可见武将，查询本地官方榜单；楚汉争霸可通过微信“名将小助手”公开界面获取阵容参考。
 
-> **1.0.0 公开测试版，用于招募测试与反馈。** 当前发布资产仍在最后的国内镜像验证阶段，GitHub Release尚为草稿；可用下载渠道以公开发行页为准，详见[发布状态](docs/RELEASE_STATUS.md)。已知识别布局和小程序延迟问题会持续跟踪，不承诺所有环境都已实战验收。
+> **1.0.0 公开测试版，招募测试与反馈。** 已知识别布局和小程序延迟问题会持续跟踪，不承诺所有环境都已实战验收。功能与验证边界见[发布状态](docs/RELEASE_STATUS.md)。
 
 ## 下载与使用
 
-- [GitHub Releases](https://github.com/Henry7682/mjs-overlay-assistant/releases)：正式公开测试包将发布在这里；目前没有 1.0.0 资产。
-- [Gitee 国内源码镜像](https://gitee.com/henry7682/mjs-overlay-assistant)：仓库已建立，匿名源码访问已验证；分卷下载附件仍在准备，当前不能替代完整安装包。
+- **[下载完整便携包（GitHub）](https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-win64.zip)**：完整解压，双击根目录 `launch.cmd`。无需另装Python。
+- **[国内下载器（Gitee）](https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-downloader.zip)**：解压后双击 `download.cmd`；固定国内源、源码安装和离线分卷见[下载安装](docs/INSTALL.md)。[国内发行页](https://gitee.com/henry7682/mjs-overlay-assistant/releases/tag/v1.0.0)另提供源码、模型和离线依赖。
 - [使用说明](docs/USAGE.md)：模式、统计来源、小程序准备、战斗攻略及快捷键。
 - [反馈问题](https://github.com/Henry7682/mjs-overlay-assistant/issues/new/choose)：公开问题表单；QQ群 **104720192**。
 
@@ -47,28 +47,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
 
 | 组件 | 用途／下载渠道 | 当前交付情况 |
 |---|---|---|
-| Python 3.11 x64 | [Python 官方](https://www.python.org/downloads/windows/) | 源码运行需要；未来便携包内置运行时 |
+| Python 3.11 x64 | [Python 官方](https://www.python.org/downloads/windows/) | 源码运行需要；便携包已内置运行时 |
 | Python 库 | [PyPI](https://pypi.org/)、[清华镜像](https://mirrors.tuna.tsinghua.edu.cn/help/pypi/)、[阿里云镜像](https://mirrors.aliyun.com/pypi/simple/) | 运行35项／开发45项，版本和哈希见两份lock文件；便携版内置 |
-| OCR 模型 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | 清单见 assets/models/manifest.json；独立模型包待发布 |
+| OCR 模型 | [RapidOCR](https://github.com/RapidAI/RapidOCR) | 清单见 assets/models/manifest.json；独立模型包见Release |
 | 微信 | [微信官方](https://weixin.qq.com/) | 仅配阵需要，用户自行登录并打开小程序 |
 | Steam／名将杀 | [Steam 官方](https://store.steampowered.com/) | 用户自行安装游戏，助手不代购或登录 |
 | VC++ 运行库 | [微软官方说明](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)、[x64安装器](https://aka.ms/vs/17/release/vc_redist.x64.exe) | 下载器检测；便携自检失败且运行库缺失时下载并验证微软签名，用户自行安装 |
 
-下载器、命令提示符／PowerShell完整命令、离线安装和更新回退步骤见 [下载安装](docs/INSTALL.md)。公开资产就绪前，在线安装命令不能完成安装；不要把开发快照当作正式发行包。
+下载器、命令提示符／PowerShell完整命令、离线安装和更新回退步骤见 [下载安装](docs/INSTALL.md)。推荐通过下载器获取签名清单；Gitee大包使用分卷，下载器自动合并并校验，不能单独解压某一卷。
 
 ## 反馈与隐私
 
-请描述**实际版本、游戏模式、阶段、具体武将、分辨率／缩放、复现步骤**及哪些功能仍正常。新诊断功能支持预览和导出，但仍在验收；不要把“有日志”当作足以复现所有 Windows 控件延迟。
+请描述**实际版本、游戏模式、阶段、具体武将、分辨率／缩放、复现步骤**及哪些功能仍正常。设置中的反馈入口支持记录问题、预览／遮挡画面和导出诊断包。先分享默认无图的公开反馈包，需要原图时再私聊发送；日志不能复现所有Windows控件延迟。
 
 公开 Issue 不要附原始私人截图。需要原图时，请加入QQ群 **104720192**，联系群主／管理员后私聊发送。助手不自动上传反馈包。普通楚汉查询会把完整游戏 PNG 交给小程序，可能含昵称，小程序可能上传并保留；详情见 [隐私说明](docs/PRIVACY.md)。
 
-开发快照默认启用本地故障画面记录，可在反馈页面关闭。请在运行前阅读首次提示，并在分享任何诊断文件前自行检查。
+助手默认启用本地故障画面记录，可在反馈页面关闭。请在运行前阅读首次提示，并在分享任何诊断文件前自行检查。
 
 ## 已知问题与开发
 
 - 小程序 UIA 控件读取速度会波动，可能超时；不能保证攻略全部读取完毕，不完整结果会提示。
 - 更多皮肤、分辨率、6～12 人巅峰布局、冷启动和持续实战仍有待验收项目。
-- 签名更新、下载器、诊断功能和国内镜像未完成正式发布验收。
+- 真实小程序查询期间的诊断性能、全新物理机及极端网络仍需社区反馈；本机／CI／回放证据分别记录。
 
 见 [TODO](TODO.md)、[测试记录](TESTING.md)、[性能调查](PERFORMANCE-2026-10-28.md)、[贡献指南](CONTRIBUTING.md)。CI包含语法检查、Windows哈希依赖安装、单元／回放测试、构建及冻结程序离线自检；实际通过状态以Actions与发布记录为准，CI不操作游戏或小程序，不代替实战。
 
