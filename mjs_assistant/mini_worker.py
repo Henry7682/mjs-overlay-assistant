@@ -125,7 +125,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         return wait_input_target(ready,check_request,lambda waiting:connection.send(dict(event='focus_wait',
             text='等待小程序回到前台后继续输入（仍计入本次时限）' if waiting else '小程序已回到前台，继续配阵')))
     previous_click=None
-    def fast_click(coords):
+    def fast_click(coords,can_click=None):
         nonlocal previous_click
         if read_only_results:raise RuntimeError('结果读取阶段禁止自动输入')
         # pywinauto.mouse waits a system double-click interval after *any* input,
@@ -134,6 +134,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             delay=win32gui.GetDoubleClickTime()/1000-(time.monotonic()-previous_click[1])
             if delay>0: time.sleep(delay)
         guard()
+        if can_click is not None and not can_click():return False
         if win32gui.GetForegroundWindow()!=mini:raise RuntimeError('输入目标已变化，已停止')
         under=win32gui.WindowFromPoint(coords)
         if win32gui.GetAncestor(under,2)!=mini:raise RuntimeError('控件被其他窗口遮挡，已停止')
@@ -142,6 +143,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         stage(f'点击坐标 {coords} 桌面 {left},{top},{width},{height}')
         while True:
             guard()
+            if can_click is not None and not can_click():return False
             if win32gui.GetForegroundWindow()!=mini or win32gui.GetAncestor(win32gui.WindowFromPoint(coords),2)!=mini:
                 raise RuntimeError('点击目标已被遮挡或移动，未发送点击')
             win32api.mouse_event(0xC001,int((coords[0]-left)*65535/max(1,width-1)),int((coords[1]-top)*65535/max(1,height-1)),0,0)
@@ -149,10 +151,12 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             check_request()
             if win32gui.GetForegroundWindow()==mini and win32api.GetCursorPos()==coords:
                 break  # Cursor motion causes a bounded retry, not request cancellation.
+        if can_click is not None and not can_click():return False
         win32api.mouse_event(0x0002,0,0,0,0)
         win32api.mouse_event(0x0004,0,0,0,0)
         previous_click=(coords,time.monotonic())
         time.sleep(.05)  # Let the target dispatch focus before a following key input.
+        return True
     from .mini_page import WindowRoot
     window_root=WindowRoot(lambda:uia.ElementFromHandle(mini),(COMError,))
     @measured('control_lookup_with_wait')
@@ -187,6 +191,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
     def click(title):
         nonlocal last_input
         guard()
+        can_click=None
         if title in expected:
             from .mini_picker import roster_names,portrait_point
             from .mini_page import picker_range
@@ -237,28 +242,33 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                 time.sleep(.06)
             raise RuntimeError('武将头像未在可点击区域就绪：'+title)
         if title=='📷 相册':
+            from .mini_dialogs import album_click_allowed
+            can_click=lambda:album_click_allowed(mini,win32gui)
+            if not can_click():return False
             # Chromium UIA Name equality can fail for surrogate-pair emoji.
             # Resolve the visible text range freshly, with no desktop coordinates.
-            query='相册' if title=='📷 相册' else title
-            bounds=win32gui.GetWindowRect(mini)
+            query='相册'
             boxes=[];until=min(deadline,time.monotonic()+1.5)
             while time.monotonic()<until:
-                doc=find('Page-Frame','Document')
-                area=text_area(doc)
-                matched=area.FindText(query,True,False)
-                boxes=matched.GetBoundingRectangles() if matched else []
-                floor=.20 if title in expected or title=='📷 相册' else .04
-                if len(boxes)==4 and boxes[2]>0 and boxes[3]>0 and boxes[1]>bounds[1]+(bounds[3]-bounds[1])*floor:
-                    break
+                if not can_click():return False
+                try:
+                    doc=find('Page-Frame','Document')
+                    area=text_area(doc)
+                    matched=area.FindText(query,True,False)
+                    boxes=matched.GetBoundingRectangles() if matched else []
+                except (PageNotReady,COMError):
+                    if not can_click():return False
+                    raise
+                if not can_click():return False
+                bounds=win32gui.GetWindowRect(mini)
+                if len(boxes)==4:
+                    x,y,width,height=boxes
+                    if (width>0 and height>0 and bounds[0]<=x<x+width<=bounds[2]
+                            and bounds[1]+(bounds[3]-bounds[1])*.20<y<y+height<=bounds[3]):
+                        break
                 guard();time.sleep(.05)
-            if len(boxes)!=4: raise RuntimeError('文本入口不可定位：'+query)
-            x,y,width,height=boxes
-            if width<=0 or height<=0 or y<=bounds[1]+(bounds[3]-bounds[1])*floor:
-                raise RuntimeError('武将搜索结果未就绪：'+query)
-            # The hero label itself is not a reliable click target. The verified
-            # roster tile's portrait is directly above that label; anchor to the
-            # freshly rendered text size, never a desktop absolute coordinate.
-            center=(int(x+width/2),int(y-height*2 if title in expected else y+height/2))
+            else:raise RuntimeError('相册入口未在小程序可见区域就绪')
+            center=(int(x+width/2),int(y+height/2))
         else:
             # The sticky selected-pool header exposes a real Text control.
             # Chromium's document TextRange may report no rectangles for 清空
@@ -269,9 +279,11 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             if rect.right<=rect.left or not(bounds[0]<=rect.left<rect.right<=bounds[2] and bounds[1]<=rect.top<rect.bottom<=bounds[3]):
                 raise RuntimeError('控件不可见：'+title)
             center=((rect.left+rect.right)//2,(rect.top+rect.bottom)//2)
-        guard();fast_click(center)
+        guard()
+        if not fast_click(center,can_click):return False
         last_input=input_tick();connection.send({'event':'input','tick':last_input})
         time.sleep(.06)
+        return True
     search_value_supported=None
     def set_search(value):
         nonlocal last_input,search_value_supported
@@ -494,18 +506,9 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             result.update(seconds=time.monotonic()-start,status='success',source='名将小助手',route='public_picker')
             return
         stage('清除上次搜索');set_search('')
-        stage('打开相册');click('📷 相册')
-        stage('等待文件对话框')
-        # Shell Open dialogs may take >1s to create their controls. Do not click
-        # Album again or read the disabled web page while that dialog is opening.
-        dialog=None;dialog_deadline=min(deadline,time.monotonic()+4)
-        while time.monotonic()<dialog_deadline:
-            guard()
-            handles=image_dialogs(mini)
-            if len(handles)==1:dialog=Desktop(backend='win32').window(handle=handles[0]).wrapper_object()
-            if dialog: break
-            time.sleep(.08)
-        if dialog is None: raise RuntimeError('图片选择框未打开')
+        from .mini_dialogs import open_image_dialog
+        dialog_hwnd=open_image_dialog(mini,lambda:click('📷 相册'),guard,deadline,stage,win32gui)
+        dialog=Desktop(backend='win32').window(handle=dialog_hwnd).wrapper_object()
         connection.send({'event':'dialog','hwnd':dialog.handle})
         stage('等待文件输入框')
         edits=[]
