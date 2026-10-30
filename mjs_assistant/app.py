@@ -308,7 +308,7 @@ class MainWindow(GuideController,QMainWindow):
         metadata={k:data.get(k) for k in ('scene','phase','layout','seconds','rect')}
         metadata['mode']=data.get('mode_id')
         metadata['round_id']=self.game_id
-        metadata['items']=[{k:getattr(x,k,None) for k in ('name','raw','box','confidence','confirmed','slot')} for x in data.get('items',[])]
+        metadata['items']=[{k:getattr(x,k,None) for k in ('name','raw','box','confidence','confirmed','slot','method')} for x in data.get('items',[])]
         diagnostics.event('recognition',**metadata)
         if data.get('scene') in ('selection','battle'):diagnostics.frame('game',data.get('frame'),**metadata)
         if data.get('error'):diagnostics.fault('识别异常：'+str(data['error']))

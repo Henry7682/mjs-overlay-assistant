@@ -24,6 +24,7 @@ class Detection:
     confidence: float
     slot: str = ''
     confirmed: bool = False
+    method: str = 'ocr'
 
 
 def profile_key(scene, width, height):
@@ -261,11 +262,17 @@ class Recognizer:
             raw=''.join(t.text for t in texts)
             name=self.names.resolve(raw)
             conf=min((t.confidence for t in texts),default=0)
+            method='ocr'
             if not name:
                 exact=[t for t in texts if self.names.resolve(t.text)]
                 if len(exact)==1:
                     raw=exact[0].text;name=self.names.resolve(raw);conf=exact[0].confidence
             if not texts:continue
+            if (not name or conf<NAME_MIN_CONFIDENCE) and not calibrated and not puppet and scene=='selection' and mode_id==RANKED_CHUHAN:
+                from .nameplate_match import verify_ranked_name
+                match=verify_ranked_name(frame,(a,b,c,d),raw,self.names)
+                if match:
+                    name,conf=match;method='glyph_verified'
             if (not name or conf<NAME_MIN_CONFIDENCE) and not calibrated and scene=='selection' and mode_id in (MINGDAO,PEAK_SHUANGLONG) and not puppet:
                 # Preserve the reliable narrow read; expand missing strokes only
                 # on failed identity-mode nameplates, never the whole screen.
@@ -370,7 +377,7 @@ class Recognizer:
                 if len(checked)==1 and self.names.resolve(checked[0].text)==name and checked[0].confidence>=NAME_RECHECK_CONFIDENCE:
                     raw=checked[0].text;conf=checked[0].confidence
             if conf < NAME_MIN_CONFIDENCE:name=None
-            detected.append(Detection(name,raw,(a,b,c,d),conf,f'puppet{slot}' if puppet else f'roi{slot}'))
+            detected.append(Detection(name,raw,(a,b,c,d),conf,f'puppet{slot}' if puppet else f'roi{slot}',method=method))
         if not puppet and not calibrated and scene_override=='auto' and scene=='battle' and not any(d.name for d in detected):
             return 'unknown',[],header
         self._names_cache=(cache_key,time.monotonic(),canvas.copy(),scene,list(detected))
