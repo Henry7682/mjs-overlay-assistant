@@ -39,6 +39,7 @@ def export(destination):
         'tests/fixtures': ('*.png', '*.md'),
         'assets/boards': ('*.json',), 'assets/sources': ('*.jpg',),
         'assets/licenses': ('*',), 'assets/models': ('manifest.json',),
+        'assets/nameplates': ('*.png', '*.md'),
         'docs': ('*.md',), '.github': ('*.yml',), 'release': ('*.ps1', 'dependencies.json', 'public-key.xml'),
     }.items():
         for pattern in patterns:
