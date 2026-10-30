@@ -54,21 +54,25 @@ def verify_ranked_name(frame, box, raw, names):
     left, right = a + pad, c - pad
     if not (0 <= left < right <= w and 0 <= top < bottom <= h):
         return None
-    crop = frame[top:bottom, left:right]
-    if min(crop.shape[:2]) < 8:
+    if min(bottom-top, right-left) < 8:
         return None
-    observed = feature(crop)
-    scores = []
-    for name, variants in references().items():
-        # A second, independently gated score for each glyph rejects partial
-        # occlusion: matching the common surname alone is insufficient.
-        best = 0.0
-        for template in variants:
-            if min(similarity(observed[:20], template[:20]),
-                   similarity(observed[20:], template[20:])) >= .88:
-                best = max(best, similarity(observed, template))
-        scores.append((best, name))
-    scores.sort(reverse=True)
+    # Screenshot resampling and slot rounding shift thin strokes by 1--3 px.
+    # Search only that tiny translation; do not widen the name to nearby prose.
+    dx, dy = max(1, round(w*.001)), max(1, round(h*.002))
+    scores = {name: 0.0 for name in REFERENCES}
+    templates = references()
+    for y in range(-dy, dy+1):
+        for x in range(-dx, dx+1):
+            if not (0 <= left+x < right+x <= w and 0 <= top+y < bottom+y <= h):
+                continue
+            observed = feature(frame[top+y:bottom+y, left+x:right+x])
+            for name, variants in templates.items():
+                # Both glyphs must independently agree, not just the surname.
+                for template in variants:
+                    if min(similarity(observed[:20], template[:20]),
+                           similarity(observed[20:], template[20:])) >= .88:
+                        scores[name] = max(scores[name], similarity(observed, template))
+    scores = sorted(((score, name) for name, score in scores.items()), reverse=True)
     score, name = scores[0]
     if (score >= .94 and score - scores[1][0] >= .12
             and name[0] == spelling[0] and name in names.names):

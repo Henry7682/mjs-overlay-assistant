@@ -376,7 +376,19 @@ class Recognizer:
                 checked=self.ocr.read(cv2.copyMakeBorder(ink,24,24,24,24,cv2.BORDER_CONSTANT))
                 if len(checked)==1 and self.names.resolve(checked[0].text)==name and checked[0].confidence>=NAME_RECHECK_CONFIDENCE:
                     raw=checked[0].text;conf=checked[0].confidence
-            if conf < NAME_MIN_CONFIDENCE:name=None
+            if not name or conf < NAME_MIN_CONFIDENCE:
+                from .rare_names import candidate, confirm
+                if candidate(raw,self.names):
+                    # Only this short reviewed list gets a lower, double-read
+                    # threshold. No fixed screen coordinate or portrait match.
+                    crop=cv2.resize(frame[b:d,a:c],None,fx=3,fy=3,interpolation=cv2.INTER_CUBIC)
+                    gray=cv2.cvtColor(crop,cv2.COLOR_BGR2GRAY)
+                    checked=self.read_region('rare_gray_'+str(slot),cv2.copyMakeBorder(
+                        cv2.cvtColor(gray,cv2.COLOR_GRAY2BGR),24,24,24,24,cv2.BORDER_CONSTANT))
+                    match=confirm(raw,conf,checked,self.names)
+                    if match:
+                        name,conf=match;method='rare_consensus'
+            if conf < NAME_MIN_CONFIDENCE and method!='rare_consensus':name=None
             detected.append(Detection(name,raw,(a,b,c,d),conf,f'puppet{slot}' if puppet else f'roi{slot}',method=method))
         if not puppet and not calibrated and scene_override=='auto' and scene=='battle' and not any(d.name for d in detected):
             return 'unknown',[],header
