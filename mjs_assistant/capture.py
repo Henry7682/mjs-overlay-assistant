@@ -3,6 +3,7 @@ from __future__ import annotations
 import ctypes as C
 from ctypes import wintypes as W
 import os
+import ntpath
 import re
 import threading
 import time
@@ -40,6 +41,21 @@ class GameWindow:
     hwnd: int
     title: str
     path: str
+    client: str = 'PC 客户端'
+
+
+def client_kind(path, title, window_class, steam_paths):
+    """Steam manifests identify a channel, not an exclusive allowlist."""
+    normalized = ntpath.normcase(ntpath.normpath(path))
+    if ntpath.basename(normalized) != 'mjs.exe':
+        return None
+    if normalized in {ntpath.normcase(ntpath.normpath(p)) for p in steam_paths}:
+        return 'Steam'
+    # The official standalone PC game uses the same executable and Unity HWND.
+    # Do not bind a launcher, crash dialog or a browser based on title alone.
+    if title.strip() == '名将杀' and window_class == 'UnityWndClass':
+        return 'PC 客户端'
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -70,6 +86,7 @@ def steam_game_paths():
 
 def windows():
     result = []
+    known = steam_game_paths()
     callback_type = C.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
 
     @callback_type
@@ -84,12 +101,13 @@ def windows():
         try:
             path, size = C.create_unicode_buffer(32768), W.DWORD(32768)
             if kernel32.QueryFullProcessImageNameW(process, 0, path, C.byref(size)) and os.path.basename(path.value).lower() == 'mjs.exe':
-                known=steam_game_paths()
-                if known and os.path.normcase(str(Path(path.value).resolve())) not in known:
-                    return True
                 title = C.create_unicode_buffer(512)
                 user32.GetWindowTextW(W.HWND(hwnd), title, 512)
-                result.append(GameWindow(int(hwnd), title.value, path.value))
+                window_class = C.create_unicode_buffer(256)
+                user32.GetClassNameW(W.HWND(hwnd), window_class, 256)
+                client = client_kind(path.value, title.value, window_class.value, known)
+                if client:
+                    result.append(GameWindow(int(hwnd), title.value, path.value, client))
         finally:
             kernel32.CloseHandle(process)
         return True
