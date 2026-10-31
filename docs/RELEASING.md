@@ -25,6 +25,25 @@ RSA3072私钥保存在仓库之外，离线备份；只分发`release/public-key
 
 签名清单`release.json`／`release.sig`放在两个仓库main根目录，并附在Release。先上传全部字节一致的资产，再公开指向它们的清单；禁止清单先行导致旧客户端自动获取未就绪版本。签名完成后不得再修改ZIP或清单，需修改则重新打包、签名、验证。更新器只接受stable清单和更高版本号。
 
+## 每个公开版本必须接入自动更新
+
+从 1.0.2 起，公开测试版也必须准备更新 payload，并在资产可用后发布兼容 1.0.0 启动器的签名通道。只上传 win64.zip 或只修改 GitHub 的 Latest 标记，不会让已有安装版更新。不得用“去网页下载”代替更新交付；实验性版本在未准备通道前保持草稿或仅本地测试。
+
+保留 schema_version=1、channel=stable、minimum_launcher=1 和现有 RSA 公钥。这里 stable 是旧启动器协议字段，不是实战验收结论。若未来确需升级启动协议，应先交付旧启动器可下载的兼容过渡版，不能直接提高 minimum_launcher 丢下旧用户。
+
+发布前用 GitHub releases API 的当前结果（包含最新公开版本）保存为 JSON，并运行：
+
+```powershell
+gh api repos/Henry7682/mjs-overlay-assistant/releases | Set-Content -Encoding utf8 published-releases.json
+python tools/check_update_channel.py --manifest 候选目录/release.json --releases published-releases.json
+```
+
+检查签名、最高已公开数字版本、旧启动器协议，以及六种附件的 URL／大小／服务器 SHA256。此门禁不代替匿名下载和实际启动握手。顺序：附件上传并验证→发布正文／Latest 状态→核对候选通道→合并签名清单到 main→匿名重读 main→旧版 launch.cmd 升级与配置保持。若网络故障导致中途失败，明确报告通道尚未完成，不声称已更新。
+
+日常用户入口始终是最外层 launch.cmd；Windows 快捷方式须指向它。重复启动已有实例只唤出设置，不中断对局。下载或新版本启动失败继续使用／回退旧版；不移除验签和配置备份。源码开发目录只提示，不自动覆盖开发者修改；历史内部 EXE 绕过启动器是明确边界，不能靠服务器更改旧二进制行为。管理员权限只用于目录写入确有需要时，不作为所有用户默认要求。
+
+Gitee 由维护者手动同步时，必须一起同步 main 的 release.json／release.sig；只导入源码或只上传 ZIP 不等于同步更新。镜像附件未经匿名验证仍保留 mirror_verified=false。GitHub 不可达且 Gitee 尚旧时，客户端可能只能离线启动旧版，不能宣称任意网络都能更新。
+
 ## 必须保存的发布证据
 
 - 干净Windows：无开发环境依赖的冻结启动、源码哈希安装、四榜／三模型、设置页和UIA初始化。

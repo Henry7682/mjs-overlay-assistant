@@ -2,6 +2,16 @@ import sys
 import multiprocessing
 if __name__=='__main__':
     multiprocessing.freeze_support()
+    from mjs_assistant.windows_compat import runtime_issue
+    issue=runtime_issue()
+    if issue:
+        import ctypes
+        if '--smoke' not in sys.argv:
+            ctypes.windll.user32.MessageBoxW(None,issue,'名将浮窗助手：系统组件检查',0x10)
+        raise SystemExit(issue)
+if '--capture-check' in sys.argv:
+    from tools.capture_check import run
+    raise SystemExit(run(sys.argv[sys.argv.index('--capture-check')+1]))
 if '--focus-check' in sys.argv:
     from tools.probe_focus_roundtrip import run
     run(sys.argv[sys.argv.index('--focus-check')+1], '--exercise-bridge' in sys.argv)
