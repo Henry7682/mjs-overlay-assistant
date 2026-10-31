@@ -7,12 +7,14 @@ import ntpath
 import re
 import threading
 import time
+import logging
 from pathlib import Path
 from functools import lru_cache
 from dataclasses import dataclass
 
 import cv2
 import numpy as np
+from .windows_compat import windows_build, capture_options, optional_capture_error
 
 user32 = C.WinDLL('user32', use_last_error=True)
 kernel32 = C.WinDLL('kernel32', use_last_error=True)
@@ -132,13 +134,35 @@ class Capture:
         from windows_capture import WindowsCapture
         self.hwnd, self.lock = hwnd, threading.Lock()
         self.frame, self.stamp, self.error = None, 0., ''
-        self.engine = WindowsCapture(window_hwnd=hwnd, cursor_capture=False, draw_border=False, minimum_update_interval=200)
+        self.control = None
+        self.build = windows_build()
+        self.options = capture_options(self.build)
+        try:
+            self._start(WindowsCapture)
+        except Exception as error:
+            if not optional_capture_error(error):
+                raise
+            logging.warning('capture optional API unavailable; retry system defaults: %s', error)
+            self.options = dict.fromkeys(self.options)
+            self.frame, self.stamp, self.error = None, 0., ''
+            self._start(WindowsCapture)  # One retry, same HWND; never desktop capture.
+        logging.info('capture started: build=%s options=%s copy_interval=%s',
+                     self.build, self.options, self.copy_interval)
+
+    def _start(self, factory):
+        self.copy_interval = .2 if self.options['minimum_update_interval'] is None else 0.
+        self.engine = factory(window_hwnd=self.hwnd, **self.options)
 
         @self.engine.event
         def on_frame_arrived(frame, control):
+            now = time.monotonic()
             with self.lock:
+                # Win10 cannot ask WGC to limit its frame rate. Avoid copying
+                # full images at display FPS; OCR retains its existing 2 Hz loop.
+                if self.frame is not None and now - self.stamp < self.copy_interval:
+                    return
                 self.frame = np.ascontiguousarray(frame.frame_buffer[:, :, :3]).copy()
-                self.stamp = time.monotonic()
+                self.stamp = now
 
         @self.engine.event
         def on_closed():
