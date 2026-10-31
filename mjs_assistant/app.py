@@ -287,10 +287,11 @@ class MainWindow(GuideController,QMainWindow):
         target=([0] if len(wins)>1 else [])+[w.hwnd for w in wins] if wins else [0]
         if current==target:return
         self.window_box.blockSignals(True);self.window_box.clear()
-        if not wins:self.window_box.addItem('未检测到名将杀，请启动 Steam 游戏',0)
+        if not wins:self.window_box.addItem('未检测到名将杀，请启动 Steam 或巨人 PC 客户端游戏',0)
         else:
             if len(wins)>1:self.window_box.addItem('请选择游戏窗口',0)
-            for w in wins:self.window_box.addItem(f'{w.title} · HWND {w.hwnd}',w.hwnd)
+            for w in wins:self.window_box.addItem(f'{w.title} · {getattr(w,"client","PC 客户端")} · HWND {w.hwnd}',w.hwnd)
+            self.window_box.setToolTip('\n'.join(f'{w.title} · {getattr(w,"client","PC 客户端")}: {getattr(w,"path","")}' for w in wins))
             index=self.window_box.findData(old)
             if index>=0:self.window_box.setCurrentIndex(index)
         self.window_box.blockSignals(False)
@@ -308,7 +309,7 @@ class MainWindow(GuideController,QMainWindow):
         metadata={k:data.get(k) for k in ('scene','phase','layout','seconds','rect')}
         metadata['mode']=data.get('mode_id')
         metadata['round_id']=self.game_id
-        metadata['items']=[{k:getattr(x,k,None) for k in ('name','raw','box','confidence','confirmed','slot')} for x in data.get('items',[])]
+        metadata['items']=[{k:getattr(x,k,None) for k in ('name','raw','box','confidence','confirmed','slot','method')} for x in data.get('items',[])]
         diagnostics.event('recognition',**metadata)
         if data.get('scene') in ('selection','battle'):diagnostics.frame('game',data.get('frame'),**metadata)
         if data.get('error'):diagnostics.fault('识别异常：'+str(data['error']))

@@ -3,15 +3,18 @@ from __future__ import annotations
 import ctypes as C
 from ctypes import wintypes as W
 import os
+import ntpath
 import re
 import threading
 import time
+import logging
 from pathlib import Path
 from functools import lru_cache
 from dataclasses import dataclass
 
 import cv2
 import numpy as np
+from .windows_compat import windows_build, capture_options, optional_capture_error
 
 user32 = C.WinDLL('user32', use_last_error=True)
 kernel32 = C.WinDLL('kernel32', use_last_error=True)
@@ -40,6 +43,21 @@ class GameWindow:
     hwnd: int
     title: str
     path: str
+    client: str = 'PC 客户端'
+
+
+def client_kind(path, title, window_class, steam_paths):
+    """Steam manifests identify a channel, not an exclusive allowlist."""
+    normalized = ntpath.normcase(ntpath.normpath(path))
+    if ntpath.basename(normalized) != 'mjs.exe':
+        return None
+    if normalized in {ntpath.normcase(ntpath.normpath(p)) for p in steam_paths}:
+        return 'Steam'
+    # The official standalone PC game uses the same executable and Unity HWND.
+    # Do not bind a launcher, crash dialog or a browser based on title alone.
+    if title.strip() == '名将杀' and window_class == 'UnityWndClass':
+        return 'PC 客户端'
+    return None
 
 
 @lru_cache(maxsize=1)
@@ -70,6 +88,7 @@ def steam_game_paths():
 
 def windows():
     result = []
+    known = steam_game_paths()
     callback_type = C.WINFUNCTYPE(W.BOOL, W.HWND, W.LPARAM)
 
     @callback_type
@@ -84,12 +103,13 @@ def windows():
         try:
             path, size = C.create_unicode_buffer(32768), W.DWORD(32768)
             if kernel32.QueryFullProcessImageNameW(process, 0, path, C.byref(size)) and os.path.basename(path.value).lower() == 'mjs.exe':
-                known=steam_game_paths()
-                if known and os.path.normcase(str(Path(path.value).resolve())) not in known:
-                    return True
                 title = C.create_unicode_buffer(512)
                 user32.GetWindowTextW(W.HWND(hwnd), title, 512)
-                result.append(GameWindow(int(hwnd), title.value, path.value))
+                window_class = C.create_unicode_buffer(256)
+                user32.GetClassNameW(W.HWND(hwnd), window_class, 256)
+                client = client_kind(path.value, title.value, window_class.value, known)
+                if client:
+                    result.append(GameWindow(int(hwnd), title.value, path.value, client))
         finally:
             kernel32.CloseHandle(process)
         return True
@@ -114,13 +134,35 @@ class Capture:
         from windows_capture import WindowsCapture
         self.hwnd, self.lock = hwnd, threading.Lock()
         self.frame, self.stamp, self.error = None, 0., ''
-        self.engine = WindowsCapture(window_hwnd=hwnd, cursor_capture=False, draw_border=False, minimum_update_interval=200)
+        self.control = None
+        self.build = windows_build()
+        self.options = capture_options(self.build)
+        try:
+            self._start(WindowsCapture)
+        except Exception as error:
+            if not optional_capture_error(error):
+                raise
+            logging.warning('capture optional API unavailable; retry system defaults: %s', error)
+            self.options = dict.fromkeys(self.options)
+            self.frame, self.stamp, self.error = None, 0., ''
+            self._start(WindowsCapture)  # One retry, same HWND; never desktop capture.
+        logging.info('capture started: build=%s options=%s copy_interval=%s',
+                     self.build, self.options, self.copy_interval)
+
+    def _start(self, factory):
+        self.copy_interval = .2 if self.options['minimum_update_interval'] is None else 0.
+        self.engine = factory(window_hwnd=self.hwnd, **self.options)
 
         @self.engine.event
         def on_frame_arrived(frame, control):
+            now = time.monotonic()
             with self.lock:
+                # Win10 cannot ask WGC to limit its frame rate. Avoid copying
+                # full images at display FPS; OCR retains its existing 2 Hz loop.
+                if self.frame is not None and now - self.stamp < self.copy_interval:
+                    return
                 self.frame = np.ascontiguousarray(frame.frame_buffer[:, :, :3]).copy()
-                self.stamp = time.monotonic()
+                self.stamp = now
 
         @self.engine.event
         def on_closed():
