@@ -287,10 +287,11 @@ class MainWindow(GuideController,QMainWindow):
         target=([0] if len(wins)>1 else [])+[w.hwnd for w in wins] if wins else [0]
         if current==target:return
         self.window_box.blockSignals(True);self.window_box.clear()
-        if not wins:self.window_box.addItem('未检测到名将杀，请启动 Steam 游戏',0)
+        if not wins:self.window_box.addItem('未检测到名将杀，请启动 Steam 或巨人 PC 客户端游戏',0)
         else:
             if len(wins)>1:self.window_box.addItem('请选择游戏窗口',0)
-            for w in wins:self.window_box.addItem(f'{w.title} · HWND {w.hwnd}',w.hwnd)
+            for w in wins:self.window_box.addItem(f'{w.title} · {getattr(w,"client","PC 客户端")} · HWND {w.hwnd}',w.hwnd)
+            self.window_box.setToolTip('\n'.join(f'{w.title} · {getattr(w,"client","PC 客户端")}: {getattr(w,"path","")}' for w in wins))
             index=self.window_box.findData(old)
             if index>=0:self.window_box.setCurrentIndex(index)
         self.window_box.blockSignals(False)
