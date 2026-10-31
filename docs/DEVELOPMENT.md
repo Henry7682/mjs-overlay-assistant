@@ -1,3 +1,13 @@
+# 当前源码启动方式
+
+准备环境后运行 `start.cmd`，它只运行当前源码，不会优先打开 dist 或旧预览程序。默认使用 `.research/dev-data`；显式 `MJS_ASSISTANT_HOME` 优先。先从托盘退出其他助手实例；启动入口不会替你退出或唤出旧程序。
+
+只检查环境与来源：`powershell -NoProfile -ExecutionPolicy Bypass -File start-source.ps1 -CheckOnly`。
+
+源码显示 `1.0.2-dev · g<短提交号>`，受跟踪改动显示“未提交修改”；无 Git 时显示提交未知。数字更新版本仍为1.0.2。设置、日志与反馈中的提交信息用于定位源码。本轮没有发布新版本。
+
+Git规则与状态交接见 [GIT-WORKFLOW](GIT-WORKFLOW.md)，维护入口见 [MAINTENANCE](MAINTENANCE.md)。
+
 # 本地开发 README
 
 本文面向需要运行、修改和测试源码的开发者。下载使用请从[项目首页](../README.md)开始；发行包安装、缺少 Python 时的下载器方案和离线部署见[安装说明](INSTALL.md)。

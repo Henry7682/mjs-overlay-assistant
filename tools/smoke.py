@@ -59,7 +59,8 @@ def run(output, sample=None):
         assert window.worker.wait(15000),'recognition model startup did not exit'
         window.timer.stop();window.scan_timer.stop();window.update_timer.stop()
         window.tray.hide();window.overlay.close();window.guide_panel.close();window.quitting=True;window.close()
-    result={'offline':True,'qt_version':qVersion(),'models':{x.name:x.stat().st_size for x in (ASSETS/'models').glob('*.onnx')},
+    from mjs_assistant.build_identity import get_build_identity
+    result={'build':get_build_identity().to_dict(),'offline':True,'qt_version':qVersion(),'models':{x.name:x.stat().st_size for x in (ASSETS/'models').glob('*.onnx')},
             'board_rows':{key:len(b['heroes']) for key,b in boards.items()},'words':[x.text for x in words],
             'uia_initialized':True,'entry_detection_bundled':True,
             'yingzheng_alias':True,'gongsunzan_alias':True,'guides_default_on':True,

@@ -6,6 +6,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import (QDialog,QVBoxLayout,QHBoxLayout,QLabel,QPushButton,QCheckBox,
     QListWidget,QListWidgetItem,QFileDialog,QMessageBox,QSplitter,QPlainTextEdit)
 from .version import ISSUES_URL,VERSION
+from .build_identity import get_build_identity
 
 class Preview(QLabel):
     def __init__(self):
@@ -38,7 +39,7 @@ class FeedbackDialog(QDialog):
         for path in sorted(recorder.root.glob('*/*.png')):
             item=QListWidgetItem(path.parent.name+'/'+path.name);item.setData(Qt.ItemDataRole.UserRole,str(path));item.setCheckState(Qt.CheckState.Unchecked);self.list.addItem(item)
         self.list.currentItemChanged.connect(self.show_image)
-        self.summary=QPlainTextEdit(f'版本：{VERSION}\n事件编号：{recorder.session}\n模式／阶段：\n复现步骤：\n预期行为：\n实际行为：\n附件：导出的feedback ZIP（公开提交前核对是否包含图片）')
+        self.summary=QPlainTextEdit(f'版本：{get_build_identity().display}\n事件编号：{recorder.session}\n模式／阶段：\n复现步骤：\n预期行为：\n实际行为：\n附件：导出的feedback ZIP（公开提交前核对是否包含图片）')
         self.summary.setMaximumHeight(145);layout.addWidget(self.summary)
         row=QHBoxLayout();layout.addLayout(row)
         for title,callback in [('记录当前问题',self.record),('导出反馈包',self.export),('打开GitHub反馈',self.open_issue),('清除本地故障包',self.clear)]:

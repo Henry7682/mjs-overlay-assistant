@@ -34,6 +34,7 @@ from .frame_timing import frame_fresh,query_state_alive
 from .recommendation_ui import RecommendationSettings,CandidateDialog
 from . import diagnostics
 from .version import APP_NAME,VERSION
+from .build_identity import get_build_identity
 
 
 def save_selection_diagnostic(data,event,reason=''):
@@ -183,7 +184,7 @@ class MainWindow(GuideController,QMainWindow):
         self.mode_evidence='unknown';self.auto_mode=None;self.entry_candidate=None;self.entry_hits=0
         self.observed_seats=(None,None)
         self.init_guides()
-        self.setWindowTitle(APP_NAME+' '+VERSION+' · 公开测试版');self.setWindowIcon(app_icon());self.resize(920,660)
+        self.setWindowTitle(APP_NAME+' '+get_build_identity().display+' · 公开测试版');self.setWindowIcon(app_icon());self.resize(920,660)
         widget=QWidget();self.setCentralWidget(widget);layout=QVBoxLayout(widget);layout.setSpacing(12);layout.setContentsMargins(24,20,24,20)
         title=QLabel('名将浮窗助手');title.setObjectName('title');layout.addWidget(title)
         layout.addWidget(QLabel('多模式本地识别 · 官方榜单；模式未确认时不显示统计'))
@@ -631,6 +632,7 @@ def main():
              'dependency_manifest':read_json(ASSETS/'dependencies.json',{}),
              'boards':{k:{f:b.get(f) for f in ('period_start','period_end','image_sha256','mode_id')} for k,b in BoardStore(folder).all_current().items()}})
         app.aboutToQuit.connect(recorder.close)
+        logging.info('build identity: %s', get_build_identity().display)
     except Exception:
         logging.exception('diagnostic initialization unavailable; statistics continue')
     try:
