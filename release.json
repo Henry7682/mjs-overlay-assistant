@@ -1,127 +1,114 @@
 {
   "schema_version": 1,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "channel": "stable",
   "minimum_launcher": 1,
   "product": "名将浮窗助手",
   "release_notes": "公开测试版；实战与已知限制见README和TODO。",
-  "mirror_verified": true,
+  "mirror_verified": false,
   "assets": {
     "portable": {
-      "name": "MjsOverlay-1.0.0-payload.zip",
-      "bytes": 165885619,
-      "sha256": "4d8b254ded82e3eee82318b3452024a040902a44183d622d58b9a39d2c9a27f4",
+      "name": "MjsOverlay-1.0.1-payload.zip",
+      "bytes": 165952616,
+      "sha256": "eeee2a886b413b81d037b6403e296ce72102d257594db371a2e81c3f45ffae8e",
       "urls": [
-        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-payload.zip"
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.1/MjsOverlay-1.0.1-payload.zip"
       ],
       "parts": [
         {
-          "name": "MjsOverlay-1.0.0-payload.zip.part01",
+          "name": "MjsOverlay-1.0.1-payload.zip.part01",
           "bytes": 90000000,
-          "sha256": "d684ff5b7a7a5c8feb8604b790cef1aed0d06d0cd716e272f8008942b9ed8ae7",
-          "urls": [
-            "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-payload.zip.part01"
-          ]
+          "sha256": "c427822ff8bdff2ef005e852e0e146b4055af684440c7e54c6c6b0aab53d82b5",
+          "urls": []
         },
         {
-          "name": "MjsOverlay-1.0.0-payload.zip.part02",
-          "bytes": 75885619,
-          "sha256": "c335d57d6e933bfa55873c1bdf7fc124ac374b7a9c34f3e05c789b50b0a73cb2",
-          "urls": [
-            "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-payload.zip.part02"
-          ]
+          "name": "MjsOverlay-1.0.1-payload.zip.part02",
+          "bytes": 75952616,
+          "sha256": "cced050241b25b86425c8850922b3c38436859c018c7a52f114257e56917fdef",
+          "urls": []
         }
       ]
     },
     "standalone": {
-      "name": "MjsOverlay-1.0.0-win64.zip",
-      "bytes": 165930350,
-      "sha256": "50b16c2e31d9e1a149ac874094d9db7ab707c3dc58417e4dcc41615f41ae7ccb",
+      "name": "MjsOverlay-1.0.1-win64.zip",
+      "bytes": 165999872,
+      "sha256": "0e81400f39a8ea1bda955de0d3b88e2c37e545335376384a4f81e4b503d6dac1",
       "urls": [
-        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-win64.zip"
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.1/MjsOverlay-1.0.1-win64.zip"
       ]
     },
     "source": {
-      "name": "MjsOverlay-1.0.0-source.zip",
-      "bytes": 7117082,
-      "sha256": "3bc4a80aa14928d838cd20e7738a229610d474336fe706ba17edd3a70499cd83",
+      "name": "MjsOverlay-1.0.1-source.zip",
+      "bytes": 7485840,
+      "sha256": "ba6f85b251cb1411b1d27cbafa5e39cbb784c8e55663998e83579f3d85c3ce8f",
       "urls": [
-        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-source.zip",
-        "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-source.zip"
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.1/MjsOverlay-1.0.1-source.zip"
       ],
       "parts": [
         {
-          "name": "MjsOverlay-1.0.0-source.zip.part01",
-          "bytes": 7117082,
-          "sha256": "3bc4a80aa14928d838cd20e7738a229610d474336fe706ba17edd3a70499cd83",
+          "name": "MjsOverlay-1.0.1-source.zip.part01",
+          "bytes": 7485840,
+          "sha256": "ba6f85b251cb1411b1d27cbafa5e39cbb784c8e55663998e83579f3d85c3ce8f",
           "urls": []
         }
       ]
     },
     "models": {
-      "name": "MjsOverlay-1.0.0-models.zip",
+      "name": "MjsOverlay-1.0.1-models.zip",
       "bytes": 27111151,
-      "sha256": "310be66f1ca2b1c67e55ae7f574d3ccafe9010c7941fd4ecfe20dc4feb5b7eb9",
+      "sha256": "e29badc4e2e04aacd92faa3f3b843c96042a0aba6b05ffd26de211c8501abb19",
       "urls": [
-        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-models.zip",
-        "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-models.zip"
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.1/MjsOverlay-1.0.1-models.zip"
       ],
       "parts": [
         {
-          "name": "MjsOverlay-1.0.0-models.zip.part01",
+          "name": "MjsOverlay-1.0.1-models.zip.part01",
           "bytes": 27111151,
-          "sha256": "310be66f1ca2b1c67e55ae7f574d3ccafe9010c7941fd4ecfe20dc4feb5b7eb9",
+          "sha256": "e29badc4e2e04aacd92faa3f3b843c96042a0aba6b05ffd26de211c8501abb19",
           "urls": []
         }
       ]
     },
     "wheels": {
-      "name": "MjsOverlay-1.0.0-offline-wheels-win64.zip",
+      "name": "MjsOverlay-1.0.1-offline-wheels-win64.zip",
       "bytes": 247648381,
       "sha256": "45b9454e78f89d9edba147349284206828d37f3e02a7a7352ba33f8bca793307",
       "urls": [
-        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-offline-wheels-win64.zip"
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.1/MjsOverlay-1.0.1-offline-wheels-win64.zip"
       ],
       "parts": [
         {
-          "name": "MjsOverlay-1.0.0-offline-wheels-win64.zip.part01",
+          "name": "MjsOverlay-1.0.1-offline-wheels-win64.zip.part01",
           "bytes": 90000000,
           "sha256": "3b99cf8f80d39b6d4898e1284dc848dc48cd30770ff41c6def10a9c32f1469b4",
-          "urls": [
-            "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-offline-wheels-win64.zip.part01"
-          ]
+          "urls": []
         },
         {
-          "name": "MjsOverlay-1.0.0-offline-wheels-win64.zip.part02",
+          "name": "MjsOverlay-1.0.1-offline-wheels-win64.zip.part02",
           "bytes": 90000000,
           "sha256": "ac287a969f5d7e6c7d7f6fcc8e050d7fa21a0fb5aef9a48bc7b4beb10e01e10e",
-          "urls": [
-            "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-offline-wheels-win64.zip.part02"
-          ]
+          "urls": []
         },
         {
-          "name": "MjsOverlay-1.0.0-offline-wheels-win64.zip.part03",
+          "name": "MjsOverlay-1.0.1-offline-wheels-win64.zip.part03",
           "bytes": 67648381,
           "sha256": "3ae0fddf24a598231baf935309655c6ec8c2d4ecc3e50ced733804f1e75d8667",
-          "urls": [
-            "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-offline-wheels-win64.zip.part03"
-          ]
+          "urls": []
         }
       ]
     },
     "downloader": {
-      "name": "MjsOverlay-1.0.0-downloader.zip",
+      "name": "MjsOverlay-1.0.1-downloader.zip",
       "bytes": 8662,
-      "sha256": "2aa5ecee4e25eb7e2535e03a5b055e2713c29ad1928455fc9a549426eafe9fcf",
+      "sha256": "5679e17a70041240ffdf539ec7085a0606fdcbf71ca0d4d7bd197872592f5485",
       "urls": [
-        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-downloader.zip",
-        "https://gitee.com/henry7682/mjs-overlay-assistant/releases/download/v1.0.0/MjsOverlay-1.0.0-downloader.zip"
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.1/MjsOverlay-1.0.1-downloader.zip"
       ],
       "parts": [
         {
-          "name": "MjsOverlay-1.0.0-downloader.zip.part01",
+          "name": "MjsOverlay-1.0.1-downloader.zip.part01",
           "bytes": 8662,
-          "sha256": "2aa5ecee4e25eb7e2535e03a5b055e2713c29ad1928455fc9a549426eafe9fcf",
+          "sha256": "5679e17a70041240ffdf539ec7085a0606fdcbf71ca0d4d7bd197872592f5485",
           "urls": []
         }
       ]
