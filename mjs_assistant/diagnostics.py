@@ -17,6 +17,7 @@ import uuid
 import zipfile
 from pathlib import Path
 from .version import VERSION
+from .build_identity import get_build_identity
 from .storage import write_json,read_json
 
 _recorder=None
@@ -64,7 +65,7 @@ def setup(folder,enabled=True,context=None):
 class Recorder:
     def __init__(self,folder,enabled=True,context=None):
         self.root=Path(folder)/'diagnostics';self.root.mkdir(parents=True,exist_ok=True)
-        self.session=uuid.uuid4().hex;self.enabled=enabled;self.context=clean(context or {})
+        self.session=uuid.uuid4().hex;self.enabled=enabled;self.context=clean({**(context or {}),'build':get_build_identity().to_dict()})
         self.q=queue.Queue(maxsize=2);self.events=queue.Queue(maxsize=256);self.ring=collections.deque();self.bytes=0;self.last={};self.active=None
         self.lock=threading.RLock();self.stopping=threading.Event();self.dropped=0;self.last_trigger={}
         self.mini_hwnd=0

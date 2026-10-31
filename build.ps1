@@ -1,3 +1,4 @@
+param([switch]$Release)
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
 $taskPython = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
@@ -17,8 +18,13 @@ if (Test-Path -LiteralPath $taskSavedData) {
 }
 & $taskPython -X utf8 -m pytest -q
 if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
-& $taskPython -X utf8 -m PyInstaller --noconfirm MjsOverlay.spec
-if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
+$previousBuildKind=$env:MJS_RELEASE_BUILD
+try {
+    $env:MJS_RELEASE_BUILD=if($Release){'1'}else{'0'}
+    & $taskPython -X utf8 -m PyInstaller --noconfirm MjsOverlay.spec
+    $buildExit=$LASTEXITCODE
+} finally { $env:MJS_RELEASE_BUILD=$previousBuildKind }
+if ($buildExit -ne 0) { throw 'Build failed.' }
 Copy-Item -LiteralPath README.md,THIRD_PARTY_NOTICES.md,LICENSE,requirements-runtime.lock.txt -Destination $taskBundlePath
 if ($taskBackup) { Copy-Item -LiteralPath (Join-Path $taskBackup 'data') -Destination $taskBundlePath -Recurse }
 Write-Host "Portable app: $taskBundlePath\$taskBundleName.exe"

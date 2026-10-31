@@ -12,6 +12,7 @@ import sys
 import zipfile
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from mjs_assistant.version import VERSION,REPOSITORY
+from mjs_assistant.build_identity import build_identity, validate_release_payload
 from tools.export_public_source import export
 from tools.collect_dependency_notices import collect
 
@@ -33,11 +34,16 @@ def zipped(folder,target):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--frozen',type=Path,required=True);p.add_argument('--wheels',type=Path,required=True)
-    p.add_argument('--installers',type=Path,required=True);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
+    p.add_argument('--installers',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--release',action='store_true',help='Explicitly package the clean tagged release build')
+    a=p.parse_args()
+    if not a.release:raise ValueError('Release packaging requires --release; development builds cannot be published.')
+    identity=build_identity(ROOT,release=True)
+    validate_release_payload(a.frozen,identity)
     if a.output.exists():raise ValueError('Choose a fresh output folder; do not replace published assets.')
     collect(a.wheels, check=True)
     a.output.mkdir(parents=True);work=a.output/'staging';work.mkdir()
-    public=work/'source';export(public)
+    public=work/'source';export(public,identity=identity)
     payload=work/'payload';shutil.copytree(a.frozen,payload)
     if not (payload/'MjsOverlay.exe').is_file():raise ValueError('Frozen executable missing')
     if (payload/'data').exists():raise ValueError('Never package runtime data')

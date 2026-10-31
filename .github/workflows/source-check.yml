@@ -27,6 +27,7 @@ jobs:
         run: |
           .\.venv\Scripts\python.exe -m pip check
           .\.venv\Scripts\python.exe tools/restore_models.py
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\start-source.ps1 -CheckOnly
       - name: Unit and replay tests (no game or mini program input)
         env:
           QT_QPA_PLATFORM: offscreen
@@ -40,4 +41,6 @@ jobs:
           $report=Join-Path $env:RUNNER_TEMP 'mjs-smoke.json'
           $p=Start-Process -FilePath '.\dist\MjsOverlay\MjsOverlay.exe' -ArgumentList @('--smoke',('"'+$report+'"')) -Wait -PassThru -WindowStyle Hidden
           if ($p.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw 'Frozen smoke failed' }
+          $identity=(Get-Content -Raw -LiteralPath $report | ConvertFrom-Json).build
+          if ($identity.channel -ne 'development' -or $identity.commit -ne $env:GITHUB_SHA) { throw 'Frozen build identity mismatch' }
           Get-Content -LiteralPath $report

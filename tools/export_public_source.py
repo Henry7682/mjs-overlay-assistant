@@ -8,6 +8,10 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from mjs_assistant.build_identity import build_identity, METADATA
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = (
@@ -15,10 +19,10 @@ TOOLS = (
     'portable_worker_smoke.py', 'probe_focus_roundtrip.py', 'replay_provider.py',
     'package_release.py', 'export_public_source.py',
     'lock_dependencies.py', 'build_release.py', 'collect_dependency_notices.py', 'verify_mirror.py',
-    'check_update_channel.py',
+    'check_update_channel.py', 'start_source.py',
 )
 ROOT_FILES = (
-    'main.py', 'setup.ps1', 'start.cmd', 'build.ps1', 'MjsOverlay.spec',
+    'main.py', 'setup.ps1', 'start.cmd', 'start-source.ps1', 'build.ps1', 'MjsOverlay.spec',
     'pytest.ini', 'requirements.lock.txt', 'download.cmd', 'download.ps1',
     'launch.cmd', 'launch.ps1', 'compat-check.cmd', '.gitignore', 'LICENSE', 'list.md',
     'README.md', 'TODO.md', 'TESTING.md', 'AGENTS.md',
@@ -28,7 +32,7 @@ ROOT_FILES = (
 )
 
 
-def export(destination):
+def export(destination, identity=None):
     destination = Path(destination).resolve()
     if destination.exists():
         raise ValueError('Destination must be new; no existing checkout is replaced.')
@@ -69,6 +73,8 @@ def export(destination):
             if re.search(r'(?i)[A-Z]:[\\/]Users[\\/](?!Public)', text):
                 raise ValueError(f'Personal profile path: {rel}')
         outputs[rel] = body
+    identity = identity or build_identity(ROOT)
+    outputs[Path(METADATA)] = json.dumps(identity.to_dict(),ensure_ascii=False,indent=2).encode('utf8')
     destination.mkdir(parents=True)
     for rel, body in outputs.items():
         target = destination / rel
