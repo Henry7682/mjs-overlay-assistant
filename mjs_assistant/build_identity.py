@@ -19,13 +19,20 @@ class BuildIdentity:
     channel: str = 'development'
     commit: str | None = None
     dirty: bool | None = None
+    # Export provenance is historical evidence, never current source verification.
+    exported_from: dict | None = None
 
     @property
     def display(self):
         suffix = '' if self.channel == 'release' else '-dev'
         revision = 'g' + self.commit[:8] if self.commit else '提交未知'
-        state = ' · 未提交修改' if self.dirty else ''
-        return f'{self.version}{suffix} · {revision}{state}'
+        state = ' · 修改状态未知' if self.dirty is None else (' · 未提交修改' if self.dirty else '')
+        origin = ''
+        if self.exported_from:
+            source_commit = self.exported_from.get('commit')
+            source_revision = 'g' + source_commit[:8] if source_commit else '提交未知'
+            origin = f' · 导出来源 {self.exported_from["channel"]}/{source_revision}'
+        return f'{self.version}{suffix} · {revision}{state}{origin}'
 
     def to_dict(self):
         return {**asdict(self), 'display_version': self.display}
@@ -60,7 +67,17 @@ def read_identity(path):
             return None
         if row['channel'] == 'release' and (not row.get('commit') or row.get('dirty') is not False):
             return None
-        return BuildIdentity(**{k: row.get(k) for k in ('version', 'channel', 'commit', 'dirty')})
+        origin = row.get('exported_from')
+        if origin is not None:
+            if (not isinstance(origin, dict) or origin.get('version') != VERSION
+                    or origin.get('channel') not in {'development', 'release'}
+                    or (origin.get('dirty') is not None and type(origin['dirty']) is not bool)
+                    or (origin.get('commit') is not None and
+                        not re.fullmatch(r'[0-9a-f]{40}', origin['commit']))):
+                return None
+            origin = {k: origin.get(k) for k in ('version', 'channel', 'commit', 'dirty')}
+        return BuildIdentity(**{k: row.get(k) for k in ('version', 'channel', 'commit', 'dirty')},
+                             exported_from=origin)
     except (OSError, ValueError, KeyError, TypeError):
         return None
 
@@ -70,8 +87,20 @@ def get_build_identity():
     if getattr(sys, 'frozen', False):
         return read_identity(Path(sys._MEIPASS) / METADATA) or BuildIdentity()
     if (ROOT / '.git').exists():
-        return source_identity()
-    return read_identity(ROOT / METADATA) or BuildIdentity()
+        current = source_identity()
+        if current.commit:
+            return current
+    return exported_source_identity(ROOT)
+
+
+def exported_source_identity(root):
+    metadata = read_identity(Path(root) / METADATA)
+    if metadata is None:
+        return BuildIdentity()
+    origin = metadata.exported_from or {
+        k: getattr(metadata, k) for k in ('version', 'channel', 'commit', 'dirty')
+    }
+    return BuildIdentity(exported_from=origin)
 
 
 def build_identity(root=ROOT, release=False):
@@ -84,6 +113,8 @@ def build_identity(root=ROOT, release=False):
         if git(root, 'rev-parse', f'v{VERSION}^{{commit}}') != identity.commit:
             raise ValueError('Release tag, version and build commit must match.')
         identity = BuildIdentity(channel='release', commit=identity.commit, dirty=False)
+    elif not identity.commit:
+        identity = exported_source_identity(root)
     return identity
 
 
