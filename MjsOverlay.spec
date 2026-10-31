@@ -2,6 +2,13 @@ from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy
 import os
 import sys
 from pathlib import Path
+from PyInstaller.config import CONF
+
+# Resolve source provenance before narrowing PATH for DLL collection.
+sys.path.insert(0, str(Path(SPECPATH)))
+from mjs_assistant.build_identity import build_identity, write_identity, METADATA
+identity_path = Path(CONF['workpath']) / METADATA
+write_identity(identity_path, build_identity(release=os.environ.get('MJS_RELEASE_BUILD') == '1'))
 
 # Never let unrelated developer tools on PATH supply same-named ICU/VC/OpenSSL
 # DLLs. Qt uses Windows' ICU; Python supplies its own OpenSSL.
@@ -11,7 +18,7 @@ os.environ['PATH'] = os.pathsep.join(str(p) for p in (
     Path(sys.prefix)/'Lib/site-packages/shiboken6',
     Path(os.environ['SystemRoot'])/'System32', Path(os.environ['SystemRoot'])))
 
-datas = [('assets', 'assets')]
+datas = [('assets', 'assets'), (str(identity_path), '.')]
 datas += collect_data_files('rapidocr', excludes=['models/*'])
 datas += copy_metadata('rapidocr')
 hidden = collect_submodules('rapidocr') + collect_submodules('pywinauto')
