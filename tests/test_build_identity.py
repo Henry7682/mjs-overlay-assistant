@@ -67,8 +67,9 @@ def test_cached_source_identity(monkeypatch, tmp_path):
         bi.get_build_identity.cache_clear()
 
 
-def test_frozen_metadata_does_not_call_git(monkeypatch, tmp_path):
-    identity=bi.BuildIdentity(commit=SHA, dirty=False)
+@pytest.mark.parametrize('channel', ['development', 'release'])
+def test_frozen_metadata_does_not_call_git(monkeypatch, tmp_path, channel):
+    identity=bi.BuildIdentity(channel=channel, commit=SHA, dirty=False)
     bi.write_identity(tmp_path / bi.METADATA, identity)
     monkeypatch.setattr(bi.sys, 'frozen', True, raising=False)
     monkeypatch.setattr(bi.sys, '_MEIPASS', str(tmp_path), raising=False)
@@ -78,13 +79,47 @@ def test_frozen_metadata_does_not_call_git(monkeypatch, tmp_path):
     finally: bi.get_build_identity.cache_clear()
 
 
-def test_exported_metadata_without_git(monkeypatch, tmp_path):
-    identity=bi.BuildIdentity(commit=SHA,dirty=True)
+@pytest.mark.parametrize('channel,dirty', [('development', True), ('release', False)])
+def test_exported_metadata_without_git(monkeypatch, tmp_path, channel, dirty):
+    identity=bi.BuildIdentity(channel=channel, commit=SHA,dirty=dirty)
     bi.write_identity(tmp_path/bi.METADATA, identity)
+    (tmp_path/'main.py').write_text('# modified after export')
     monkeypatch.setattr(bi,'ROOT',tmp_path)
     bi.get_build_identity.cache_clear()
-    try: assert bi.get_build_identity()==identity
+    try:
+        actual = bi.get_build_identity()
+        assert actual.channel == 'development'
+        assert actual.commit is None and actual.dirty is None
+        assert actual.exported_from == dict(version=bi.VERSION, channel=channel, commit=SHA, dirty=dirty)
+        assert '修改状态未知' in actual.display and '导出来源' in actual.display
+        assert '未提交修改' not in actual.display
+        # A further export/build keeps provenance without promoting it to fact.
+        bi.write_identity(tmp_path/bi.METADATA, actual)
+        assert bi.read_identity(tmp_path/bi.METADATA) == actual
+        assert bi.exported_source_identity(tmp_path) == actual
     finally: bi.get_build_identity.cache_clear()
+
+
+def test_unavailable_git_keeps_export_only_as_provenance(monkeypatch, tmp_path):
+    (tmp_path/'.git').mkdir()
+    bi.write_identity(tmp_path/bi.METADATA, bi.BuildIdentity(channel='release', commit=SHA, dirty=False))
+    monkeypatch.setattr(bi, 'ROOT', tmp_path)
+    monkeypatch.setattr(bi, 'source_identity', lambda: bi.BuildIdentity())
+    bi.get_build_identity.cache_clear()
+    try:
+        actual = bi.get_build_identity()
+        assert actual.channel == 'development' and actual.dirty is None and actual.commit is None
+        assert actual.exported_from['commit'] == SHA
+    finally: bi.get_build_identity.cache_clear()
+
+
+def test_no_git_build_preserves_provenance_but_cannot_release(monkeypatch, tmp_path):
+    bi.write_identity(tmp_path/bi.METADATA, bi.BuildIdentity(channel='release', commit=SHA, dirty=False))
+    monkeypatch.setattr(bi, 'source_identity', lambda root: bi.BuildIdentity())
+    actual = bi.build_identity(tmp_path)
+    assert actual.channel == 'development' and actual.dirty is None
+    assert actual.exported_from['channel'] == 'release'
+    with pytest.raises(ValueError): bi.build_identity(tmp_path, release=True)
 
 
 @pytest.mark.parametrize('changes', [dict(dirty=' M main.py'),dict(tag='b'*40),dict(untracked='?? new.py')])

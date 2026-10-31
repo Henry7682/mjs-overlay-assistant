@@ -4,7 +4,9 @@
 
 只检查环境与来源：`powershell -NoProfile -ExecutionPolicy Bypass -File start-source.ps1 -CheckOnly`。
 
-源码显示 `1.0.2-dev · g<短提交号>`，受跟踪改动显示“未提交修改”；无 Git 时显示提交未知。数字更新版本仍为1.0.2。设置、日志与反馈中的提交信息用于定位源码。本轮没有发布新版本。
+源码显示 `1.0.2-dev · g<短提交号>`，受跟踪改动显示“未提交修改”；无法核验 Git 时显示“提交未知／修改状态未知”。导出包的 `build-identity.json` 仅作为“导出来源”附列：即使来源是正式发行，也不表示当前源码仍未修改。冻结包继续使用构建时身份。数字更新版本仍为1.0.2。设置、日志与反馈使用同一份身份信息。本轮没有发布新版本。
+
+源码启动会检查当前 Windows 会话中的助手设置窗口（包括隐藏窗口），不依赖命令行是否包含项目名或是否共用 data；并通过会话互斥对象防止两个新源码入口同时启动。检测失败会停止并提示，不关闭旧程序。旧源码尚在加载、还未创建设置窗口时无法凭窗口确认身份，应先等待它启动完成再退出；不能将其他项目的 `python main.py` 一律视为助手。日常测试使用下述 `start.cmd`，直接运行 `main.py` 不经过源码启动器的跨数据目录保护。
 
 Git规则与状态交接见 [GIT-WORKFLOW](GIT-WORKFLOW.md)，维护入口见 [MAINTENANCE](MAINTENANCE.md)。
 
@@ -26,7 +28,7 @@ Git规则与状态交接见 [GIT-WORKFLOW](GIT-WORKFLOW.md)，维护入口见 [M
 git clone https://github.com/Henry7682/mjs-overlay-assistant.git
 cd mjs-overlay-assistant
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Development
-.\.venv\Scripts\python.exe -X utf8 main.py
+.\start.cmd
 ```
 
 也可以下载仓库 ZIP 后解压，从 `setup.ps1` 开始。没有 Python 时，可先使用[下载器 Source 模式](INSTALL.md)准备环境；进入源码目录后再加 `-Development` 安装测试与打包依赖。
@@ -62,7 +64,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Development -Py
 
 ```powershell
 $env:MJS_ASSISTANT_HOME = Join-Path $PWD '.research\dev-data'
-.\.venv\Scripts\python.exe -X utf8 main.py
+.\start.cmd
 ```
 
 该环境变量影响从当前终端启动的进程。独立数据目录仍可能保存私人画面和日志，不能提交；退出终端不会删除已有数据。

@@ -34,7 +34,15 @@ def main():
         print('Source environment ready; no assistant or automation started.')
         return 0
     from PySide6.QtCore import QLockFile
-    lock = QLockFile(str(folder / 'assistant.lock'))
+    from mjs_assistant.source_instance_guard import source_instance_guard
+    # Guard lifetime includes runpy: simultaneous source launchers cannot pass
+    # a check before either has constructed its (possibly hidden) settings window.
+    with source_instance_guard():
+        return run_source(folder, QLockFile)
+
+
+def run_source(folder, lock_factory):
+    lock = lock_factory(str(folder / 'assistant.lock'))
     lock.setStaleLockTime(0)
     if not lock.tryLock(50):
         raise RuntimeError('Assistant already running with this data directory; exit it first.')
