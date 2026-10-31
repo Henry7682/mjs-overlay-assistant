@@ -52,12 +52,18 @@ def test_relative_main_hidden_window_with_different_data(tmp_path):
     # Actual relative command line contains no project name. No window is shown.
     (tmp_path/'main.py').write_text('''
 from pathlib import Path
+import os
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication, QWidget
 app = QApplication([])
 window = QWidget()
 window.setWindowTitle("名将浮窗助手 integration fixture")
 window.winId()
-Path("ready").write_text("ready")
+timer = QTimer()
+timer.timeout.connect(lambda: app.quit() if Path("stop").exists() else None)
+timer.start(50)
+QTimer.singleShot(15000, app.quit)
+Path("ready").write_text(str(os.getpid()))
 app.exec()
 ''', encoding='utf-8')
     env = {**os.environ, 'QT_QPA_PLATFORM': 'windows', 'MJS_ASSISTANT_HOME': str(tmp_path/'other-data')}
@@ -68,12 +74,19 @@ app.exec()
         while not (tmp_path/'ready').exists() and child.poll() is None and time.monotonic() < deadline:
             time.sleep(.05)
         assert (tmp_path/'ready').exists(), 'Hidden Qt fixture failed to initialize'
-        assert child.pid in WindowsProbe().existing()
+        # Standard Windows venv python.exe may be a redirector; its child owns
+        # the HWND. Embedded/virtualenv Python may execute in the parent PID.
+        window_pid = int((tmp_path/'ready').read_text())
+        assert window_pid in WindowsProbe().existing()
         with pytest.raises(RuntimeError, match='already running'):
             with source_instance_guard(): pytest.fail('Duplicate source allowed')
     finally:
-        child.terminate()
-        child.communicate(timeout=5)
+        (tmp_path/'stop').write_text('stop')
+        try:
+            child.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.communicate(timeout=5)
 
 
 @pytest.mark.skipif(sys.platform != 'win32', reason='Windows named mutex')
