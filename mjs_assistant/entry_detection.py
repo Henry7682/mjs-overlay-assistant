@@ -2,6 +2,12 @@
 import cv2
 import numpy as np
 from .modes import MINGDAO, RANKED_CHUHAN, PEAK_CHUHAN, PEAK_SHUANGLONG
+from .region_geometry import is_standard_client
+
+ENTRY_TEXT_16_9={False:((.63,.23,.81,.285),(.85,.23,.96,.285)),
+                 True:((.34,.145,.46,.215),(.56,.145,.67,.215))}
+ENTRY_COLOUR_16_9={False:((.65,.235,.80,.277),(.84,.235,.98,.277)),
+                   True:((.31,.15,.50,.216),(.515,.15,.70,.216))}
 
 
 def detect_entry(frame, header, read_region):
@@ -14,11 +20,18 @@ def detect_entry(frame, header, read_region):
     names=('楚汉争霸','双龙争鼎') if peak else ('楚汉争霸','明刀暗箭')
     modes=(PEAK_CHUHAN,PEAK_SHUANGLONG) if peak else (RANKED_CHUHAN,MINGDAO)
     h,w=frame.shape[:2];scores=[];texts=[]
+    colour_regions=regions
+    if is_standard_client(w,h):
+        # Text bounds and active-tab colour are independent: padding a label
+        # must not dilute its selection colour with the neighbouring paper.
+        regions=ENTRY_TEXT_16_9[peak]
+        colour_regions=ENTRY_COLOUR_16_9[peak]
     for index,(a,b,c,d) in enumerate(regions):
         crop=frame[int(h*b):int(h*d),int(w*a):int(w*c)]
         if not crop.size:return True,None
-        texts.append(''.join(t.text for t in read_region(f'entry_tab_{peak}_{index}',crop) if t.confidence>=.85))
-        hsv=cv2.cvtColor(crop,cv2.COLOR_BGR2HSV)
+        texts.append(''.join(t.text for t in read_region(f'entry_tab_{peak}_{index}',crop) if t.confidence>=.85).replace('爭','争'))
+        ca,cb,cc,cd=colour_regions[index]
+        hsv=cv2.cvtColor(frame[int(h*cb):int(h*cd),int(w*ca):int(w*cc)],cv2.COLOR_BGR2HSV)
         hue=hsv[:,:,0]
         color=((hue>=70)&(hue<=105)) if peak else ((hue<22)|(hue>170))
         scores.append(float(np.mean(color&(hsv[:,:,1]>75)&(hsv[:,:,2]>80))))

@@ -56,6 +56,19 @@ def test_real_ranked_name_strips_at_three_sizes(ocr, index, width):
         assert item.raw != rare  # Keep the failed OCR spelling for diagnostics.
 
 
+@pytest.mark.parametrize('size',[(1920,1080),(2560,1440)])
+@pytest.mark.parametrize('index',[1,2])
+def test_rare_strips_with_center_height_conversion_and_padding(ocr,index,size):
+    # Synthetic placement of existing real glyph strips, not a new live sample.
+    w,h=size;scale=h/1334;offset=(w-2559*scale)/2
+    frame=cv2.warpAffine(frame_from_strips(index),np.float32([[scale,0,offset],[0,scale,0]]),(w,h))
+    # Keep the real rare-consensus path: mocking every read_region call would
+    # disable precisely the independent verification this regression covers.
+    recognizer=Recognizer(ocr,Names())
+    _,items,_=recognizer.analyze(frame,scene_override='selection',mode_id='ranked_chuhan_2v2')
+    assert [d.name for d in items]==EXPECTED[index-1]
+
+
 def box(width, slot):
     return (int(XS[slot] * width), 0, int((XS[slot] + .019) * width), 0)
 

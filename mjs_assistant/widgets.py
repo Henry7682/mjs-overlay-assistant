@@ -14,6 +14,7 @@ from .boards import MODE,validate_board
 from .recognition import place_labels,profile_key
 from .modes import MODES,MINGDAO,PEAK_SHUANGLONG
 from .stats_source import source_label,is_strong
+from .overlay_scale import logical_scale
 
 
 def pixmap(frame):
@@ -50,31 +51,37 @@ class Overlay(QWidget):
     def paintEvent(self,event):
         p=QPainter(self);p.setRenderHint(QPainter.RenderHint.Antialiasing)
         fw,fh=self.frame_size
-        sx,sy=self.width()/fw,self.height()/fh
-        # Work in Qt logical pixels: physical screenshot coordinates are converted once.
+        scale=logical_scale(self.width(),self.height())
+        p.scale(scale,scale)
+        width,height=self.width()/scale,self.height()/scale
+        sx,sy=width/fw,height/fh
+        # Draw in a common design space. One painter transform scales fonts,
+        # boxes, borders and gaps together; screenshot positions stay aligned.
         from dataclasses import replace
         converted=[replace(d,box=(d.box[0]*sx,d.box[1]*sy,d.box[2]*sx,d.box[3]*sy)) for d in self.items if d.confirmed]
-        p.setFont(QFont('Microsoft YaHei UI',9))
+        normal_font=QFont('Microsoft YaHei UI');normal_font.setPixelSize(12)
+        name_font=QFont('Microsoft YaHei UI');name_font.setPixelSize(13);name_font.setWeight(QFont.Weight.DemiBold)
+        p.setFont(normal_font)
         board=self.store.board
         period=f'{board["period_start"]} — {board["period_end"]}' if board.get('heroes') else '该模式暂无已复核榜单'
         title=f'{source_label(self.game_mode) if self.game_mode else board["mode"]}  ·  官方统计 {period}'
         text='\n'.join(self.status_lines) if self.status_lines else title
-        width=min(self.width()-16,840)
+        banner_width=min(width-16,840)
         flags=Qt.TextFlag.TextWordWrap|Qt.AlignmentFlag.AlignLeft
-        height=max(27,p.boundingRect(QRectF(0,0,width-20,300),flags,text).height()+12)
-        p.setPen(Qt.PenStyle.NoPen);p.setBrush(QColor(15,23,35,215));p.drawRoundedRect(QRectF(8,4,width,height),6,6)
-        p.setPen(QColor('#e7c77a'));p.drawText(QRectF(18,10,width-20,height-12),flags,text)
-        anchors={slot:(a*self.width(),b*self.height()) for slot,(a,b) in self.anchors.items()}
-        for d,rect in place_labels(converted,self.width(),self.height(),286,46,(self.offset[0]*self.width(),self.offset[1]*self.height()),anchors):
+        banner_height=max(27,p.boundingRect(QRectF(0,0,banner_width-20,300),flags,text).height()+12)
+        p.setPen(Qt.PenStyle.NoPen);p.setBrush(QColor(15,23,35,215));p.drawRoundedRect(QRectF(8,4,banner_width,banner_height),6,6)
+        p.setPen(QColor('#e7c77a'));p.drawText(QRectF(18,10,banner_width-20,banner_height-12),flags,text)
+        anchors={slot:(a*width,b*height) for slot,(a,b) in self.anchors.items()}
+        for d,rect in place_labels(converted,width,height,286,46,(self.offset[0]*width,self.offset[1]*height),anchors):
             x,y,x2,y2=rect
             box=QRectF(x,y,x2-x,y2-y)
             record=self.store.lookup(d.name)
             strong=is_strong(record)
             p.setPen(QPen(QColor('#eac76b' if strong else '#567783'),2 if strong else 1))
             p.setBrush(QColor(58,44,21,240) if strong else QColor(13,24,35,225));p.drawRoundedRect(box,7,7)
-            p.setPen(QColor('#f8e6b5'));p.setFont(QFont('Microsoft YaHei UI',10,QFont.Weight.DemiBold))
+            p.setPen(QColor('#f8e6b5'));p.setFont(name_font)
             p.drawText(QRectF(x+9,y+3,268,20),Qt.AlignmentFlag.AlignVCenter,(d.name or d.raw)+('  · 强势' if strong else ''))
-            p.setFont(QFont('Microsoft YaHei UI',9));p.setPen(QColor('#d5e4e8'))
+            p.setFont(normal_font);p.setPen(QColor('#d5e4e8'))
             text=f'{record["win_rate"]:.2f}%  ·  胜率 #{record["win_rank"]}  ·  出场 #{record["pick_rank"]}' if record else ('本期未收录' if board.get('heroes') else '该模式暂无榜单')
             p.drawText(QRectF(x+9,y+23,268,18),Qt.AlignmentFlag.AlignVCenter,text)
             # Leader line preserves correspondence when labels move to avoid overlap.

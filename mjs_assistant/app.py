@@ -23,6 +23,7 @@ from .guide_controller import GuideController
 from .ocr import Names,Ocr
 from .capture import Capture,windows,client_rect,foreground
 from .recognition import Recognizer,Stabilizer,profile_key
+from .region_geometry import is_standard_client
 from .widgets import Overlay,CalibrationDialog,ReviewDialog
 from .boards import import_image,validate_board
 from .updater import Updater
@@ -93,6 +94,12 @@ class RecognitionThread(QThread):
                         if cap:cap.stop()
                         cap=Capture(hwnd);bound=hwnd;self.msleep(400)
                     frame,rect,stamp=cap.read()
+                    if not is_standard_client(frame.shape[1],frame.shape[0]):
+                        self.stabilizer.clear()
+                        message=f'当前游戏客户区 {frame.shape[1]}×{frame.shape[0]} 不是16:9，请调整游戏窗口；识别与配阵已暂停'
+                        status(message)
+                        self.result.emit({'scene':'unknown','items':[],'generation':gen,'unsupported_aspect':message})
+                        self.msleep(500);continue
                     if not foreground(hwnd) and not allow_background:
                         self.stabilizer.previous.clear();self.stabilizer.last_time=time.monotonic()
                         status('游戏不在前台，悬浮已隐藏')
@@ -319,6 +326,10 @@ class MainWindow(GuideController,QMainWindow):
             if time.monotonic()-self._empty_since>4:diagnostics.fault('选将持续没有姓名')
         else:self._empty_since=time.monotonic()
         if data.get('generation')!=self.worker.generation:return
+        if data.get('unsupported_aspect'):
+            if self.latest is not None or self.provider.busy:
+                self.safe_guide_call(self.invalidate_recommendation,data['unsupported_aspect'])
+            self.latest=None;self.overlay.hide();self.guide_panel.hide();self.table.setRowCount(0);return
         if 'error' in data:
             self.safe_guide_call(self.invalidate_recommendation,'游戏截图不可用')
             self.latest=None;self.overlay.hide();self.guide_panel.hide();self.table.setRowCount(0);return

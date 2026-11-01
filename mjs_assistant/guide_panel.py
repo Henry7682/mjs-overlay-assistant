@@ -3,7 +3,9 @@ import ctypes
 from ctypes import wintypes
 from html import escape
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QPushButton,QLabel,QTextBrowser
+from PySide6.QtGui import QFont
+from PySide6.QtWidgets import QWidget,QVBoxLayout,QHBoxLayout,QPushButton,QLabel,QTextBrowser,QLayout
+from .overlay_scale import panel_metrics
 
 
 def clamped_position(rect, size, anchor):
@@ -62,19 +64,18 @@ class GuidePanel(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.setWindowTitle('名将组合攻略')
         self.anchor=tuple(anchor);self.game_rect=None;self.compact=False;self.scene=None;self._html=None
+        self.ui_scale=1.;self._style_metrics=None
         self.root=QVBoxLayout(self);self.root.setContentsMargins(5,5,5,5)
+        self.root.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self.button=DragHandle('攻略',self,True);self.root.addWidget(self.button)
         self.body=QWidget(self);self.root.addWidget(self.body)
-        layout=QVBoxLayout(self.body);layout.setContentsMargins(2,2,2,2)
-        header=QHBoxLayout();self.title=DragHandle('配阵参考 · 名将小助手  ↔ 拖动',self);header.addWidget(self.title,1)
+        layout=QVBoxLayout(self.body);self.body_layout=layout;layout.setContentsMargins(2,2,2,2)
+        header=QHBoxLayout();self.header_layout=header;self.title=DragHandle('配阵参考 · 名将小助手  ↔ 拖动',self);header.addWidget(self.title,1)
         minimize=QPushButton('收起');minimize.setFocusPolicy(Qt.FocusPolicy.NoFocus);minimize.clicked.connect(self.toggle);header.addWidget(minimize);layout.addLayout(header)
         self.browser=QTextBrowser();self.browser.setOpenExternalLinks(False);self.browser.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.browser.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction);layout.addWidget(self.browser,1)
         self.retry=QPushButton('重试敌方查询');self.retry.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.retry.clicked.connect(self.retry_enemy);layout.addWidget(self.retry)
-        self.setStyleSheet('QWidget {background:#152632;color:#e3ecee;font-family:"Microsoft YaHei UI";font-size:12px;}'
-                          'QPushButton {background:#274555;border:1px solid #597b87;border-radius:4px;padding:5px;}'
-                          'QTextBrowser {border:0;background:#152632;}')
         u=ctypes.windll.user32;hwnd=int(self.winId())
         u.GetWindowLongPtrW.argtypes=[wintypes.HWND,ctypes.c_int];u.GetWindowLongPtrW.restype=ctypes.c_ssize_t
         u.SetWindowLongPtrW.argtypes=[wintypes.HWND,ctypes.c_int,ctypes.c_ssize_t]
@@ -89,7 +90,34 @@ class GuidePanel(QWidget):
 
     def apply_size(self):
         self.button.setVisible(self.compact);self.body.setVisible(not self.compact)
-        self.resize(76,42) if self.compact else self.resize(430,430)
+        dpi=self.devicePixelRatioF()
+        if self.game_rect:
+            self.ui_scale,physical=panel_metrics(self.game_rect,dpi,self.compact)
+            desired=tuple(max(1,round(v/dpi)) for v in physical)
+        else:desired=(76,42) if self.compact else (430,430)
+        s=self.ui_scale
+        metrics=tuple(max(1,round(v*s)) for v in (12,5,2,6,4,1,10))
+        resized=(self.width(),self.height())!=desired
+        restyle=metrics!=self._style_metrics
+        scroll=self.browser.verticalScrollBar()
+        fraction=scroll.value()/max(1,scroll.maximum())
+        if restyle:
+            self._style_metrics=metrics
+            font,pad,inner,gap,radius,border,scrollbar=metrics
+            self.setStyleSheet(f'QWidget {{background:#152632;color:#e3ecee;font-family:"Microsoft YaHei UI";font-size:{font}px;}}'
+                              f'QPushButton {{background:#274555;border:{border}px solid #597b87;border-radius:{radius}px;padding:{pad}px;}}'
+                              'QTextBrowser {border:0;background:#152632;}'
+                              f'QScrollBar:vertical {{width:{scrollbar}px;}}')
+            text_font=QFont('Microsoft YaHei UI');text_font.setPixelSize(font)
+            self.browser.document().setDefaultFont(text_font)
+            self.browser.document().setDocumentMargin(inner)
+            self.root.setContentsMargins(pad,pad,pad,pad);self.root.setSpacing(gap)
+            self.body_layout.setContentsMargins(inner,inner,inner,inner);self.body_layout.setSpacing(gap)
+            self.header_layout.setSpacing(gap)
+        if resized:self.resize(*desired)
+        if restyle or resized:
+            self.root.activate();self.body_layout.activate()
+            scroll.setValue(round(fraction*scroll.maximum()))
 
     def toggle(self):
         self.compact=not self.compact;self.apply_size();self.place()
@@ -109,8 +137,8 @@ class GuidePanel(QWidget):
     def place(self):
         if not self.game_rect:return
         ratio=self.devicePixelRatioF();rect=self.game_rect
-        desired=(76,42) if self.compact else (430,430)
-        pw,ph=min(round(desired[0]*ratio),rect[2]),min(round(desired[1]*ratio),rect[3])
+        self.apply_size()
+        _,(pw,ph)=panel_metrics(rect,ratio,self.compact)
         x,y=clamped_position(rect,(pw,ph),self.anchor)
         self.anchor=((x-rect[0])/rect[2],(y-rect[1])/rect[3])
         u=ctypes.windll.user32

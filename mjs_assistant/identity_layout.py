@@ -3,6 +3,27 @@ import cv2
 import numpy as np
 import time
 import re
+from .region_geometry import center_x, is_standard_client
+
+
+def six_lord_grid(frame):
+    """Verify the known six-card row before skipping broad name localization.
+
+    This only validates portrait geometry. Names still use the same OCR and
+    two-frame confirmation. Missing/extra/shifted portraits keep the old fallback.
+    """
+    h,w=frame.shape[:2]
+    if not is_standard_client(w,h):return False
+    band=cv2.cvtColor(frame[int(h*.28):int(h*.40)],cv2.COLOR_BGR2HSV)
+    occupied=(np.mean((band[:,:,1]>55)|(band[:,:,2]<150),axis=0)>.30).astype(np.uint8)
+    occupied[:int(w*.24)]=0;occupied[int(w*.98):]=0
+    occupied=cv2.morphologyEx(occupied[None,:],cv2.MORPH_CLOSE,
+                            np.ones((1,max(1,int(w*.008))),np.uint8))[0]
+    edges=np.diff(np.r_[0,occupied,0].astype(int))
+    blocks=[(a/w,b/w) for a,b in zip(np.where(edges==1)[0],np.where(edges==-1)[0]) if (b-a)/w>.025]
+    starts=(.286,.392,.500,.606,.714,.821)
+    return len(blocks)==6 and all(.07<=b-a<=.12 and abs(a-center_x(x,w,h))<.016
+                                  for (a,b),x in zip(blocks,starts))
 
 
 class IdentityNameLocator:
@@ -92,7 +113,8 @@ def mingdao_nine_grid(frame):
         if len(blocks) != count:
             return False
         starts = [.443 - .112*(count-1)/2 + i*.112 for i in range(count)]
-        if any(not .075 <= b-a <= .110 or abs(a-x) > .009
+        scale=center_x(1,w,h)-center_x(0,w,h)
+        if any(not .075*scale <= b-a <= .110*scale or abs(a-center_x(x,w,h)) > .009*scale
                for (a, b), x in zip(blocks, starts)):
             return False
     return True

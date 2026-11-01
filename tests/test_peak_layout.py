@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import pytest
 from mjs_assistant.peak_layout import detect_draft_layout, draft_count, draft_regions
+from mjs_assistant.region_geometry import center_x
 from mjs_assistant.guide_state import PeakDraft
 from mjs_assistant.recognition import Recognizer, Stabilizer, Detection
 from mjs_assistant.ocr import Ocr, Names, Word
@@ -15,7 +16,7 @@ def panel(count, width=1280, height=667):
     for n,y in ((count//2,.15),((count+1)//2,.40)):
         for i in range(n):
             x=.459-.112*(n-1)/2+i*.112
-            frame[int(height*y):int(height*(y+.225)),int(width*x):int(width*(x+.084))]=(50,80,110)
+            frame[int(height*y):int(height*(y+.225)),int(width*center_x(x,width,height)):int(width*center_x(x+.084,width,height))]=(50,80,110)
     return frame
 
 

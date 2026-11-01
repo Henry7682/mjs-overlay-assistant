@@ -19,7 +19,7 @@ TOOLS = (
     'portable_worker_smoke.py', 'probe_focus_roundtrip.py', 'replay_provider.py',
     'package_release.py', 'export_public_source.py',
     'lock_dependencies.py', 'build_release.py', 'collect_dependency_notices.py', 'verify_mirror.py',
-    'check_update_channel.py', 'start_source.py',
+    'check_update_channel.py', 'start_source.py', 'replay_regions.py',
 )
 ROOT_FILES = (
     'main.py', 'setup.ps1', 'start.cmd', 'start-source.ps1', 'build.ps1', 'MjsOverlay.spec',
