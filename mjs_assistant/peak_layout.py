@@ -2,6 +2,7 @@
 import re
 import cv2
 import numpy as np
+from .region_geometry import center_x
 
 
 def draft_count(layout):
@@ -48,7 +49,8 @@ def detect_draft_layout(frame):
         n = len(blocks)
         if not 3 <= n <= 6:
             return None
-        if any(not (.065 <= b-a <= .103) or abs(a-(x+.002)) > .009
+        scale=center_x(1,w,h)-center_x(0,w,h)
+        if any(not (.065*scale <= b-a <= .103*scale) or abs(a-center_x(x+.002,w,h)) > .009*scale
                for (a, b), x in zip(blocks, row_starts(n))):
             return None
         counts.append(n)

@@ -143,6 +143,23 @@ def test_turning_guides_off_cancels_only_guides_and_retains_cache(window):
     assert w.worker.generation==worker_generation and w.enabled
     assert w.guide_cache.raw_cards==({'heroes':['孙权','孙策']},)
     w.provider.busy=False;w.set_guides_enabled(True)
+
+
+def test_unsupported_client_hides_stale_results_and_retains_round_cache(window):
+    w=window
+    w.guide_cache.raw_cards=({'heroes':['孙权','孙策']},)
+    w.latest={'scene':'selection','items':[]}
+    w.provider=NS(busy=True,cancel=Mock())
+    w.provider.cancel.side_effect=lambda reason:setattr(w.provider,'busy',False)
+    w.overlay.hide=Mock();w.guide_panel.hide=Mock()
+    message='当前游戏客户区1920×1200不是16:9，请调整游戏窗口'
+    w.receive(dict(generation=w.worker.generation,scene='unknown',items=[],unsupported_aspect=message))
+    assert w.latest is None and w.table.rowCount()==0
+    w.overlay.hide.assert_called_once();w.guide_panel.hide.assert_called_once()
+    w.provider.cancel.assert_called_once_with(message)
+    assert w.guide_cache.raw_cards==({'heroes':['孙权','孙策']},)
+    # A following valid frame is processed normally; no setting is disabled.
+    assert w.enabled
     assert w.guide_cache.raw_cards and w.guides_enabled()
 
 

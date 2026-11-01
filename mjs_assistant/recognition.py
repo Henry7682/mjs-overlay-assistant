@@ -10,10 +10,11 @@ import numpy as np
 from .ocr import Names, Word
 from .modes import MINGDAO, RANKED_CHUHAN, PEAK_CHUHAN, PEAK_SHUANGLONG
 from .peak_layout import detect_draft_layout, draft_count, draft_regions
+from .region_geometry import is_standard_client, map_regions, NAME_MARGIN, center_x
 NAME_MIN_CONFIDENCE = .80
 NAME_RECHECK_CONFIDENCE = .85
 
-from .identity_layout import mingdao_nine_grid, mingdao_nine_regions, IdentityNameLocator, add_identity_regions
+from .identity_layout import mingdao_nine_grid, mingdao_nine_regions, IdentityNameLocator, add_identity_regions, six_lord_grid
 
 
 @dataclass
@@ -59,6 +60,7 @@ def fourteen_card_grid(frame):
     h,w=frame.shape[:2]
     occupied=0
     for x in (.15,.82):
+        x=center_x(x,w,h)
         for y in (.27,.53):
             tile=frame[int(h*y):int(h*(y+.07)),int(w*x):int(w*(x+.035))]
             if tile.size:
@@ -124,6 +126,7 @@ class Recognizer:
     def analyze(self, frame, scene_override='auto', profiles=None, mode_id=MINGDAO):
         self.layout='default';self.phase='unknown';self.seats=(None,None);self.self_locked=False;self.remaining=None
         self.entry_mode=None;self.in_entry=False;self.empty_panels=False;self.battle_badges={};self.locked_names=();self.round_end=False
+        self.name_regions=()
         h, w = frame.shape[:2]
         # Scene title is separate from chat, tooltips and the card OCR canvas.
         header = self.read_region('header',frame[:int(h*.10), :int(w*.22)])
@@ -172,6 +175,8 @@ class Recognizer:
         if not puppet and mode_id in (RANKED_CHUHAN,PEAK_CHUHAN) and scene=='selection':
             # Read only the seat/control band, never infer sides from portrait count.
             a,b,c,d=(.29,.50,.71,.61) if mode_id==RANKED_CHUHAN else (.29,.66,.71,.74)
+            if is_standard_client(w,h) and mode_id==PEAK_CHUHAN and self.layout=='ban14':
+                a,b,c,d=(.19,.73,.81,.81)
             controls=self.read_region('controls',frame[int(h*b):int(h*d),int(w*a):int(w*c)])
             self.remaining=self.remaining if self.remaining is not None else selection_seconds(controls)
             seats=[None,None];numbers={'一':1,'二':2,'三':3,'四':4,'1':1,'2':2,'3':3,'4':4}
@@ -222,13 +227,23 @@ class Recognizer:
             else:
                 regions = [(x,.088,x+.034,.178) for x in (.151,.294,.437,.580,.723)]
                 regions += [(.009,.225,.040,.339),(.870,.239,.901,.329),(.870,.694,.901,.820)]
-        if not calibrated and not puppet and scene=='selection' and mode_id in (MINGDAO,PEAK_SHUANGLONG):
+        if not calibrated and scene=='selection':
+            if self.layout=='identity6_lord':
+                # The lord panel is left anchored, the six candidates are centered.
+                regions=map_regions(regions[:1],w,h,margin=NAME_MARGIN)+map_regions(regions[1:],w,h,'center_height',NAME_MARGIN)
+            else:
+                regions=map_regions(regions,w,h,'center_height',NAME_MARGIN)
+        known_six=not calibrated and self.layout=='identity6_lord' and six_lord_grid(frame)
+        if not calibrated and not puppet and scene=='selection' and mode_id in (MINGDAO,PEAK_SHUANGLONG) and not known_six:
             extra=self.identity_locator.locate(frame,(mode_id,self.layout,w,h),self.ocr,self.names)
             regions=add_identity_regions(regions,extra)
         else:
             self.identity_locator.reset()
         if not calibrated and not puppet and scene=='battle':
             regions=[(max(0,a-.002),max(0,b-.008),min(1,c+.002),min(1,d+.010)) for a,b,c,d in regions]
+            # Existing battle strips already have vertical margins; do not
+            # stack a second expansion onto them. Keep their client anchors.
+        self.name_regions=tuple(regions)  # exact client bounds for offline QA
         # Pack full-resolution narrow nameplates into one detector invocation.
         # This preserves vertical glyphs while avoiding a full-screen CNN pass.
         tiles=[];locations=[];maxw=0;maxh=0
@@ -270,7 +285,10 @@ class Recognizer:
             if not texts:continue
             if (not name or conf<NAME_MIN_CONFIDENCE) and not calibrated and not puppet and scene=='selection' and mode_id==RANKED_CHUHAN:
                 from .nameplate_match import verify_ranked_name
-                match=verify_ranked_name(frame,(a,b,c,d),raw,self.names)
+                # Glyph references expect the original strip width, not the
+                # surrounding OCR safety margin. Keep the matcher unchanged.
+                pad=round(NAME_MARGIN[0]*w/1920) if is_standard_client(w,h) else 0
+                match=verify_ranked_name(frame,(a+pad,b,c-pad,d),raw,self.names)
                 if match:
                     name,conf=match;method='glyph_verified'
             if (not name or conf<NAME_MIN_CONFIDENCE) and not calibrated and scene=='selection' and mode_id in (MINGDAO,PEAK_SHUANGLONG) and not puppet:
@@ -419,6 +437,16 @@ class Recognizer:
                    (.103,.202,.061,.484),(.964,.202,.923,.484),(.964,.678,.923,.963)]
         for index,(x,y,sx,sy) in enumerate(positions):
             crops=[frame[int(h*(y+a)):int(h*(y+b)),int(w*x):int(w*(x+.017))] for a,b in ((0,.019),(.019,.039))]
+            if is_standard_client(w,h):
+                # 1080p client measurements, scaled proportionally. Inactive
+                # red badges are narrower than the glowing active glyphs;
+                # legacy strips clipped their left strokes and lower character.
+                a,b,c,d=((752,54,788,99),(1298,54,1330,99),
+                         (214,217,244,259),(1842,217,1872,259),
+                         (1842,729,1872,772))[index]
+                middle=(b+d)/2
+                crops=[frame[round(h*top/1080):round(h*bottom/1080),round(w*a/1920):round(w*c/1920)]
+                       for top,bottom in ((b,middle),(middle,d))]
             strip=np.hstack([cv2.resize(crop,(90,90)) for crop in crops])
             words=self.read_region('camp'+str(index),cv2.copyMakeBorder(strip,24,24,24,24,cv2.BORDER_CONSTANT))
             text=''.join(t.text for t in sorted(words,key=lambda t:t.box[0]) if t.confidence>=.90)
@@ -426,6 +454,9 @@ class Recognizer:
             seat=None
             if camp:
                 tile=frame[int(h*sy):min(h,int(h*(sy+.032))),int(w*sx):int(w*(sx+.020))]
+                if is_standard_client(w,h):
+                    tile=frame[max(0,int(h*(sy-.006))):min(h,int(h*(sy+.038))),
+                               max(0,int(w*(sx-.006))):min(w,int(w*(sx+.026)))]
                 words=self.read_region('seat'+str(index),cv2.resize(tile,None,fx=3,fy=3))
                 values={'一':1,'二':2,'三':3,'四':4,'1':1,'2':2,'3':3,'4':4}
                 known={values[t.text] for t in words if t.text in values and t.confidence>=.9}

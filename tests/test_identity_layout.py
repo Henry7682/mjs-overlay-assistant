@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 from mjs_assistant.identity_layout import mingdao_nine_grid, mingdao_nine_regions, IdentityNameLocator, add_identity_regions
 from mjs_assistant.recognition import Recognizer, Stabilizer, profile_key
+from mjs_assistant.region_geometry import center_x
 from mjs_assistant.ocr import Ocr, Names, Word
 from mjs_assistant.storage import ASSETS
 from mjs_assistant.modes import MINGDAO
@@ -15,7 +16,7 @@ def panel(width=2560, height=1334, lower=6):
     for count,y in ((3,.12),(lower,.39)):
         for i in range(count):
             x=.443-.112*(count-1)/2+i*.112
-            frame[int(height*y):int(height*(y+.25)),int(width*x):int(width*(x+.098))]=(50,80,110)
+            frame[int(height*y):int(height*(y+.25)),int(width*center_x(x,width,height)):int(width*center_x(x+.098,width,height))]=(50,80,110)
     return frame
 
 
