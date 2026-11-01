@@ -58,7 +58,8 @@ class GuideController:
         self.guide_cache=RoundGuideCache(mode,self.game_id);self.enemy_cache=RoundGuideCache(mode,self.game_id)
         self.peak_draft=PeakDraft();self.battle_tracker=BattleTracker()
         self.enemy_attempted=False;self.enemy_status='敌方尚未查询'
-        self.auto_attempted=False;self.pool_signature=();self.pool_since=0
+        self.auto_attempted=False;self.auto_launch_count=0;self.auto_retry_at=0;self.auto_launch_id=None
+        self.pool_signature=();self.pool_since=0
         self.snapshot=self.confirmed_snapshot=None;self.ranked_request_changed=False
         self.overlay.recommendation=None;self.overlay.recommendation_status=''
         self.guide_panel.reset();self.selection_guard.clear();self.previous_scene='unknown'
@@ -148,11 +149,12 @@ class GuideController:
         self.maybe_auto_recommend()
 
     def maybe_auto_recommend(self):
-        if not self.guides_enabled():return
+        if not self.guides_enabled() or not getattr(self,'enabled',True):return
         settings=self.config.get('recommendation',{})
         if not (settings.get('enabled',True) and settings.get('automatic',True) and not self.auto_attempted
                 and not self.provider.busy and self.snapshot and self.snapshot.can_request(True)
                 and foreground(self.window_box.currentData())):return
+        if time.monotonic()<getattr(self,'auto_retry_at',0):return
         if self.snapshot.image_only:
             if getattr(self,'ranked_scene_frames',0)<2:return
         elif time.monotonic()-self.pool_since<1:return
@@ -178,15 +180,37 @@ class GuideController:
         budget=40 if self.snapshot.context.mode_id==PEAK_CHUHAN else 15
         if self.snapshot.remaining_seconds is not None and self.snapshot.remaining_seconds<budget+3:
             self.rec_status.setText('选将时间不足，跳过本次查询');return
+        if automatic:self.auto_launch_count=getattr(self,'auto_launch_count',0)+1
+        self.auto_launch_id=None
+        started=False
         try:
-            self.auto_attempted=True;self.ranked_request_changed=False
+            self.ranked_request_changed=False
             with self.worker.lock:self.worker.allow_background=True
             self.request_id=self.provider.start(self.snapshot,self.latest['frame'],self.window_box.currentData())
+            started=True;self.auto_attempted=True
+            self.auto_launch_id=self.request_id if automatic else None
             query=self.provider.active['query'];self.guide_cache.begin(query)
             self.guide_cache.local_incomplete=(not self.snapshot.image_only and
                 len(query.submitted)<(14 if self.snapshot.phase in ('ban','transition') else draft_count(self.latest.get('layout')) or 14))
             self.overlay.recommendation=None
-        except Exception as error:self.recommendation_status(str(error))
+        except Exception as error:
+            if automatic and not started:self.retry_auto_launch(str(error))
+            else:self.recommendation_status(str(error))
+
+    def retry_auto_launch(self,reason):
+        # Only startup failures are retried, not page/input failures or cancel.
+        # Each retry still requires a fresh eligible frame and game foreground.
+        self.auto_launch_id=None
+        self.auto_attempted=getattr(self,'auto_launch_count',0)>=3
+        self.auto_retry_at=time.monotonic()+2
+        self.provider._connection_cache=None
+        suffix='；本局自动启动已尝试3次，请用热键重试' if self.auto_attempted else '；等待游戏前台和新画面后自动重试'
+        self.recommendation_status(reason+suffix)
+
+    def recommendation_launch_failed(self,event):
+        if (event['request_id']!=getattr(self,'auto_launch_id',None)
+            or event['game_id']!=self.game_id):return
+        self.retry_auto_launch(event['reason'])
 
     def maybe_enemy_query(self):
         if not self.guides_enabled():return
@@ -232,6 +256,7 @@ class GuideController:
         self.recommendation_batch(result);self.tick()
 
     def cancel_recommendation(self):
+        self.auto_launch_id=None
         self.auto_attempted=True
         if self.latest and self.latest.get('scene')=='battle':self.enemy_attempted=True
         self.invalidate_recommendation('用户已取消配阵；保留已读攻略')

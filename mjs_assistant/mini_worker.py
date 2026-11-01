@@ -99,6 +99,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
     if not focus.ok:
         connection.send({'status':'failed','error':'切至小程序失败：'+focus.reason,'seconds':time.monotonic()-start})
         return
+    connection.send({'event':'activated'})
     time.sleep(.15)
     last_input=input_tick()
     read_only_results=False;manual_review=False;review_deadline=None;review_hint='';input_limit=''

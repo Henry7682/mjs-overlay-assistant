@@ -226,6 +226,7 @@ class MainWindow(GuideController,QMainWindow):
         self.rec_status=QLabel('小程序配阵未启用');self.rec_status.setWordWrap(True);layout.addWidget(self.rec_status)
         self.provider.status.connect(lambda text:self.safe_guide_call(self.recommendation_status,text))
         self.provider.finished.connect(lambda result:self.safe_guide_call(self.recommendation_finished,result))
+        self.provider.launch_failed.connect(lambda event:self.safe_guide_call(self.recommendation_launch_failed,event))
         self.status=QLabel('准备连接…');self.status.setObjectName('status');layout.addWidget(self.status)
         self.table=QTableWidget(0,6);self.table.setHorizontalHeaderLabels(['识别武将','胜率','胜率排名','出场排名','状态','OCR 原文'])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch);self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows);self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers);layout.addWidget(self.table,1)

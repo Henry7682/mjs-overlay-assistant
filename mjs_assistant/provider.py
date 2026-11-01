@@ -66,6 +66,7 @@ class WeChatMiniProgramProvider(QObject):
     status=Signal(str)
     finished=Signal(object)
     batch=Signal(object)
+    launch_failed=Signal(object)
 
     def __init__(self,folder,parent=None):
         super().__init__(parent)
@@ -170,6 +171,7 @@ class WeChatMiniProgramProvider(QObject):
                     if state['snapshot'].image_only:
                         state['pipe'].send({'observed':sorted(set(state['snapshot'].own_pool+state['snapshot'].ally_pool))})
                     continue
+                if message.get('event')=='activated':state['activated']=True;continue
                 if message.get('event')=='input':state['tick']=message['tick'];continue
                 if message.get('event')=='dialog':state['dialog']=message['hwnd'];continue
                 if message.get('event')=='input_complete':
@@ -218,16 +220,25 @@ class WeChatMiniProgramProvider(QObject):
                     if message.get('manually_reviewed'):message_text='人工复核完成；'+message_text+'；请自行返回游戏'
                     self.status.emit(message_text)
                     self.finished.emit(result);return
-                self.cancel(message.get('error','配阵失败'));return
+                self.fail(message.get('error','配阵失败'));return
             if state.get('manual_review'):
                 if time.monotonic()>=state['review_deadline']:self.cancel('等待人工复核已结束，请重新配阵')
                 elif not state['process'].is_alive():self.cancel('小程序工作进程已退出')
             elif time.monotonic()-state['began']>=state.get('budget',15):self.cancel('配阵已达时限，保留已读攻略')
-            elif not state['process'].is_alive():self.cancel('小程序工作进程已退出')
-        except (EOFError,OSError):self.cancel('小程序连接已断开')
+            elif not state['process'].is_alive():self.fail('小程序工作进程已退出')
+        except (EOFError,OSError):self.fail('小程序连接已断开')
         except Exception as error:
             logging.exception('guide message processing failed')
             self.cancel('配阵结果处理异常，保留已读攻略：'+str(error))
+
+    def fail(self,reason):
+        state=self.active
+        retryable=bool(state and not state.get('activated') and not state.get('partial')
+                       and not state.get('input_complete') and not state.get('manual_review'))
+        self.cancel(reason)
+        if retryable:
+            self.launch_failed.emit(dict(request_id=state['id'],
+                game_id=state['snapshot'].context.game_id,reason=reason))
 
     def _return_game(self,state):
         # Restore only from the mini program, never a different foreground app.
