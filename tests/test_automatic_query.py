@@ -28,12 +28,13 @@ def test_wait_for_mini_then_automatically_start_once_without_clock(mode,monkeypa
     provider=SimpleNamespace(busy=False,connection_status=lambda:(ready[0],'等待小程序'),
         start=lambda snap,frame,hwnd:(calls.append((snap,hwnd)) or 'request-1'))
     host=SimpleNamespace(config={'recommendation':{'enabled':True,'automatic':True}},
-        auto_attempted=False,provider=provider,snapshot=snapshot(mode),ranked_scene_frames=2,
+        auto_attempted=False,provider=provider,snapshot=snapshot(mode),ranked_scene_frames=2,peak_auto_ready=True,game_id='test-game',
         window_box=SimpleNamespace(currentData=lambda:42),rec_status=SimpleNamespace(setText=status.append),
         latest={'stamp':time.monotonic(),'frame':object()},overlay=SimpleNamespace(recommendation=None),
         worker=SimpleNamespace(lock=threading.Lock(),allow_background=False))
     host.request_recommendation=MethodType(MainWindow.request_recommendation,host)
     host.guides_enabled=MethodType(MainWindow.guides_enabled,host)
+    host.auto_query_wait=MethodType(MainWindow.auto_query_wait,host)
     host.pool_since=time.monotonic()-2
     host.guide_cache=RoundGuideCache(mode,'test-game')
     provider.active={'query':GuideQuery('selection',mode,'test-game','request-1',(),30 if mode=='peak_chuhan_2v2' else 15)}

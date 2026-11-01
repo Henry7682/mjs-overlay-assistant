@@ -16,6 +16,7 @@ from .mini_worker import worker
 from .recommendations import RecommendationResult, capability_limits, filter_cards,validate_image_candidates,filter_image_cards
 from .storage import read_json, write_json
 from .guide_state import GuideQuery
+from .picker_fill import peak_return_deadline
 from . import diagnostics
 
 
@@ -66,6 +67,7 @@ class WeChatMiniProgramProvider(QObject):
     status=Signal(str)
     finished=Signal(object)
     batch=Signal(object)
+    launch_failed=Signal(object)
 
     def __init__(self,folder,parent=None):
         super().__init__(parent)
@@ -117,7 +119,10 @@ class WeChatMiniProgramProvider(QObject):
         parent,child=mp.get_context('spawn').Pipe()
         physical_stop=mp.get_context('spawn').Event()
         watch=None  # Physical mouse/keyboard activity no longer cancels requests.
-        process=mp.get_context('spawn').Process(target=worker,args=(child,path,names,picker,physical_stop,self.bound_hwnd,game_hwnd,snapshot.image_only,budget,began+budget-.7),daemon=True)
+        return_at=peak_return_deadline(began,snapshot.selection_started_at) if budget>15 else None
+        if snapshot.selection_started_at is not None:
+            logging.info('peak automatic query delay from first observed selection: %.2fs',began-snapshot.selection_started_at)
+        process=mp.get_context('spawn').Process(target=worker,args=(child,path,names,picker,physical_stop,self.bound_hwnd,game_hwnd,snapshot.image_only,budget,began+budget-.7,False,return_at),daemon=True)
         self.active=dict(process=process,pipe=parent,snapshot=snapshot,id=request_id,began=began,
                          game=game_hwnd,mini=0,tick=None,physical_stop=physical_stop,watch=watch,budget=budget,
                          query=GuideQuery(snapshot.purpose,snapshot.context.mode_id,snapshot.context.game_id,request_id,tuple(names),budget))
@@ -170,6 +175,7 @@ class WeChatMiniProgramProvider(QObject):
                     if state['snapshot'].image_only:
                         state['pipe'].send({'observed':sorted(set(state['snapshot'].own_pool+state['snapshot'].ally_pool))})
                     continue
+                if message.get('event')=='activated':state['activated']=True;continue
                 if message.get('event')=='input':state['tick']=message['tick'];continue
                 if message.get('event')=='dialog':state['dialog']=message['hwnd'];continue
                 if message.get('event')=='input_complete':
@@ -196,6 +202,11 @@ class WeChatMiniProgramProvider(QObject):
                     try:result=WeChatMiniProgramProvider.make_result(state,message)
                     except ValueError as error:self.cancel(str(error));return
                     state['partial']=result
+                    if result.source_cards and not state.get('first_cards_at'):
+                        state['first_cards_at']=time.monotonic()
+                        origin=state['snapshot'].selection_started_at or state['began']
+                        logging.info('guide first cards: request=%s query=%.2fs selection=%.2fs',
+                            state['id'],state['first_cards_at']-state['began'],state['first_cards_at']-origin)
                     diagnostics.event('query_batch',request_id=state['id'],round_id=state['snapshot'].context.game_id,
                         selected=result.selected_candidates,cards=result.source_cards,complete=result.complete)
                     self.batch.emit(result)
@@ -218,16 +229,25 @@ class WeChatMiniProgramProvider(QObject):
                     if message.get('manually_reviewed'):message_text='人工复核完成；'+message_text+'；请自行返回游戏'
                     self.status.emit(message_text)
                     self.finished.emit(result);return
-                self.cancel(message.get('error','配阵失败'));return
+                self.fail(message.get('error','配阵失败'));return
             if state.get('manual_review'):
                 if time.monotonic()>=state['review_deadline']:self.cancel('等待人工复核已结束，请重新配阵')
                 elif not state['process'].is_alive():self.cancel('小程序工作进程已退出')
             elif time.monotonic()-state['began']>=state.get('budget',15):self.cancel('配阵已达时限，保留已读攻略')
-            elif not state['process'].is_alive():self.cancel('小程序工作进程已退出')
-        except (EOFError,OSError):self.cancel('小程序连接已断开')
+            elif not state['process'].is_alive():self.fail('小程序工作进程已退出')
+        except (EOFError,OSError):self.fail('小程序连接已断开')
         except Exception as error:
             logging.exception('guide message processing failed')
             self.cancel('配阵结果处理异常，保留已读攻略：'+str(error))
+
+    def fail(self,reason):
+        state=self.active
+        retryable=bool(state and not state.get('activated') and not state.get('partial')
+                       and not state.get('input_complete') and not state.get('manual_review'))
+        self.cancel(reason)
+        if retryable:
+            self.launch_failed.emit(dict(request_id=state['id'],
+                game_id=state['snapshot'].context.game_id,reason=reason))
 
     def _return_game(self,state):
         # Restore only from the mini program, never a different foreground app.
@@ -251,6 +271,10 @@ class WeChatMiniProgramProvider(QObject):
         self._return_failed=False
         state=self.active;self.active=None;self.timer.stop()
         if state:
+            origin=getattr(state.get('snapshot'),'selection_started_at',None)
+            if origin is not None:
+                logging.info('guide ended from first observed selection: request=%s %.2fs',
+                             state.get('id'),time.monotonic()-origin)
             try:
                 if state['process'].is_alive():state['process'].terminate()
                 if state['process'].pid is not None:state['process'].join(.1)

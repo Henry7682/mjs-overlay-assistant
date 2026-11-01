@@ -42,12 +42,13 @@ class SelectionSnapshot:
     reference_only: bool=False  # Visible names are known; ownership/availability is not.
     image_only: bool=False  # Ranked 2v2: mini program reads the full PNG, local names are optional.
     purpose: str='selection'  # selection / enemy_battle
+    selection_started_at: float | None=None  # Timing only; never part of request identity.
 
     @property
     def fingerprint(self):
         # Time/countdown changes alone do not invalidate a still-identical request.
         data=asdict(self)
-        for key in ('captured_at','remaining_seconds'): data.pop(key)
+        for key in ('captured_at','remaining_seconds','selection_started_at'): data.pop(key)
         for key in ('own_pool','ally_pool','enemies'): data[key]=sorted(set(data[key]))
         if self.image_only:
             # Local OCR filling in more names must not cancel a PNG request.
