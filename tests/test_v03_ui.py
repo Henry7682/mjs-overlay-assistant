@@ -56,4 +56,4 @@ def test_main_window_constructs_with_source_mapping_and_keeps_config(monkeypatch
     finally:
         window.quitting=True
         for timer in (window.timer,window.scan_timer,window.update_timer):timer.stop()
-        window.hotkeys.close();window.tray.hide();window.overlay.close();window.guide_panel.close();window.close()
+        window.hotkeys.close();window.tray.hide();window.overlay.close();window.guide_panel.close();window.statistics_button.close();window.close()

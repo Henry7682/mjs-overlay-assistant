@@ -20,6 +20,7 @@ from .storage import BoardStore,user_dir,read_json,write_json,ASSETS,migrate_set
 from .modes import MODES,MINGDAO,board_mode
 from .stats_source import statistics_mode,source_label
 from .guide_controller import GuideController
+from .statistics_toggle import StatisticsToggle
 from .ocr import Names,Ocr
 from .capture import Capture,windows,client_rect,foreground
 from .recognition import Recognizer,Stabilizer,profile_key
@@ -191,6 +192,9 @@ class MainWindow(GuideController,QMainWindow):
         self.mode_evidence='unknown';self.auto_mode=None;self.entry_candidate=None;self.entry_hits=0
         self.observed_seats=(None,None)
         self.init_guides()
+        self.statistics_button=StatisticsToggle(self.config.get("statistics_button_anchor",(.93,.38)))
+        self.statistics_button.toggled.connect(self.toggle_statistics)
+        self.statistics_button.position_saved.connect(self.save_statistics_position)
         self.setWindowTitle(APP_NAME+' '+get_build_identity().display+' · 公开测试版');self.setWindowIcon(app_icon());self.resize(920,660)
         widget=QWidget();self.setCentralWidget(widget);layout=QVBoxLayout(widget);layout.setSpacing(12);layout.setContentsMargins(24,20,24,20)
         title=QLabel('名将浮窗助手');title.setObjectName('title');layout.addWidget(title)
@@ -210,6 +214,8 @@ class MainWindow(GuideController,QMainWindow):
         for label,callback in [('校准区域／位置',self.calibrate),('纠正选中姓名',self.correct),('保存诊断样本',self.save_sample)]:
             button=QPushButton(label);button.clicked.connect(callback);row.addWidget(button)
         layout.addLayout(row)
+        stats_row=QHBoxLayout();self.statistics_btn=QPushButton();self.statistics_btn.clicked.connect(self.toggle_statistics)
+        stats_row.addWidget(self.statistics_btn);stats_row.addWidget(QLabel('仅控制武将数据；识别与攻略继续运行'),1);layout.addLayout(stats_row)
         self.guide_check=QCheckBox('开启攻略浮窗（需配合名将小助手；关闭不影响本地武将统计）')
         self.guide_check.setChecked(self.guides_enabled());self.guide_check.toggled.connect(self.set_guides_enabled)
         layout.addWidget(self.guide_check)
@@ -383,6 +389,7 @@ class MainWindow(GuideController,QMainWindow):
 
     def tick(self):
         d=self.latest;hwnd=self.window_box.currentData()
+        self.present_statistics_button(hwnd)
         fresh=frame_fresh(d,self.current_mode()=='peak_chuhan_2v2')
         if self.provider.busy:
             from .capture import user32
@@ -400,7 +407,8 @@ class MainWindow(GuideController,QMainWindow):
             key=profile_key(d['scene'],w,h);layout=d.get('layout','default')
             profile=self.profiles().get(key+':'+layout,{} if layout=='puppet3' else self.profiles().get(key,{}))
             self.overlay.status_lines=self.status_lines(d)
-            self.overlay.present(rect,(w,h),d['items'],profile)
+            if self.statistics_visible():self.overlay.present(rect,(w,h),d['items'],profile)
+            else:self.overlay.hide()
         except Exception:
             logging.exception('statistics overlay presentation');self.overlay.hide();self.guide_panel.hide();return
         if not self.safe_guide_call(self.present_guides,rect,d):self.guide_panel.hide()
@@ -417,6 +425,26 @@ class MainWindow(GuideController,QMainWindow):
         if not self.enabled:self.safe_guide_call(self.invalidate_recommendation,'识别已暂停，保留已读攻略')
         self.configure_worker();self.sync_controls();self.tick()
 
+    def statistics_visible(self):
+        return self.config.get('statistics_visible',True)
+
+    def toggle_statistics(self):
+        self.config['statistics_visible']=not self.statistics_visible()
+        write_json(self.folder/'settings.json',self.config)
+        self.sync_controls();self.tick()
+
+    def save_statistics_position(self,anchor):
+        self.config['statistics_button_anchor']=list(anchor)
+        write_json(self.folder/'settings.json',self.config)
+
+    def present_statistics_button(self,hwnd):
+        try:
+            if self.visible_overlay and hwnd and foreground(hwnd):
+                self.statistics_button.present(client_rect(hwnd))
+            else:self.statistics_button.hide()
+        except Exception:
+            logging.exception('statistics toggle presentation');self.statistics_button.hide()
+
     def toggle_overlay(self):
         self.visible_overlay=not self.visible_overlay;self.sync_controls();self.tick()
 
@@ -431,7 +459,9 @@ class MainWindow(GuideController,QMainWindow):
 
     def sync_controls(self):
         self.pause_btn.setText('暂停识别' if self.enabled else '开始识别')
-        self.show_btn.setText('隐藏悬浮' if self.visible_overlay else '显示悬浮')
+        self.show_btn.setText('隐藏所有浮窗' if self.visible_overlay else '显示所有浮窗')
+        self.statistics_btn.setText('武将数据：已显示 · 点击隐藏' if self.statistics_visible() else '武将数据：已隐藏 · 点击显示')
+        self.statistics_button.set_statistics_visible(self.statistics_visible())
         self.pause_action.setText('识别：运行中 — 点击暂停' if self.enabled else '识别：已暂停 — 点击开始')
         self.overlay_action.setText('悬浮显示：已开启 — 点击隐藏' if self.visible_overlay else '悬浮显示：已关闭 — 点击显示')
         for control in (self.guide_check,self.guides_action):
@@ -598,7 +628,7 @@ class MainWindow(GuideController,QMainWindow):
         else:self.hide();event.ignore()
 
     def quit(self):
-        self.provider.cancel('助手退出');self.hotkeys.close()
+        self.provider.cancel('助手退出');self.hotkeys.close();self.statistics_button.hide()
         self.quitting=True;self.timer.stop();self.scan_timer.stop();self.update_timer.stop();self.overlay.hide();self.guide_panel.hide();self.tray.hide();self.hide()
         self.worker.requestInterruption()
         if self.data_worker:self.data_worker.requestInterruption()

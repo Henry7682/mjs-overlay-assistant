@@ -55,6 +55,8 @@ def run(output, sample=None):
     config['diagnostic_notice_v1']=True;write_json(user_dir()/'settings.json',config)
     with patch('mjs_assistant.app.windows',return_value=[]),patch.object(MainWindow,'install_hotkeys'),patch.object(MainWindow,'start_data'):
         window=MainWindow()
+        assert window.statistics_visible() and window.statistics_button.button.text()=='数据：开'
+        window.statistics_button.close()
         window.worker.requestInterruption()
         assert window.worker.wait(15000),'recognition model startup did not exit'
         window.timer.stop();window.scan_timer.stop();window.update_timer.stop()
@@ -65,7 +67,7 @@ def run(output, sample=None):
             'uia_initialized':True,'entry_detection_bundled':True,
             'yingzheng_alias':True,'gongsunzan_alias':True,'guides_default_on':True,
             'query_default_on':True,'automatic_default_on':True,'request_hotkey':'Ctrl+Alt+P',
-            'query_optimizations_bundled':True,'settings_constructed':True}
+            'query_optimizations_bundled':True,'settings_constructed':True,'statistics_toggle_bundled':True}
     if sample:
         from mjs_assistant.recognition import Recognizer, Stabilizer
         frame=cv2.imdecode(np.fromfile(sample,dtype=np.uint8),cv2.IMREAD_COLOR)
