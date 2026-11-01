@@ -94,11 +94,11 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
     result=None
     start=time.monotonic()
     deadline=min(deadline or start+budget-.5,start+budget-.5)
-    # Parent deadline includes worker startup. Keep 40s as a hard failure guard,
-    # but stop adding names early enough to return useful results near 30s.
+    # Parent deadline includes startup. The 30s target limits extra scrolling,
+    # never truncates a progressing pool. Reserve result time from the HARD cap.
     quick_peak=picker_only and budget>15 and not read_existing
     result_deadline=min(deadline,(return_deadline or deadline-budget+.7+PEAK_RETURN_TARGET)-1) if quick_peak else deadline
-    input_deadline=result_deadline-PEAK_RESULT_RESERVE if quick_peak else deadline
+    input_deadline=deadline-PEAK_RESULT_RESERVE if quick_peak else deadline
     from .window_focus import activate_window
     stopped=lambda:False  # Do not interpret physical activity as cancellation.
     focus=activate_window(mini,original,stopped)

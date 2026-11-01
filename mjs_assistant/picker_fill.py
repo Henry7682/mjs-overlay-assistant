@@ -1,5 +1,4 @@
 """Bounded public-picker input: salvage verified subsets, never invent selection."""
-import re
 import time
 
 
@@ -59,11 +58,10 @@ def fill_pool(names, search, click, read, publish, stage, guard, input_deadline,
                 stage('武将暂不可点击：'+name)
             until=min(input_deadline,clock()+.65)
             while True:
-                text=observe()
+                observe()
                 if name in confirmed:break
-                if re.search(r'(?:最多|上限|至多).{0,10}(?:武将|个|名)',text):
-                    missing=[n for n in names if n not in confirmed]
-                    return last,'小程序候选数量限制；未提交：'+'、'.join(missing)
+                # Page text contains guide prose, not a trusted capacity signal.
+                # A late chip update must use the normal bounded retry path.
                 if clock()>=until:break
                 sleep(.06)
             if name in confirmed:break
@@ -74,6 +72,6 @@ def fill_pool(names, search, click, read, publish, stage, guard, input_deadline,
     missing=[name for name in names if name not in confirmed]
     reason=''
     if missing:
-        reason=('优先返回已读攻略，候选输入未完成' if clock()>=input_deadline
+        reason=('输入时限已到，保留已读攻略；未确认候选' if clock()>=input_deadline
                 else '部分武将重试后仍未选入')+'：'+'、'.join(missing)
     return last,reason
