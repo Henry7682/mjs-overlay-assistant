@@ -55,10 +55,24 @@ def test_real_controller_queries_once_despite_alternating_ocr_names(monkeypatch)
         w.latest=dict(scene='selection',phase='selection',layout='draft9',items=items,
                       stamp=clock[0],frame=object())
         w.update_selection(w.latest)
-        if index<2:w.provider.start.assert_not_called()
+        # The worker already confirmed these names over two frames; no second
+        # one-second hold in the controller before the first request.
+        if index==0:w.provider.start.assert_called_once()
     w.provider.start.assert_called_once()
     submitted=w.provider.start.call_args.args[0]
     assert submitted.own_pool==('孙权','刘邦','东方朔')  # Full current pool, not only the two stable names.
+    assert submitted.selection_started_at==10
+
+
+def test_unconfirmed_names_do_not_unlock_immediate_peak_trigger():
+    from test_ranked_retention import host
+    w=host(mode='peak_chuhan_2v2')
+    items=[Detection(n,n,(10,10,20,30),.99,'roi'+str(i),False)
+           for i,n in enumerate(('孙权','刘邦'))]
+    w.latest=dict(scene='selection',phase='ban',layout='ban14',items=items,
+                  stamp=10.,frame=object())
+    w.update_selection(w.latest)
+    assert not w.peak_auto_ready and w.selection_started_at==10
 
 
 def test_wait_reason_logs_only_changes(monkeypatch,caplog):

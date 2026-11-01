@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 
 MANUAL_REVIEW_SECONDS=90
+PEAK_RETURN_TARGET=30
+PEAK_RESULT_RESERVE=4
 
 
 class PageNotReady(RuntimeError):pass
@@ -31,7 +33,7 @@ def parse_document(text):
     return {'selected':names, 'cards':cards, 'no_result':no_result}
 
 
-def _worker(connection, path, expected, picker_only=False,physical_stop=None,bound_hwnd=None,game_hwnd=None,image_only=False,budget=15,deadline=None,read_existing=False):
+def _worker(connection, path, expected, picker_only=False,physical_stop=None,bound_hwnd=None,game_hwnd=None,image_only=False,budget=15,deadline=None,read_existing=False,return_deadline=None):
     metrics={}
     def stage(name):connection.send({'event':'stage','stage':name,'metrics':{k:dict(v) for k,v in metrics.items()}})
     def measured(category):
@@ -92,6 +94,11 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
     result=None
     start=time.monotonic()
     deadline=min(deadline or start+budget-.5,start+budget-.5)
+    # Parent deadline includes worker startup. Keep 40s as a hard failure guard,
+    # but stop adding names early enough to return useful results near 30s.
+    quick_peak=picker_only and budget>15 and not read_existing
+    result_deadline=min(deadline,(return_deadline or deadline-budget+.7+PEAK_RETURN_TARGET)-1) if quick_peak else deadline
+    input_deadline=result_deadline-PEAK_RESULT_RESERVE if quick_peak else deadline
     from .window_focus import activate_window
     stopped=lambda:False  # Do not interpret physical activity as cancellation.
     focus=activate_window(mini,original,stopped)
@@ -271,14 +278,14 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                 try:capture.stop()
                 except Exception:pass
 
-    def click(title):
+    def click(title,until_override=None):
         nonlocal last_input
         guard()
         can_click=None
         if title in expected:
             from .mini_picker import search_ready,portrait_point
             from .mini_page import picker_range
-            until=min(deadline,time.monotonic()+2.8)
+            until=min(deadline,until_override or deadline,time.monotonic()+2.8)
             scrolled=0
             settled_point=None
             while time.monotonic()<until:
@@ -324,7 +331,8 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                     settled_point=None
                     time.sleep(.12);continue
                 time.sleep(.06)
-            raise RuntimeError('武将头像未在可点击区域就绪：'+title)
+            from .picker_fill import CandidateUnavailable
+            raise CandidateUnavailable('武将头像未在可点击区域就绪：'+title)
         if title=='📷 相册':
             from .mini_dialogs import album_click_allowed
             from .album_location import locate_album
@@ -348,6 +356,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         time.sleep(.06)
         return True
     search_value_supported=None
+    @measured('search_value')
     def set_search(value):
         nonlocal last_input,search_value_supported
         guard()
@@ -357,9 +366,8 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         if not edit: raise RuntimeError('武将搜索框不存在')
         inner=edit.FindFirst(ids.TreeScope_Children,api.build_condition(control_type='Edit'))
         if inner:edit=inner
-        try:
-            if edit.GetCurrentPropertyValue(30045)==value:return
-        except Exception:pass
+        # Each step sets a requested search once. Reading Value beforehand adds
+        # a remote call without verifying the asynchronously rendered roster.
         if search_value_supported is not False:
             try:
                 pattern=get_elem_interface(edit,'Value')
@@ -382,49 +390,25 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         set_search('')
     def fill_candidates():
         nonlocal input_limit
-        from .mini_picker import catalogue_ready,roster_names
-        # An unsupported hero (e.g. 石崇 in the observed public catalogue) must
-        # not abort all the other candidates. Reset both public filters first.
-        click('全部');click('全');set_search('')
-        until=min(deadline,time.monotonic()+5);catalogue=None;previous=None
-        while time.monotonic()<until:
-            guard();text=document()
-            current=roster_names(text)
-            if catalogue_ready(text) and current==previous:
-                catalogue=set(current);break
-            previous=current;time.sleep(.08)
-        if catalogue is None:raise RuntimeError('公开武将列表尚未完整加载，无法核对候选；请重试')
-        missing=[name for name in expected if name not in catalogue]
-        submitted=[name for name in expected if name in catalogue]
-        if missing:
-            input_limit='小程序公开列表未提供：'+'、'.join(missing)+'；仅查询其余武将，攻略不完整'
-            stage(input_limit)
-        if len(submitted)<2:raise RuntimeError(input_limit+'；可查询武将不足两名')
-        for index,name in enumerate(submitted,1):
-            guard();set_search(name);click(name)
-            until=min(deadline,time.monotonic()+1.2)
-            while True:
-                text=document(results_only=True);partial=parse_document(text);selected=partial['selected']
-                if set(selected)==set(submitted[:index]):
-                    # Preserve valid progress even if the hard request deadline
-                    # arrives during the next search. Never call a partial pool
-                    # a complete search or a global no-match.
-                    if len(selected)>=2 and (partial['cards'] or partial['no_result']):
-                        limits=[s for s in (input_limit,f'候选输入进度 {index}/{len(submitted)}；阶段性攻略不完整') if s]
-                        connection.send(dict(event='batch',input_incomplete=True,complete=False,limits=limits,**partial))
-                    break
-                if set(selected)-set(submitted[:index]):raise RuntimeError('小程序出现非本次候选，已停止')
-                if re.search(r'(?:最多|上限|至多).{0,10}(?:武将|个|名)',text) and set(selected)==set(submitted[:index-1]) and len(selected)>=2:
-                    input_limit+=(f'；小程序候选数量限制：仅提交 {len(selected)}/{len(expected)} 名；攻略不完整')
-                    return
-                guard()
-                if time.monotonic()>=until:raise RuntimeError('武将选择未生效：'+name+'；请检查小程序页面')
-                time.sleep(.06)
-            stage(f'填入候选 {index}/{len(submitted)}')
+        from .picker_fill import fill_pool
+        # Search each requested name directly. Waiting for two identical full
+        # catalogues was redundant and could consume seconds before first input.
+        click('全部');click('全')
+        def read():
+            text=document(results_only=True)
+            return text,parse_document(text)
+        def publish(parsed):
+            limits=[f"候选输入进度 {len(parsed['selected'])}/{len(expected)}；阶段性攻略不完整"]
+            connection.send(dict(event='batch',input_incomplete=True,complete=False,limits=limits,**parsed))
+        last,input_limit=fill_pool(expected,set_search,measured('candidate_click')(click),
+                                  read,publish,stage,guard,input_deadline)
+        if input_limit:stage(input_limit)
+        # This is the post-click verification of the final selected pool. Reuse
+        # its parsed result instead of locating/reading the same page again.
+        if last is None or len(last['selected'])<2:
+            raise RuntimeError(input_limit or '已确认候选不足两名；请重新配阵')
+        return last
 
-        # Keep the current request's last search while reading recommendations.
-        # The search filters the picker roster, not the selected-pool result cards;
-        # candidate equality is checked below. Next request replaces this search.
     def clear_candidates(initial_text=None):
         nonlocal last_input
         # Confirm only this exact public Clear dialog, including a dialog left
@@ -457,7 +441,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         if reason!=review_hint:
             review_hint=reason
             connection.send({'event':'review_hint','text':reason+'；请在小程序确认，完成后自行返回游戏'})
-    def collect_results(first):
+    def collect_results(first,verify_empty=False):
         """Read publicly rendered cards; send each validated batch immediately.
 
         UIA Text may already expose offscreen cards. A repeated text is not end
@@ -468,6 +452,14 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         from .guide_reader import GuidePages
         pages=GuidePages();stalled=0;previous_position=None
         if input_limit:pages.limits.append(input_limit)
+        if verify_empty and not first.get('cards'):
+            # Chips can update before their recommendations. Do not declare a
+            # global no-match from the first post-click empty response alone.
+            guard()
+            refreshed=parse_document(document(results_only=True))
+            if set(refreshed['selected'])!=set(first['selected']):
+                raise RuntimeError('读取期间小程序候选发生变化，保留已读结果')
+            first=refreshed
         pages.add(first)
         connection.send(dict(event='batch',input_incomplete=bool(input_limit),**pages.payload()))
         while True:
@@ -475,6 +467,8 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             if manual_review:
                 pages.limits.append('人工复核后仅读取公开页面文字；未自动滚动验证末尾');break
             guard()
+            if quick_peak and time.monotonic()>=result_deadline:
+                pages.limits.append('达到优先返回时间；已读攻略保留，未验证全部结果');break
             if win32gui.GetForegroundWindow()!=mini:
                 pages.limits.append('已离开小程序，保留已读攻略');break
             doc=find('Page-Frame','Document')
@@ -506,7 +500,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             signature=(position,len(pages.cards))
             stalled=stalled+1 if signature==previous_position else 0
             previous_position=signature
-            if stalled>=4:
+            if stalled>=(2 if quick_peak else 4):
                 pages.limits.append('当前已加载攻略已读取；滚动不再移动，但页面未提供明确末尾标识');break
             guard()
             if win32gui.GetForegroundWindow()!=mini or win32gui.GetAncestor(win32gui.WindowFromPoint(center),2)!=mini:
@@ -556,14 +550,12 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             clear_candidates(text)
         if picker_only:
             stage('公开选择页填入候选')
-            fill_candidates()
-            text=document();result=parse_document(text)
+            result=fill_candidates()
             selected=set(result['selected'])
             if selected!=set(expected) and not(input_limit and selected<=set(expected) and len(selected)>=2): raise RuntimeError('公开选择页候选核对不一致')
-            if not result['cards'] and not result['no_result']: raise RuntimeError('未读取到可确认的配阵结果')
             read_only_results=True
             connection.send({'event':'input_complete'})
-            result=collect_results(result)
+            result=collect_results(result,verify_empty=True)
             if input_limit:
                 result['input_incomplete']=True;result['complete']=False
             result.update(seconds=time.monotonic()-start,status='success',source='名将小助手',route='public_picker')
@@ -660,9 +652,9 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
 
 
 
-def worker(connection, path, expected, picker_only=False,physical_stop=None,bound_hwnd=None,game_hwnd=None,image_only=False,budget=15,deadline=None,read_existing=False):
+def worker(connection, path, expected, picker_only=False,physical_stop=None,bound_hwnd=None,game_hwnd=None,image_only=False,budget=15,deadline=None,read_existing=False,return_deadline=None):
     try:
-        _worker(connection,path,expected,picker_only,physical_stop,bound_hwnd,game_hwnd,image_only,budget,deadline,read_existing)
+        _worker(connection,path,expected,picker_only,physical_stop,bound_hwnd,game_hwnd,image_only,budget,deadline,read_existing,return_deadline)
     except Exception as error:
         try: connection.send({'status':'failed','error':'小程序连接失败：'+str(error)})
         except (OSError,EOFError): pass

@@ -16,6 +16,7 @@ from .mini_worker import worker
 from .recommendations import RecommendationResult, capability_limits, filter_cards,validate_image_candidates,filter_image_cards
 from .storage import read_json, write_json
 from .guide_state import GuideQuery
+from .picker_fill import peak_return_deadline
 from . import diagnostics
 
 
@@ -118,7 +119,10 @@ class WeChatMiniProgramProvider(QObject):
         parent,child=mp.get_context('spawn').Pipe()
         physical_stop=mp.get_context('spawn').Event()
         watch=None  # Physical mouse/keyboard activity no longer cancels requests.
-        process=mp.get_context('spawn').Process(target=worker,args=(child,path,names,picker,physical_stop,self.bound_hwnd,game_hwnd,snapshot.image_only,budget,began+budget-.7),daemon=True)
+        return_at=peak_return_deadline(began,snapshot.selection_started_at) if budget>15 else None
+        if snapshot.selection_started_at is not None:
+            logging.info('peak automatic query delay from first observed selection: %.2fs',began-snapshot.selection_started_at)
+        process=mp.get_context('spawn').Process(target=worker,args=(child,path,names,picker,physical_stop,self.bound_hwnd,game_hwnd,snapshot.image_only,budget,began+budget-.7,False,return_at),daemon=True)
         self.active=dict(process=process,pipe=parent,snapshot=snapshot,id=request_id,began=began,
                          game=game_hwnd,mini=0,tick=None,physical_stop=physical_stop,watch=watch,budget=budget,
                          query=GuideQuery(snapshot.purpose,snapshot.context.mode_id,snapshot.context.game_id,request_id,tuple(names),budget))
@@ -198,6 +202,11 @@ class WeChatMiniProgramProvider(QObject):
                     try:result=WeChatMiniProgramProvider.make_result(state,message)
                     except ValueError as error:self.cancel(str(error));return
                     state['partial']=result
+                    if result.source_cards and not state.get('first_cards_at'):
+                        state['first_cards_at']=time.monotonic()
+                        origin=state['snapshot'].selection_started_at or state['began']
+                        logging.info('guide first cards: request=%s query=%.2fs selection=%.2fs',
+                            state['id'],state['first_cards_at']-state['began'],state['first_cards_at']-origin)
                     diagnostics.event('query_batch',request_id=state['id'],round_id=state['snapshot'].context.game_id,
                         selected=result.selected_candidates,cards=result.source_cards,complete=result.complete)
                     self.batch.emit(result)
@@ -262,6 +271,10 @@ class WeChatMiniProgramProvider(QObject):
         self._return_failed=False
         state=self.active;self.active=None;self.timer.stop()
         if state:
+            origin=getattr(state.get('snapshot'),'selection_started_at',None)
+            if origin is not None:
+                logging.info('guide ended from first observed selection: request=%s %.2fs',
+                             state.get('id'),time.monotonic()-origin)
             try:
                 if state['process'].is_alive():state['process'].terminate()
                 if state['process'].pid is not None:state['process'].join(.1)

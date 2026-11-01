@@ -42,7 +42,8 @@ class GuideController:
         self.guide_cache=RoundGuideCache(None,self.game_id)
         self.enemy_cache=RoundGuideCache(None,self.game_id)
         self.peak_draft=PeakDraft();self.battle_tracker=BattleTracker()
-        self.candidate_stability=CandidateStability();self.peak_auto_ready=False
+        self.candidate_stability=CandidateStability(hold_seconds=0);self.peak_auto_ready=False
+        self.selection_started_at=None
         self.enemy_attempted=False;self.enemy_status='敌方尚未查询';self.pool_signature=();self.pool_since=0
         self.unknown_frames=0;self.ranked_request_changed=False
         self.provider.batch.connect(lambda result:self.safe_guide_call(self.recommendation_batch,result))
@@ -61,7 +62,8 @@ class GuideController:
         self.enemy_attempted=False;self.enemy_status='敌方尚未查询'
         self.auto_attempted=False;self.auto_launch_count=0;self.auto_retry_at=0;self.auto_launch_id=None
         self._auto_wait_reason=None
-        self.candidate_stability=CandidateStability();self.peak_auto_ready=False
+        self.candidate_stability=CandidateStability(hold_seconds=0);self.peak_auto_ready=False
+        self.selection_started_at=None
         self.pool_signature=();self.pool_since=0
         self.snapshot=self.confirmed_snapshot=None;self.ranked_request_changed=False
         self.overlay.recommendation=None;self.overlay.recommendation_status=''
@@ -100,16 +102,21 @@ class GuideController:
         if mode not in RECOMMENDATION_MODES:
             self.snapshot=None;self.guide_panel.hide();return
         if self.guide_cache.mode_id!=mode:self.reset_round('模式变化')
+        if scene=='selection' and self.previous_scene=='battle':self.reset_round('新一局选将')
         names=tuple(dict.fromkeys(d.name for d in data.get('items',()) if d.confirmed and d.name))
-        if not hasattr(self,'candidate_stability'):self.candidate_stability=CandidateStability()
+        if not hasattr(self,'candidate_stability'):self.candidate_stability=CandidateStability(hold_seconds=0)
         eligible=mode==PEAK_CHUHAN and scene=='selection' and phase in ('ban','selection','transition')
+        # Names here already passed the recognition worker's two-frame check.
+        # Do not add another one-second hold on top of that evidence.
+        if eligible and getattr(self,'selection_started_at',None) is None:
+            self.selection_started_at=data['stamp']
+            logging.info('peak selection first observed: round=%s stamp=%.3f',self.game_id,data['stamp'])
         self.peak_auto_ready=self.candidate_stability.update(names if eligible else (),time.monotonic(),
             (mode,self.game_id,scene,phase))
         if phase=='puppet':
             # A puppet choice is never part of the main-hero roster or draft.
             if self.snapshot:self.snapshot=replace(self.snapshot,phase='puppet')
             return
-        if scene=='selection' and self.previous_scene=='battle':self.reset_round('新一局选将')
         if scene=='unknown':
             self.unknown_frames+=1
             if self.unknown_frames>=3 and self.provider.busy:self.provider.cancel('画面暂不可确认，已停止自动操作；保留本局缓存')
@@ -170,7 +177,7 @@ class GuideController:
             if getattr(self,'ranked_scene_frames',0)<2:
                 self.auto_query_wait('等待连续确认普通楚汉选将画面');return
         elif not getattr(self,'peak_auto_ready',False):
-            self.auto_query_wait('等待至少两名当前候选持续确认约1秒');return
+            self.auto_query_wait('等待至少两名当前候选通过两帧姓名确认');return
         ready,message=self.provider.connection_status()
         if not ready:self.auto_query_wait(message);return
         self.request_recommendation(automatic=True)
@@ -197,7 +204,8 @@ class GuideController:
         if not self.latest or time.monotonic()-self.latest['stamp']>freshness:
             (self.auto_query_wait if automatic else self.rec_status.setText)('请返回游戏等待新画面');return
         budget=40 if self.snapshot.context.mode_id==PEAK_CHUHAN else 15
-        if self.snapshot.remaining_seconds is not None and self.snapshot.remaining_seconds<budget+3:
+        target_budget=30 if self.snapshot.context.mode_id==PEAK_CHUHAN else budget
+        if self.snapshot.remaining_seconds is not None and self.snapshot.remaining_seconds<target_budget+3:
             (self.auto_query_wait if automatic else self.rec_status.setText)('选将时间不足，跳过本次查询');return
         if automatic:self.auto_launch_count=getattr(self,'auto_launch_count',0)+1
         self.auto_launch_id=None
@@ -205,7 +213,9 @@ class GuideController:
         try:
             self.ranked_request_changed=False
             with self.worker.lock:self.worker.allow_background=True
-            self.request_id=self.provider.start(self.snapshot,self.latest['frame'],self.window_box.currentData())
+            self.request_id=self.provider.start(replace(self.snapshot,selection_started_at=
+                getattr(self,'selection_started_at',None) if automatic else None),
+                self.latest['frame'],self.window_box.currentData())
             started=True;self.auto_attempted=True
             self._auto_wait_reason=None
             self.auto_launch_id=self.request_id if automatic else None

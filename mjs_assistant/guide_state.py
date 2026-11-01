@@ -12,6 +12,7 @@ class CandidateStability:
     This is a trigger gate, not a pool: absent names are dropped immediately.
     Scene/phase/round changes and long sampling gaps require new evidence.
     """
+    hold_seconds: float = 1.0
     since: dict[str, float] = field(default_factory=dict)
     context: tuple = ()
     last_at: float | None = None
@@ -22,7 +23,7 @@ class CandidateStability:
             self.since.clear()
         self.context=context;self.last_at=now
         self.since={name:self.since.get(name,now) for name in set(names) if name}
-        return sum(now-start>=1 for start in self.since.values())>=2
+        return sum(now-start>=self.hold_seconds for start in self.since.values())>=2
 
 
 @dataclass(frozen=True)
