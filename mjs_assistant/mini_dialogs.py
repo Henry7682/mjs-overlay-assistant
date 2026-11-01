@@ -46,7 +46,8 @@ def open_image_dialog(mini,open_album,guard,deadline,stage=lambda text:None,
     """
     if gui is None:
         import win32gui as gui
-    attempts=0;last_click=None;last_state=None
+    from .album_location import AlbumNotReady
+    attempts=0;last_click=None;last_state=None;location_error=None
     while clock()<deadline:
         guard()
         ready,owned=dialog_state(mini,gui)
@@ -59,10 +60,19 @@ def open_image_dialog(mini,open_album,guard,deadline,stage=lambda text:None,
                 and gui.GetForegroundWindow()==mini):
             stage('打开相册' if attempts==0 else '未检测到文件窗口，重新定位相册（仅重试一次）')
             attempts+=1
-            open_album()
-            last_click=clock()
+            try:
+                open_album()
+                location_error=None
+            except AlbumNotReady as error:
+                location_error=str(error)
+                if attempts>=2:raise
+                stage(location_error+'；在剩余预算内重试')
+            # No input was sent on a localization failure: do not spend four
+            # seconds waiting for a dialog that cannot have been opened.
+            last_click=clock()-(3.75 if location_error else 0)
             continue
         sleep(min(.08,max(0,deadline-clock())))
+    if location_error:raise AlbumNotReady(location_error)
     raise TimeoutError('相册上传超时：文件选择框仍未就绪（已用尽本次查询预算）')
 
 

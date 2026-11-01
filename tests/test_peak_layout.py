@@ -20,13 +20,13 @@ def panel(count, width=1280, height=667):
     return frame
 
 
-@pytest.mark.parametrize('count',range(6,13))
-@pytest.mark.parametrize('size',[(1280,667),(1920,1080),(2560,1334)])
-def test_draft_extent_counts_six_through_twelve(count,size):
+@pytest.mark.parametrize('count',range(6,14))
+@pytest.mark.parametrize('size',[(1280,667),(1920,1080),(2560,1334),(2560,1440)])
+def test_draft_extent_counts_six_through_thirteen(count,size):
     image=panel(count,*size)
     assert detect_draft_layout(image)==f'draft{count}'
     assert len(draft_regions(f'draft{count}'))==count
-    assert not draft_count('draft5') and not draft_count('draft13')
+    assert not draft_count('draft5') and not draft_count('draft14')
 
 
 def test_missing_inner_portrait_or_tooltip_does_not_invent_smaller_roster():
@@ -38,7 +38,7 @@ def test_missing_inner_portrait_or_tooltip_does_not_invent_smaller_roster():
     assert detect_draft_layout(np.full_like(image,215)) is None
 
 
-@pytest.mark.parametrize('count',range(6,13))
+@pytest.mark.parametrize('count',range(6,14))
 def test_peak_filter_never_uses_late_ocr_after_transition_window(count):
     p=PeakDraft();pool=tuple(f'将{i}' for i in range(14))
     p.update('ban','ban14',pool,14,0)
@@ -76,3 +76,42 @@ def test_real_three_glyph_nameplates_keep_top_strokes():
     assert scene=='selection' and r.layout=='draft11'
     assert {d.name for d in items if d.name}=={'鲁仲连','秦舞阳'}
     assert Names().resolve('晋仲连') is None and Names().resolve('奈舞阳') is None
+
+
+def test_thirteen_selection_landmark_overrides_coarse_outer_card_probe():
+    from mjs_assistant.recognition import peak_phase
+    # The seven-card bottom row can occupy the old ban-grid outer probes.
+    assert peak_phase('请等待其他玩家选择武将', True, '', draft_layout='draft13') == ('selection', 'draft13')
+    assert peak_phase('请禁止武将', True, '', draft_layout='draft13') == ('ban', 'ban14')
+    assert peak_phase('', True, '', draft_layout='draft13') == ('transition', 'ban14')
+    assert peak_phase('请选择本局要使用的武将', False, '', draft_layout=None) == ('unknown', 'unknown')
+    assert detect_draft_layout(panel(14, 2560, 1440)) is None
+
+
+def test_thirteen_filter_keeps_raw_cache_and_filters_late_guides_once():
+    from mjs_assistant.guide_state import RoundGuideCache
+    from mjs_assistant.modes import PEAK_CHUHAN
+    p=PeakDraft(); pool=tuple(f'将{i}' for i in range(14))
+    p.update('ban', 'ban14', pool, 14, 0)
+    p.update('selection', 'draft13', (), 13, 1)
+    p.update('selection', 'draft13', pool[:13], 13, 2.6)
+    assert p.frozen and p.excluded == {pool[13]}
+    good={'heroes':[pool[0],pool[1]]}; banned={'heroes':[pool[0],pool[13]]}
+    cache=RoundGuideCache(PEAK_CHUHAN, 'round', raw_cards=(good,banned))
+    cache.freeze(p.excluded)
+    assert cache.visible_cards() == (good,) and len(cache.raw_cards)==2
+    p.update('selection', 'draft13', pool[:2], 2, 9)
+    p.update('battle', 'default', pool[:2], 2, 10)
+    cache.freeze({pool[1]})
+    cache.raw_cards += ({'heroes':[pool[2],pool[13]]},)
+    assert p.excluded==cache.excluded=={pool[13]} and cache.visible_cards()==(good,)
+
+
+@pytest.mark.parametrize('count', [6, 9, 11, 12, 13])
+@pytest.mark.parametrize('size', [(1920, 1080), (2560, 1440)])
+def test_dimmed_hover_panel_keeps_layout_but_tooltip_remains_unknown(count, size):
+    image=(panel(count,*size).astype(float)*.52).astype(np.uint8)
+    assert detect_draft_layout(image)==f'draft{count}'
+    h,w=image.shape[:2]
+    image[int(h*.12):int(h*.65),int(w*.30):int(w*.70)]=25
+    assert detect_draft_layout(image) is None

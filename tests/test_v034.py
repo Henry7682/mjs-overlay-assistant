@@ -31,7 +31,7 @@ def test_minimized_window_cancels_even_during_healthy_pass(monkeypatch):
     w=host(busy=True,mode='peak_chuhan_2v2');w.window_box=NS(currentData=lambda:123)
     w.latest=dict(stamp=100,processed_at=100.8,seconds=.8,generation=7,scene='selection')
     w.worker.progress=dict(active=True,stamp=101,began=101.1,generation=7)
-    w.enabled=False;w.overlay.hide=Mock();w.invalidate_recommendation=Mock()
+    w.enabled=False;w.overlay.hide=Mock();w.invalidate_recommendation=Mock();w.present_statistics_button=Mock()
     monkeypatch.setattr('mjs_assistant.app.time.monotonic',lambda:102.5)
     native=NS(IsWindow=lambda hwnd:True,IsIconic=lambda hwnd:False)
     monkeypatch.setattr('mjs_assistant.capture.user32',native)

@@ -64,7 +64,7 @@ def window(monkeypatch,tmp_path):
     yield w
     w.quitting=True;w.hotkeys.close();w.tray.hide();w.overlay.close();w.guide_panel.close();w.close()
     from PySide6.QtCore import QCoreApplication,QEvent
-    w.overlay.deleteLater();w.guide_panel.deleteLater();w.deleteLater()
+    w.overlay.deleteLater();w.guide_panel.deleteLater();w.statistics_button.deleteLater();w.deleteLater()
     QCoreApplication.sendPostedEvents(None,QEvent.Type.DeferredDelete)
 
 

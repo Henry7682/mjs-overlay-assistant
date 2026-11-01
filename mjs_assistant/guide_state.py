@@ -171,7 +171,7 @@ class PeakDraft:
         if self.selection_started is None:
             self.selection_started = now
         self.locked_seen.update(locked)
-        # Require every slot in the visually confirmed 6–12-card layout. Locked hero
+        # Require every slot in the visually confirmed 6–13-card layout. Locked hero
         # evidence may replace a missing portrait only when separately confirmed.
         self.selection_seen.update(names)
         remaining = self.selection_seen | self.locked_seen
