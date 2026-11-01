@@ -188,6 +188,88 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             text=result_text(text)
         if time.monotonic()-began>.3:stage(f'页面文字读取耗时 {time.monotonic()-began:.2f}s')
         return text
+    from .album_location import album_point,unique_point
+    def album_text_point():
+        try:
+            bounds=win32gui.GetWindowRect(mini)
+            doc=find('Page-Frame','Document',timeout=.15)
+            matched=text_area(doc).FindText('相册',True,False)
+            boxes=matched.GetBoundingRectangles() if matched else []
+            if bounds!=win32gui.GetWindowRect(mini):return None
+            stage(f'相册文字定位：矩形数 {len(boxes)//4}')
+            return album_point(boxes,bounds)
+        except (PageNotReady,COMError):
+            stage('相册文字位置暂不可读');return None
+
+    def album_control_point():
+        # Use actual named controls when TextRange returns no clickable rectangle.
+        from .mini_dialogs import album_click_allowed
+        points=[];bounds=win32gui.GetWindowRect(mini)
+        for label in ('📷 相册','相册','📷相册'):
+            guard()
+            if not album_click_allowed(mini,win32gui):return None
+            try:
+                elements=window_root.query(lambda root:root.FindAll(
+                    ids.TreeScope_Descendants,api.build_condition(title=label)))
+                count=elements.Length if elements is not None else 0
+                if count>12:return None
+                for index in range(count):
+                    item=elements.GetElement(index)
+                    if item.CurrentIsOffscreen:continue
+                    rect=item.CurrentBoundingRectangle
+                    points.append(album_point((rect.left,rect.top,rect.right-rect.left,
+                                               rect.bottom-rect.top),bounds))
+            except COMError:
+                continue
+        stage(f'相册控件定位：有效位置 {sum(p is not None for p in points)}')
+        if bounds!=win32gui.GetWindowRect(mini):return None
+        return unique_point(points)
+
+    album_visual_used=False
+    def album_image_point():
+        nonlocal album_visual_used
+        if album_visual_used:return None
+        album_visual_used=True
+        from .mini_dialogs import album_click_allowed
+        from .capture import Capture,client_rect
+        from .ocr import Ocr,clean_name
+        capture=None
+        try:
+            guard()
+            if not album_click_allowed(mini,win32gui):return None
+            ocr=Ocr()  # Only on failure; never loaded on the successful UIA path.
+            guard()
+            if not album_click_allowed(mini,win32gui):return None
+            capture=Capture(mini)
+            until=min(deadline,time.monotonic()+1)
+            while time.monotonic()<until:
+                guard()
+                try:frame,rect,stamp=capture.read();break
+                except RuntimeError:time.sleep(.05)
+            else:return None
+            bounds=win32gui.GetWindowRect(mini)
+            x,y,w,h=rect;top=int(h*.20)
+            words=ocr.read(frame[top:,:])
+            guard()
+            if (not album_click_allowed(mini,win32gui) or rect!=client_rect(mini)
+                    or bounds!=win32gui.GetWindowRect(mini)):return None
+            points=[]
+            for word in words:
+                if clean_name(word.text)!='相册' or word.confidence<.90:continue
+                a,b,c,d=word.box
+                points.append(album_point((x+a,y+top+b,c-a,d-b),bounds))
+            stage(f'相册局部识别：有效位置 {sum(p is not None for p in points)}')
+            return unique_point(points)
+        except Exception as error:
+            # Cancellation and elapsed budgets must propagate, not trigger input.
+            guard()
+            stage('相册局部识别不可用：'+type(error).__name__)
+            return None
+        finally:
+            if capture is not None:
+                try:capture.stop()
+                except Exception:pass
+
     def click(title):
         nonlocal last_input
         guard()
@@ -243,32 +325,11 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
             raise RuntimeError('武将头像未在可点击区域就绪：'+title)
         if title=='📷 相册':
             from .mini_dialogs import album_click_allowed
+            from .album_location import locate_album
             can_click=lambda:album_click_allowed(mini,win32gui)
-            if not can_click():return False
-            # Chromium UIA Name equality can fail for surrogate-pair emoji.
-            # Resolve the visible text range freshly, with no desktop coordinates.
-            query='相册'
-            boxes=[];until=min(deadline,time.monotonic()+1.5)
-            while time.monotonic()<until:
-                if not can_click():return False
-                try:
-                    doc=find('Page-Frame','Document')
-                    area=text_area(doc)
-                    matched=area.FindText(query,True,False)
-                    boxes=matched.GetBoundingRectangles() if matched else []
-                except (PageNotReady,COMError):
-                    if not can_click():return False
-                    raise
-                if not can_click():return False
-                bounds=win32gui.GetWindowRect(mini)
-                if len(boxes)==4:
-                    x,y,width,height=boxes
-                    if (width>0 and height>0 and bounds[0]<=x<x+width<=bounds[2]
-                            and bounds[1]+(bounds[3]-bounds[1])*.20<y<y+height<=bounds[3]):
-                        break
-                guard();time.sleep(.05)
-            else:raise RuntimeError('相册入口未在小程序可见区域就绪')
-            center=(int(x+width/2),int(y+height/2))
+            center=locate_album(album_text_point,album_control_point,album_image_point,
+                                guard,can_click,deadline,stage)
+            if center is None:return False
         else:
             # The sticky selected-pool header exposes a real Text control.
             # Chromium's document TextRange may report no rectangles for 清空
