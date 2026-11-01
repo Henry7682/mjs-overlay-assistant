@@ -275,7 +275,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         guard()
         can_click=None
         if title in expected:
-            from .mini_picker import roster_names,portrait_point
+            from .mini_picker import search_ready,portrait_point
             from .mini_page import picker_range
             until=min(deadline,time.monotonic()+2.8)
             scrolled=0
@@ -285,7 +285,8 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                 doc=find('Page-Frame','Document')
                 area,footer=picker_range(text_area(doc))
                 text='相册 绘图区域 '+area.GetText(-1)+' 绘图区域'
-                if title not in roster_names(text):
+                if not search_ready(text,title):
+                    settled_point=None
                     time.sleep(.06);continue
                 # Restrict to the picker after the footer; never use a chip,
                 # search value or a same-name mention in a recommendation.
@@ -416,7 +417,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                     input_limit+=(f'；小程序候选数量限制：仅提交 {len(selected)}/{len(expected)} 名；攻略不完整')
                     return
                 guard()
-                if time.monotonic()>=until:raise RuntimeError('武将选择未生效，请检查小程序页面')
+                if time.monotonic()>=until:raise RuntimeError('武将选择未生效：'+name+'；请检查小程序页面')
                 time.sleep(.06)
             stage(f'填入候选 {index}/{len(submitted)}')
 

@@ -22,6 +22,17 @@ def catalogue_ready(text):
     return tail.count('绘图区域')>=2 and len(roster_names(text))>=50
 
 
+def search_ready(text, name):
+    """A changed Edit value does not mean the asynchronous roster has filtered.
+
+    An exact hero can already exist in the previous full catalogue (东方朔 is
+    near its start). Its old rectangle must not be clicked while filtering.
+    Inspect only the picker, never selected chips or recommendation mentions.
+    """
+    names=roster_names(text)
+    return bool(name) and name in names and all(name in item for item in names)
+
+
 def portrait_point(box,bounds,footer_y):
     if len(box)!=4:return None
     x,y,w,h=box
