@@ -50,7 +50,7 @@ def test_unknown_camp_breaks_consecutive_evidence_but_preserves_known_team():
     assert t.update([],{}).friendly==('孙权','孙策')
 
 
-@pytest.mark.parametrize('count',range(6,13))
+@pytest.mark.parametrize('count',range(6,14))
 def test_postban_early_evidence_is_frozen_once_and_never_reduced(count):
     p=PeakDraft();pool=tuple(f'将{i}' for i in range(14))
     p.update('ban','ban14',pool,14,0)

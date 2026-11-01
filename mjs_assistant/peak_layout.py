@@ -8,7 +8,8 @@ from .region_geometry import center_x
 def draft_count(layout):
     match = re.fullmatch(r'draft(\d+)', layout or '')
     count = int(match[1]) if match else 0
-    return count if 6 <= count <= 12 else 0
+    # A recorded post-ban selection has 6+7 cards; 7+7 is still the ban grid.
+    return count if 6 <= count <= 13 else 0
 
 
 def row_starts(count):
@@ -25,7 +26,7 @@ def draft_regions(layout):
 
 
 def detect_draft_layout(frame):
-    """Read card silhouettes across the full two-row 6–12 candidate area.
+    """Read card silhouettes across the full two-row 6–13 candidate area.
 
     Paper gaps split portraits; validate widths, spacing AND centering. Missing
     middle portraits or tooltip occlusion therefore cannot silently shrink the
@@ -38,16 +39,21 @@ def detect_draft_layout(frame):
     counts = []
     for y in (.23, .48):
         band = hsv[int(h*y):int(h*(y+.10))]
-        occupied = (np.mean((band[:, :, 1] > 55) | (band[:, :, 2] < 150), axis=0) > .30).astype(np.uint8)
-        occupied[:int(w*.14)] = 0
-        occupied[int(w*.86):] = 0
+        # Hover transitions dim the entire panel, including the paper gaps.
+        # Keep gaps separate from portraits without running additional OCR.
+        gutter = band[::4, int(w*center_x(.105,w,h)):int(w*center_x(.11,w,h)), 2]
+        paper = float(np.median(gutter))
+        dark = paper * .70 if paper < 160 else 150
+        occupied = (np.mean((band[:, :, 1] > 55) | (band[:, :, 2] < dark), axis=0) > .30).astype(np.uint8)
+        occupied[:int(w*center_x(.11,w,h))] = 0
+        occupied[int(w*center_x(.90,w,h)):] = 0
         occupied = cv2.morphologyEx(occupied[None, :], cv2.MORPH_CLOSE,
                                    np.ones((1, max(1, int(w*.012))), np.uint8))[0]
         edges = np.diff(np.r_[0, occupied, 0].astype(int))
         blocks = [(a/w, b/w) for a, b in zip(np.where(edges == 1)[0], np.where(edges == -1)[0])
                   if (b-a)/w > .025]
         n = len(blocks)
-        if not 3 <= n <= 6:
+        if not 3 <= n <= 7:
             return None
         scale=center_x(1,w,h)-center_x(0,w,h)
         if any(not (.065*scale <= b-a <= .103*scale) or abs(a-center_x(x+.002,w,h)) > .009*scale
@@ -56,4 +62,5 @@ def detect_draft_layout(frame):
         counts.append(n)
     if counts[1] not in (counts[0], counts[0]+1):
         return None
-    return 'draft' + str(sum(counts))
+    layout = 'draft' + str(sum(counts))
+    return layout if draft_count(layout) else None

@@ -245,7 +245,7 @@ class GuideController:
             QMessageBox.information(self,'禁将筛选','仅用于巅峰禁将结束后的待确认名单；本局已冻结时不可再次修改。');return
         expected=draft_count(self.latest.get('layout')) if self.latest else 0
         if not self.latest or self.latest.get('phase')!='selection' or not expected:
-            QMessageBox.information(self,'等待选将阶段','请等待禁将结束并确认实际候选牌阵（6～12名）。');return
+            QMessageBox.information(self,'等待选将阶段','请等待禁将结束并确认实际候选牌阵（6～13名）。');return
         initial='、'.join(self.peak_draft.candidate_signature)
         with self.worker.lock:self.worker.allow_background=True
         game=self.game_id

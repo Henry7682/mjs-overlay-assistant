@@ -81,12 +81,13 @@ def nine_card_grid(frame):
 
 def peak_phase(footer, grid14, order, grid9=False, draft_layout=None):
     if '禁止' in footer:return 'ban','ban14'
-    if grid14:return 'transition','ban14'
     layout=draft_layout or ('draft9' if grid9 else None)
     # The bottom action prompt changes from 禁止 to 本局要使用/其他玩家选择.
     # Turn-order icons alone also exist in transitions and are not sufficient.
+    # Valid draft geometry plus its prompt outranks coarse outer-card probes.
     if draft_count(layout) and ('本局要使用' in footer or '其他玩家选择' in footer):
         return 'selection',layout
+    if grid14:return 'transition','ban14'
     return 'unknown','unknown'
 
 
