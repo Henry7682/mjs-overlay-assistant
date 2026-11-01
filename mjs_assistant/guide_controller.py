@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QInputDialog,QMessageBox
 from .modes import RANKED_CHUHAN,PEAK_CHUHAN
 from .recommendations import (ModeContext,SelectionSnapshot,RECOMMENDATION_MODES,
                               refresh_image_result,retain_previous_selection)
-from .guide_state import RoundGuideCache,PeakDraft,BattleTracker,GuideQuery,enemy_auto_allowed
+from .guide_state import RoundGuideCache,PeakDraft,BattleTracker,GuideQuery,enemy_auto_allowed,CandidateStability
 from .guide_panel import GuidePanel,card_html
 from .capture import foreground
 from .provider import input_idle_seconds
@@ -42,6 +42,7 @@ class GuideController:
         self.guide_cache=RoundGuideCache(None,self.game_id)
         self.enemy_cache=RoundGuideCache(None,self.game_id)
         self.peak_draft=PeakDraft();self.battle_tracker=BattleTracker()
+        self.candidate_stability=CandidateStability();self.peak_auto_ready=False
         self.enemy_attempted=False;self.enemy_status='敌方尚未查询';self.pool_signature=();self.pool_since=0
         self.unknown_frames=0;self.ranked_request_changed=False
         self.provider.batch.connect(lambda result:self.safe_guide_call(self.recommendation_batch,result))
@@ -59,6 +60,8 @@ class GuideController:
         self.peak_draft=PeakDraft();self.battle_tracker=BattleTracker()
         self.enemy_attempted=False;self.enemy_status='敌方尚未查询'
         self.auto_attempted=False;self.auto_launch_count=0;self.auto_retry_at=0;self.auto_launch_id=None
+        self._auto_wait_reason=None
+        self.candidate_stability=CandidateStability();self.peak_auto_ready=False
         self.pool_signature=();self.pool_since=0
         self.snapshot=self.confirmed_snapshot=None;self.ranked_request_changed=False
         self.overlay.recommendation=None;self.overlay.recommendation_status=''
@@ -97,6 +100,11 @@ class GuideController:
         if mode not in RECOMMENDATION_MODES:
             self.snapshot=None;self.guide_panel.hide();return
         if self.guide_cache.mode_id!=mode:self.reset_round('模式变化')
+        names=tuple(dict.fromkeys(d.name for d in data.get('items',()) if d.confirmed and d.name))
+        if not hasattr(self,'candidate_stability'):self.candidate_stability=CandidateStability()
+        eligible=mode==PEAK_CHUHAN and scene=='selection' and phase in ('ban','selection','transition')
+        self.peak_auto_ready=self.candidate_stability.update(names if eligible else (),time.monotonic(),
+            (mode,self.game_id,scene,phase))
         if phase=='puppet':
             # A puppet choice is never part of the main-hero roster or draft.
             if self.snapshot:self.snapshot=replace(self.snapshot,phase='puppet')
@@ -115,7 +123,6 @@ class GuideController:
             self.battle_tracker.update(data['items'],data.get('battle_badges',{}))
             self.maybe_enemy_query();return
         self.previous_scene='selection'
-        names=tuple(dict.fromkeys(d.name for d in data['items'] if d.confirmed and d.name))
         now=time.monotonic()
         image_only=mode==RANKED_CHUHAN
         if image_only:
@@ -151,16 +158,28 @@ class GuideController:
     def maybe_auto_recommend(self):
         if not self.guides_enabled() or not getattr(self,'enabled',True):return
         settings=self.config.get('recommendation',{})
-        if not (settings.get('enabled',True) and settings.get('automatic',True) and not self.auto_attempted
-                and not self.provider.busy and self.snapshot and self.snapshot.can_request(True)
-                and foreground(self.window_box.currentData())):return
+        if not (settings.get('enabled',True) and settings.get('automatic',True)):
+            self.auto_query_wait('自动查询已关闭，请检查配阵设置');return
+        if self.auto_attempted or self.provider.busy:return
+        if not self.snapshot or not self.snapshot.can_request(True):
+            self.auto_query_wait('等待可查询的选将阶段、候选及剩余时间');return
+        if not foreground(self.window_box.currentData()):
+            self.auto_query_wait('等待游戏回到前台后自动查询');return
         if time.monotonic()<getattr(self,'auto_retry_at',0):return
         if self.snapshot.image_only:
-            if getattr(self,'ranked_scene_frames',0)<2:return
-        elif time.monotonic()-self.pool_since<1:return
+            if getattr(self,'ranked_scene_frames',0)<2:
+                self.auto_query_wait('等待连续确认普通楚汉选将画面');return
+        elif not getattr(self,'peak_auto_ready',False):
+            self.auto_query_wait('等待至少两名当前候选持续确认约1秒');return
         ready,message=self.provider.connection_status()
-        if not ready:self.rec_status.setText(message);return
+        if not ready:self.auto_query_wait(message);return
         self.request_recommendation(automatic=True)
+
+    def auto_query_wait(self,reason):
+        if reason!=getattr(self,'_auto_wait_reason',None):
+            logging.info('automatic guide waiting: round=%s reason=%s',self.game_id,reason)
+            self._auto_wait_reason=reason
+        self.rec_status.setText(reason)
 
     def request_recommendation(self,checked=False,automatic=False):
         if not self.guides_enabled():
@@ -176,10 +195,10 @@ class GuideController:
             self.rec_status.setText('选将画面或候选尚未确认');return
         freshness=4 if self.snapshot.context.mode_id==PEAK_CHUHAN else 2.5
         if not self.latest or time.monotonic()-self.latest['stamp']>freshness:
-            self.rec_status.setText('请返回游戏等待新画面');return
+            (self.auto_query_wait if automatic else self.rec_status.setText)('请返回游戏等待新画面');return
         budget=40 if self.snapshot.context.mode_id==PEAK_CHUHAN else 15
         if self.snapshot.remaining_seconds is not None and self.snapshot.remaining_seconds<budget+3:
-            self.rec_status.setText('选将时间不足，跳过本次查询');return
+            (self.auto_query_wait if automatic else self.rec_status.setText)('选将时间不足，跳过本次查询');return
         if automatic:self.auto_launch_count=getattr(self,'auto_launch_count',0)+1
         self.auto_launch_id=None
         started=False
@@ -188,6 +207,7 @@ class GuideController:
             with self.worker.lock:self.worker.allow_background=True
             self.request_id=self.provider.start(self.snapshot,self.latest['frame'],self.window_box.currentData())
             started=True;self.auto_attempted=True
+            self._auto_wait_reason=None
             self.auto_launch_id=self.request_id if automatic else None
             query=self.provider.active['query'];self.guide_cache.begin(query)
             self.guide_cache.local_incomplete=(not self.snapshot.image_only and

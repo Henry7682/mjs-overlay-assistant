@@ -5,6 +5,26 @@ from .modes import PEAK_CHUHAN, RANKED_CHUHAN
 from .peak_layout import draft_count
 
 
+@dataclass
+class CandidateStability:
+    """Track each currently confirmed name, so one OCR flicker cannot starve all.
+
+    This is a trigger gate, not a pool: absent names are dropped immediately.
+    Scene/phase/round changes and long sampling gaps require new evidence.
+    """
+    since: dict[str, float] = field(default_factory=dict)
+    context: tuple = ()
+    last_at: float | None = None
+
+    def update(self, names, now, context):
+        if (context!=self.context or self.last_at is None or now<self.last_at
+            or now-self.last_at>4):
+            self.since.clear()
+        self.context=context;self.last_at=now
+        self.since={name:self.since.get(name,now) for name in set(names) if name}
+        return sum(now-start>=1 for start in self.since.values())>=2
+
+
 @dataclass(frozen=True)
 class GuideQuery:
     purpose: str

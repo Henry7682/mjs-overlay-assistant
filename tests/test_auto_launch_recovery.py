@@ -17,13 +17,13 @@ def controller(monkeypatch,mode='peak_chuhan_2v2'):
     provider.active={'query':GuideQuery('selection',mode,'test-game','r1',(),40)}
     provider.start=Mock(return_value='r1')
     w=NS(config={'recommendation':{}},provider=provider,game_id='test-game',auto_attempted=False,
-        snapshot=snapshot(mode),pool_since=98.,ranked_scene_frames=2,
+        snapshot=snapshot(mode),pool_since=98.,ranked_scene_frames=2,peak_auto_ready=True,
         window_box=NS(currentData=lambda:42),latest={'stamp':100.,'frame':object()},
         worker=NS(lock=threading.Lock(),allow_background=False),overlay=NS(recommendation=None),
         rec_status=NS(setText=Mock()),recommendation_status=Mock(),invalidate_recommendation=Mock(),
         guide_cache=RoundGuideCache(mode,'test-game'))
     for name in ('guides_enabled','maybe_auto_recommend','request_recommendation',
-                 'retry_auto_launch','recommendation_launch_failed','cancel_recommendation'):
+                 'retry_auto_launch','recommendation_launch_failed','cancel_recommendation','auto_query_wait'):
         setattr(w,name,MethodType(getattr(MainWindow,name),w))
     return w,clock
 
