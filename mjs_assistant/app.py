@@ -408,7 +408,9 @@ class MainWindow(GuideController,QMainWindow):
             key=profile_key(d['scene'],w,h);layout=d.get('layout','default')
             profile=self.profiles().get(key+':'+layout,{} if layout=='puppet3' else self.profiles().get(key,{}))
             self.overlay.status_lines=self.status_lines(d)
-            if self.statistics_visible():self.overlay.present(rect,(w,h),d['items'],profile)
+            if self.statistics_visible():
+                above=int(self.guide_panel.winId()) if self.guide_panel.isVisible() else None
+                self.overlay.present(rect,(w,h),d['items'],profile,above_hwnd=above)
             else:self.overlay.hide()
         except Exception:
             logging.exception('statistics overlay presentation');self.overlay.hide();self.guide_panel.hide();return

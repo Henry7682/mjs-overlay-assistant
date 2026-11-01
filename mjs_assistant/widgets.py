@@ -42,10 +42,20 @@ class Overlay(QWidget):
         u.SetWindowDisplayAffinity.argtypes=[W.HWND,W.DWORD]
         u.SetWindowDisplayAffinity(self.hwnd,0x11)
 
-    def present(self,rect,size,items,profile):
+    def present(self,rect,size,items,profile,above_hwnd=None):
         self.frame_size=size;self.items=items;self.offset=tuple(profile.get('offset',[0,0]));self.anchors=profile.get('anchors',{})
-        self.show()
-        C.windll.user32.SetWindowPos(self.hwnd,W.HWND(-1),*map(int,rect),0x10|0x40)
+        was_visible=self.isVisible()
+        if not was_visible:self.show()
+        # Raising both layers on every UI tick alternates their z-order and
+        # makes overlapping statistics flash over the guide. Position directly
+        # behind the visible guide; otherwise preserve an already shown layer.
+        flags=0x10|0x40  # SWP_NOACTIVATE | SWP_SHOWWINDOW
+        if above_hwnd:
+            after=above_hwnd
+        else:
+            after=-1
+            if was_visible:flags|=0x4  # SWP_NOZORDER
+        C.windll.user32.SetWindowPos(self.hwnd,W.HWND(after),*map(int,rect),flags)
         self.update()
 
     def paintEvent(self,event):
