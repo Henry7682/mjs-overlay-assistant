@@ -1,4 +1,5 @@
 param([switch]$SkipUpdate)
+# MJS_LAUNCH_PROTOCOL: 1
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'release\Release.ps1')
 Assert-Platform
@@ -36,12 +37,12 @@ try {
     if (-not $SkipUpdate) {
         try {
             Write-Host 'Checking update before startup (S: skip).'
-            $manifest=Read-Release 'Auto' (Join-Path $homePath 'release\public-key.xml')
             $failed=Join-Path $homePath 'failed-update.json'
             $blocked=if(Test-Path -LiteralPath $failed){Get-Content -Raw -LiteralPath $failed|ConvertFrom-Json}else{$null}
-            if ([version]$manifest.version -gt [version]$state.version -and (-not $blocked -or $blocked.version -ne $manifest.version)) {
-                Write-Host ('Downloading '+$manifest.version+'. Press S to use current version.')
-                $archive=Get-AssetFile $manifest.assets.portable (Join-Path $homePath 'download-cache') 'Auto' '' ([datetime]::UtcNow.AddSeconds(180))
+            $blockedVersion=if($blocked){$blocked.version}else{''}
+            $package=Get-UpdatePackage 'Auto' (Join-Path $homePath 'release\public-key.xml') (Join-Path $homePath 'download-cache') $state.version '' $blockedVersion
+            if ($package) {
+                $manifest=$package.manifest;$archive=$package.archive
                 $target=Join-Path $homePath ('versions\'+$manifest.version)
                 if (-not (Test-Path -LiteralPath $target)) { Expand-VerifiedZip $archive $target }
                 Assert-Payload $archive $target
@@ -78,6 +79,11 @@ try {
         if ($success) {
             Write-ReleaseEvent 'startup' 'committed' '' $manifest.version
             Remove-Item -LiteralPath $pendingPath
+            # Update is already committed; a read-only outer directory must not
+            # roll back a healthy application. The next launch also delegates to
+            # the library in current.json's verified payload when possible.
+            try { Install-DownloadLibrary $target $homePath }
+            catch { Write-ReleaseEvent 'download_library' 'retained';Write-Warning $_.Exception.Message }
         } else {
             if ($process -and -not $process.HasExited) { $process.Kill();$process.WaitForExit(3000)|Out-Null }
             Restore-UserData $homePath $backup

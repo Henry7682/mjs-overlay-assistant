@@ -24,7 +24,7 @@ def test_exes(tmp_path_factory):
         result[name]=path
     return result
 
-@pytest.mark.parametrize('candidate',['new','fail','backup_fail','journal_fail'])
+@pytest.mark.parametrize('candidate',['new','fail','backup_fail','journal_fail','fallback'])
 def test_launcher_commits_after_handshake_or_restores(tmp_path,test_exes,candidate):
     root=tmp_path/'install';(root/'release').mkdir(parents=True);(root/'versions/1.0.0').mkdir(parents=True)
     (root/'data').mkdir();(root/'data/settings.json').write_text('{"preserved":true}')
@@ -33,12 +33,20 @@ def test_launcher_commits_after_handshake_or_restores(tmp_path,test_exes,candida
     (root/'current.json').write_text(json.dumps({'version':'1.0.0','previous':None}))
     cache=root/'download-cache';cache.mkdir();archive=cache/'payload.zip'
     with zipfile.ZipFile(archive,'w') as z:z.write(test_exes.get(candidate,test_exes['new']),'MjsOverlay.exe')
-    manifest={'version':'1.0.1','assets':{'portable':{'name':archive.name,'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'urls':[]}}}
+    manifest={'version':'1.0.1','assets':{'portable':{'name':archive.name,'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'urls':['https://github.com/fixture/payload.zip']}}}
+    if candidate=='fallback':
+        manifest['discovery_source']='Gitee'
+        manifest['assets']['portable']['urls']=['https://gitee.com/fixture/payload.zip']
+        newer={'version':'1.0.2','discovery_source':'GitHub','assets':{'portable':{
+            'name':'newer.zip','bytes':10,'sha256':'a'*64,'urls':['https://github.com/fixture/newer.zip']}}}
+        manifest=[newer,manifest]
     fixture=root/'fixture.json';fixture.write_text(json.dumps(manifest))
     # Signature/network tested separately: this fixture isolates installation,
     # startup handshake and data rollback using the unchanged real launcher.
     library=(ROOT/'release/Release.ps1').read_text('utf8')
-    library+='\nfunction Read-Release { Get-Content -Raw '+quoted(fixture)+' | ConvertFrom-Json }\n'
+    library+='\nfunction Read-Release { $items=Get-Content -Raw '+quoted(fixture)+' | ConvertFrom-Json; $items }\n'
+    library+='\nfunction Get-GiteeReleaseList { @() }\n'
+    library+='\nfunction Receive-File { throw "fixture: GitHub unavailable" }\n'
     if candidate=='backup_fail':
         library+='\nfunction Save-UserData { throw "simulated disk full before candidate launch" }\n'
     if candidate=='journal_fail':
@@ -48,7 +56,7 @@ def test_launcher_commits_after_handshake_or_restores(tmp_path,test_exes,candida
     r=subprocess.run([str(PS),'-NoProfile','-NonInteractive','-File',str(root/'launch.ps1')],env=env,capture_output=True,text=True,timeout=30)
     assert r.returncode==0,r.stderr+r.stdout
     state=json.loads((root/'current.json').read_text())
-    assert state['version']==('1.0.1' if candidate=='new' else '1.0.0')
+    assert state['version']==('1.0.1' if candidate in ('new','fallback') else '1.0.0')
     assert json.loads((root/'data/settings.json').read_text())=={'preserved':True}
     assert not (root/'pending-update.json').exists()
     if candidate in ('backup_fail','journal_fail'):

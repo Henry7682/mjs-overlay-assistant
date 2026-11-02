@@ -701,6 +701,27 @@ def main():
             window.software_check.message.connect(lambda text:window.tray.showMessage('助手更新',text))
             window.software_check.start()
             app.aboutToQuit.connect(lambda:window.software_check.wait(14000))
+        else:
+            # Old outer launchers commit current.json after our ready signal.
+            # Once committed, refresh their compatible download helper so the
+            # next start gains source failover. Never run during source work.
+            from .launcher_library import refresh_committed_library
+            window.library_timer=QTimer(window)
+            library_attempts=0
+            def refresh_library():
+                nonlocal library_attempts
+                library_attempts+=1
+                if library_attempts>30:
+                    window.library_timer.stop();return
+                if not window.worker.models_ready:return
+                try:
+                    status=refresh_committed_library(Path(sys.executable),VERSION)
+                    if status=='pending':return
+                    logging.info('download library: %s',status)
+                except Exception:
+                    logging.exception('download library retained; application continues')
+                window.library_timer.stop()
+            window.library_timer.timeout.connect(refresh_library);window.library_timer.start(2000)
         if '--tray' not in sys.argv:window.show()
         return app.exec()
     except Exception as e:
