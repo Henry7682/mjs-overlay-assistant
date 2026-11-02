@@ -23,11 +23,50 @@ def test_ambiguous_filename_edits_are_not_arbitrarily_chosen():
     assert len(filename_edits(dialog))==2
 
 
+@pytest.mark.parametrize('filename_id',[1148,1152])
+def test_filename_host_direct_or_nested(filename_id):
+    dialog=node(1,0);host=node(2,filename_id,dialog)
+    dialog.descendants=lambda **kw:[host]
+    assert filename_edits(dialog)==[host]
+
+
+def test_nested_open_button_ignores_caption_and_other_buttons():
+    from mjs_assistant.mini_dialogs import open_button
+    dialog=node(10,0);host=node(11,100,dialog);target=node(12,1,host)
+    dialog.descendants=lambda **kw:[node(13,2,host),node(14,1,host,False),target]
+    assert open_button(dialog)==12
+    dialog.descendants=lambda **kw:[target,node(15,1,host)]
+    with pytest.raises(RuntimeError,match='唯一定位'):open_button(dialog)
+
+
 def test_owned_picker_with_nested_controls_and_no_file_type():
     from test_mini_dialogs import Windows
     gui=Windows();gui.rows={10:(123,'#32770',True,False)}
     gui.EnumChildWindows=lambda h,fn,arg:[fn(i,arg) for i in (1,2,1148)]
     gui.GetDlgCtrlID=lambda h:h
+    assert dialog_state(123,gui)==([10],[10])
+
+
+@pytest.mark.parametrize('filename_id',[1148,1152])
+def test_pywin32_missing_alternative_control_raises_1421(filename_id):
+    from test_mini_dialogs import Windows
+    gui=Windows();gui.rows={10:(123,'#32770',True,True)}
+    def get_item(hwnd,ident):
+        if ident not in (1,2,filename_id):raise OSError(1421,'GetDlgItem: Control ID not found')
+        return ident+100
+    gui.GetDlgItem=get_item
+    assert dialog_state(123,gui)==([10],[10])
+
+
+def test_nested_controls_survive_missing_direct_children_and_disappearing_child():
+    from test_mini_dialogs import Windows
+    gui=Windows();gui.rows={10:(123,'#32770',True,True)}
+    gui.GetDlgItem=Mock(side_effect=OSError(1421,'missing'))
+    gui.EnumChildWindows=lambda hwnd,fn,arg:[fn(i,arg) for i in (1,999,2,1152)]
+    def ctrl_id(hwnd):
+        if hwnd==999:raise OSError('child destroyed')
+        return hwnd
+    gui.GetDlgCtrlID=ctrl_id
     assert dialog_state(123,gui)==([10],[10])
 
 

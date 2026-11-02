@@ -560,7 +560,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                 result['input_incomplete']=True;result['complete']=False
             result.update(seconds=time.monotonic()-start,status='success',source='名将小助手',route='public_picker')
             return
-        from .mini_dialogs import filename_edits,validate_image_path
+        from .mini_dialogs import filename_edits,validate_image_path,open_button
         path=validate_image_path(path)
         stage('清除上次搜索');set_search('')
         from .mini_dialogs import open_image_dialog
@@ -581,7 +581,7 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         guard()
         if edits[0].window_text()!=str(path):raise RuntimeError('图片路径未写入文件名输入框')
         if dialog.handle not in image_dialogs(mini):raise RuntimeError('图片选择框已变化')
-        win32gui.PostMessage(win32gui.GetDlgItem(dialog.handle,1),0xF5,0,0)  # BM_CLICK
+        win32gui.PostMessage(open_button(dialog),0xF5,0,0)  # BM_CLICK / IDOK
         stage('确认图片选择框关闭')
         until=min(deadline,time.monotonic()+2)
         while win32gui.IsWindow(dialog.handle) and win32gui.IsWindowVisible(dialog.handle):

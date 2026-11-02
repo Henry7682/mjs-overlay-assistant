@@ -6,6 +6,15 @@ UIA. Never interpret that state as an ordinary page-loading delay.
 import time
 
 
+def open_button(dialog):
+    """Locate IDOK by role/ID, independent of caption, DPI and child depth."""
+    buttons=[button for button in dialog.descendants(class_name='Button')
+             if button.control_id()==1 and button.is_visible() and button.is_enabled()]
+    if len(buttons)!=1:
+        raise RuntimeError('图片选择框已打开，但无法唯一定位打开按钮')
+    return buttons[0].handle
+
+
 def filename_edits(dialog):
     """Native file-name Edit may be several levels below its ComboBoxEx host.
 
@@ -45,11 +54,19 @@ def dialog_state(mini,gui=None):
             if (gui.IsWindowVisible(hwnd) and gui.GetClassName(hwnd)=='#32770'
                     and gui.GetAncestor(hwnd,3)==mini):
                 owned.append(hwnd)
-                # Standard Open dialog: Open, Cancel, File name, File type.
-                ids={i for i in (1,2,1148,1152) if gui.GetDlgItem(hwnd,i)}
+                # pywin32 raises error 1421 for a missing control; it does not
+                # return zero like raw Win32 / our old test double. 1148 and
+                # 1152 are ALTERNATIVE filename hosts, never both required.
+                ids=set()
+                for ident in (1,2,1148,1152):
+                    try:
+                        if gui.GetDlgItem(hwnd,ident):ids.add(ident)
+                    except Exception:pass
                 if hasattr(gui,'EnumChildWindows'):
                     def collect(child,_):
-                        ids.add(gui.GetDlgCtrlID(child));return True
+                        try:ids.add(gui.GetDlgCtrlID(child))
+                        except Exception:pass
+                        return True
                     gui.EnumChildWindows(hwnd,collect,None)
                 if {1,2}<=ids and ids.intersection((1148,1152)):found.append(hwnd)
         except Exception:pass  # A window can disappear during enumeration.
