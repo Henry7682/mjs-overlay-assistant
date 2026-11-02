@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "version": "1.0.6",
+  "channel": "stable",
+  "minimum_launcher": 1,
+  "product": "名将浮窗助手",
+  "release_notes": "公开测试版；实战与已知限制见README和TODO。",
+  "mirror_verified": false,
+  "assets": {
+    "portable": {
+      "name": "MjsOverlay-1.0.6-payload.zip",
+      "bytes": 158657880,
+      "sha256": "5dd1e4e6ccda53bffb37b99efe34858684d522192b4cd8c97b8874bdb7796bed",
+      "urls": [
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.6/MjsOverlay-1.0.6-payload.zip"
+      ],
+      "parts": [
+        {
+          "name": "MjsOverlay-1.0.6-payload.zip.part01",
+          "bytes": 90000000,
+          "sha256": "43807275b0da89be8c5112063371a72acba2ef55cefa4c8ea108012ec0d8123f",
+          "urls": []
+        },
+        {
+          "name": "MjsOverlay-1.0.6-payload.zip.part02",
+          "bytes": 68657880,
+          "sha256": "29e8071a1775d82ceaef4302ff3eb3ec352d761d6796a6b8b4a2075bcf22b2d2",
+          "urls": []
+        }
+      ]
+    },
+    "standalone": {
+      "name": "MjsOverlay-1.0.6-win64.zip",
+      "bytes": 158711536,
+      "sha256": "77fe5bcd3884d3ebf5d72a6add61053011592a56be5b9ec174e44dc895540f49",
+      "urls": [
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.6/MjsOverlay-1.0.6-win64.zip"
+      ]
+    },
+    "source": {
+      "name": "MjsOverlay-1.0.6-source.zip",
+      "bytes": 7654368,
+      "sha256": "1c7e7f468f6f015cf0fbd8274af4628497fb4d27fabe63eb9c642d1c5b170df0",
+      "urls": [
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.6/MjsOverlay-1.0.6-source.zip"
+      ],
+      "parts": [
+        {
+          "name": "MjsOverlay-1.0.6-source.zip.part01",
+          "bytes": 7654368,
+          "sha256": "1c7e7f468f6f015cf0fbd8274af4628497fb4d27fabe63eb9c642d1c5b170df0",
+          "urls": []
+        }
+      ]
+    },
+    "models": {
+      "name": "MjsOverlay-1.0.6-models.zip",
+      "bytes": 27111151,
+      "sha256": "e29badc4e2e04aacd92faa3f3b843c96042a0aba6b05ffd26de211c8501abb19",
+      "urls": [
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.6/MjsOverlay-1.0.6-models.zip"
+      ],
+      "parts": [
+        {
+          "name": "MjsOverlay-1.0.6-models.zip.part01",
+          "bytes": 27111151,
+          "sha256": "e29badc4e2e04aacd92faa3f3b843c96042a0aba6b05ffd26de211c8501abb19",
+          "urls": []
+        }
+      ]
+    },
+    "wheels": {
+      "name": "MjsOverlay-1.0.6-offline-wheels-win64.zip",
+      "bytes": 247648381,
+      "sha256": "45b9454e78f89d9edba147349284206828d37f3e02a7a7352ba33f8bca793307",
+      "urls": [
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.6/MjsOverlay-1.0.6-offline-wheels-win64.zip"
+      ],
+      "parts": [
+        {
+          "name": "MjsOverlay-1.0.6-offline-wheels-win64.zip.part01",
+          "bytes": 90000000,
+          "sha256": "3b99cf8f80d39b6d4898e1284dc848dc48cd30770ff41c6def10a9c32f1469b4",
+          "urls": []
+        },
+        {
+          "name": "MjsOverlay-1.0.6-offline-wheels-win64.zip.part02",
+          "bytes": 90000000,
+          "sha256": "ac287a969f5d7e6c7d7f6fcc8e050d7fa21a0fb5aef9a48bc7b4beb10e01e10e",
+          "urls": []
+        },
+        {
+          "name": "MjsOverlay-1.0.6-offline-wheels-win64.zip.part03",
+          "bytes": 67648381,
+          "sha256": "3ae0fddf24a598231baf935309655c6ec8c2d4ecc3e50ced733804f1e75d8667",
+          "urls": []
+        }
+      ]
+    },
+    "downloader": {
+      "name": "MjsOverlay-1.0.6-downloader.zip",
+      "bytes": 12884,
+      "sha256": "dfa91df34050d37c13fd7ac49513e291ac39c16aa045c9f533bb329db279c1aa",
+      "urls": [
+        "https://github.com/Henry7682/mjs-overlay-assistant/releases/download/v1.0.6/MjsOverlay-1.0.6-downloader.zip"
+      ],
+      "parts": [
+        {
+          "name": "MjsOverlay-1.0.6-downloader.zip.part01",
+          "bytes": 12884,
+          "sha256": "dfa91df34050d37c13fd7ac49513e291ac39c16aa045c9f533bb329db279c1aa",
+          "urls": []
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "python": {
+      "name": "python-3.11.9-amd64.exe",
+      "bytes": 26216840,
+      "sha256": "5ee42c4eee1e6b4464bb23722f90b45303f79442df63083f05322f1785f5fdde",
+      "urls": [
+        "https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe"
+      ]
+    },
+    "vcredist": {
+      "name": "vc_redist.x64.exe",
+      "bytes": 25635768,
+      "sha256": "cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b",
+      "urls": [
+        "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+      ]
+    }
+  }
+}
