@@ -46,6 +46,7 @@ def export(destination, identity=None):
         'assets/licenses': ('*',), 'assets/models': ('manifest.json',),
         'assets/nameplates': ('*.png', '*.md'),
         'docs': ('*.md',), '.github': ('*.yml',), 'release': ('*.ps1', 'dependencies.json', 'public-key.xml'),
+        'release/history': ('*.json','*.sig'),
     }.items():
         for pattern in patterns:
             selected += [p for p in (ROOT / folder).rglob(pattern) if p.is_file()]

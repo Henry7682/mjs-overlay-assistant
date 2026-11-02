@@ -1,6 +1,7 @@
 """Verify anonymous Gitee assets before adding their URLs to a release manifest.
 
 Mapping JSON: {"exact-asset-or-part-name": "https://gitee.com/..."}.
+Omit --mapping to discover the exact version's attachments from Gitee's API.
 Uses no browser cookies or account credentials. Does not sign or publish.
 """
 import argparse
@@ -13,9 +14,36 @@ import urllib.parse
 import urllib.request
 
 
+def discover_mapping(version, rows=None):
+    if not re.fullmatch(r'\d+\.\d+\.\d+',version):
+        raise ValueError('Invalid release version')
+    if rows is None:
+        url='https://gitee.com/api/v5/repos/henry7682/mjs-overlay-assistant/releases/tags/v'+version
+        with urllib.request.urlopen(url,timeout=15) as response:
+            body=response.read(1024*1024+1)
+        if len(body)>1024*1024:raise ValueError('Release metadata too large')
+        rows=json.loads(body)
+    if rows.get('tag_name')!='v'+version or rows.get('draft') or rows.get('prerelease'):
+        raise ValueError('Release version/state mismatch')
+    mapping={}
+    for row in rows.get('assets',[]):
+        name=row.get('name','');url=row.get('browser_download_url','')
+        if not name.startswith('MjsOverlay-'):continue
+        parsed=urllib.parse.urlsplit(url)
+        if (parsed.scheme!='https' or parsed.hostname!='gitee.com' or parsed.username or parsed.password
+                or parsed.port not in (None,443) or not (
+                parsed.path.lower().startswith('/henry7682/mjs-overlay-assistant/')
+                or parsed.path.startswith('/attachments/download/'))):
+            raise ValueError('Unexpected attachment location')
+        if name in mapping:raise ValueError('Duplicate attachment: '+name)
+        mapping[name]=url
+    return mapping
+
+
 def verify(manifest_path, mapping_path, cache, output):
     manifest = json.loads(Path(manifest_path).read_text('utf8'))
-    mapping = json.loads(Path(mapping_path).read_text('utf8'))
+    mapping = (json.loads(Path(mapping_path).read_text('utf8')) if mapping_path
+               else discover_mapping(manifest['version']))
     cache = Path(cache)
     cache.mkdir(parents=True, exist_ok=True)
     report = []
@@ -84,7 +112,7 @@ def verify(manifest_path, mapping_path, cache, output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--manifest', required=True, type=Path)
-    parser.add_argument('--mapping', required=True, type=Path)
+    parser.add_argument('--mapping', type=Path)
     parser.add_argument('--cache', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()

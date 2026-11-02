@@ -18,19 +18,22 @@ if ($CheckOnly) {
 }
 Set-ReleaseLog (Join-Path $Destination 'download-cache\download-events.jsonl')
 Write-Host 'MjsOverlay 1.0.1 downloader. Press S to cancel. No global pip or PATH changes.'
-$manifest=Read-Release $Source $key $OfflineDirectory
 $cache=Join-Path $Destination 'download-cache';$deadline=[datetime]::UtcNow.AddMinutes(15)
 if ($Mode -eq 'Portable') {
     $old=$null
     if (Test-Path -LiteralPath (Join-Path $Destination 'current.json')) {
         $old=Get-Content -Raw -LiteralPath (Join-Path $Destination 'current.json')|ConvertFrom-Json
         Assert-Version $old.version
-        if ([version]$old.version -gt [version]$manifest.version) { throw 'Refusing downgrade.' }
         $oldExe=Join-Path $Destination ('versions\'+$old.version+'\MjsOverlay.exe')
         if (Get-Process -Name MjsOverlay -ErrorAction SilentlyContinue|Where-Object {$_.Path -eq $oldExe}) { throw 'Close the running assistant before installing.' }
     }
-    $asset=$manifest.assets.portable
-    $archive=Get-AssetFile $asset $cache $Source $OfflineDirectory $deadline
+    $current=if($old){$old.version}else{'0.0.0'}
+    $package=Get-UpdatePackage $Source $key $cache $current $OfflineDirectory -DownloadSeconds 900
+    if (-not $package) {
+        if($old){Write-Host 'No newer verified package available. Installed version retained.';exit 0}
+        throw 'No verified installation package available from the selected sources.'
+    }
+    $manifest=$package.manifest;$archive=$package.archive
     $versionDir=Join-Path $Destination ('versions\'+$manifest.version)
     if (-not (Test-Path $versionDir)) { Expand-VerifiedZip $archive $versionDir }
     Assert-Payload $archive $versionDir
@@ -49,8 +52,8 @@ if ($Mode -eq 'Portable') {
         }
         throw 'Portable self-check failed; current version retained.'
     }
-    # Fixed entrypoints stay intact. The compatible download library is refreshed
-    # separately so future versions do not remain stuck on the original downloader.
+    # Keep the stable CMD entry. Refresh a compatible PowerShell entry/library
+    # separately so future versions do not remain on the original downloader.
     foreach ($name in @('launch.cmd','launch.ps1')) {
         $out=Join-Path $Destination $name
         if (-not (Test-Path -LiteralPath $out)) { Copy-Item -LiteralPath (Join-Path $versionDir $name) -Destination $out }
@@ -65,7 +68,10 @@ if ($Mode -eq 'Portable') {
     Write-AtomicJson (Join-Path $Destination 'current.json') @{version=$manifest.version;previous=$previous}
     Write-Host ('Installed. Run: '+(Join-Path $Destination 'launch.cmd'))
 } else {
-    $archive=Get-AssetFile $manifest.assets.source $cache $Source $OfflineDirectory $deadline
+    $package=Get-UpdatePackage $Source $key $cache '0.0.0' $OfflineDirectory -Role source -DownloadSeconds 900
+    if(-not $package){throw 'No verified source package available.'}
+    $manifest=$package.manifest;$archive=$package.archive;$Source=$package.source
+    $deadline=[datetime]::UtcNow.AddMinutes(15)
     $project=Join-Path $Destination ('source-'+$manifest.version)
     if (Test-Path $project) { throw 'Source directory already exists. Choose a new destination to preserve edits.' }
     Expand-VerifiedZip $archive $project

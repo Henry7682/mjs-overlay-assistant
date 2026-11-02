@@ -50,14 +50,28 @@ def refresh_committed_library(executable: Path, version: str) -> str:
         return 'redirected_path'
     data = source.read_bytes()
     marker = re.search(rb'^# MJS_DOWNLOAD_LIBRARY: (\d+)\r?$', data, re.M)
-    if not marker or int(marker[1]) < 2:
+    if not marker or int(marker[1]) < 3:
         return 'legacy_payload'
-    old = destination.read_bytes()
-    if old == data:
-        return 'unchanged'
-    backup = destination.with_name(destination.name+'.previous')
-    if backup.resolve() != backup:
-        return 'redirected_path'
-    _atomic_bytes(backup, old)
-    _atomic_bytes(destination, data)
-    return 'refreshed'
+    pairs = [(destination, data)]
+    launcher = payload/'launch.ps1'
+    target_launcher = root/'launch.ps1'
+    if launcher.exists() and target_launcher.exists():
+        if launcher.resolve() != launcher or target_launcher.resolve() != target_launcher:
+            return 'redirected_path'
+        entry = launcher.read_bytes()
+        if re.search(rb'^# MJS_LAUNCH_PROTOCOL: 1\r?$', entry, re.M):
+            pairs.append((target_launcher, entry))
+    changed = False
+    # Backward compatible library first, then the new candidate-selection entry.
+    # An interruption between them leaves a working old entrypoint/new library.
+    for target, body in pairs:
+        old = target.read_bytes()
+        if old == body:
+            continue
+        backup = target.with_name(target.name+'.previous')
+        if backup.resolve() != backup:
+            return 'redirected_path'
+        _atomic_bytes(backup, old)
+        _atomic_bytes(target, body)
+        changed = True
+    return 'refreshed' if changed else 'unchanged'

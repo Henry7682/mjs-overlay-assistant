@@ -10,7 +10,9 @@ def installation(tmp_path):
     (root/'release').mkdir(parents=True);(payload/'release').mkdir(parents=True)
     (root/'current.json').write_text('{"version":"1.0.6"}')
     (root/'release/Release.ps1').write_bytes(b'old compatible helper')
-    (payload/'release/Release.ps1').write_bytes(b'# MJS_DOWNLOAD_LIBRARY: 2\n# new helper\n')
+    (payload/'release/Release.ps1').write_bytes(b'# MJS_DOWNLOAD_LIBRARY: 3\n# new helper\n')
+    (root/'launch.ps1').write_bytes(b'old launcher')
+    (payload/'launch.ps1').write_bytes(b'# MJS_LAUNCH_PROTOCOL: 1\n# new launcher\n')
     for directory in (root,payload):
         (directory/'release/public-key.xml').write_bytes(b'same public key')
     (root/'data').mkdir();(root/'data/settings.json').write_text('{"user":true}')
@@ -22,6 +24,8 @@ def test_old_launcher_migration_after_commit_preserves_data(tmp_path):
     assert refresh_committed_library(exe,'1.0.6')=='refreshed'
     assert (root/'release/Release.ps1.previous').read_bytes()==b'old compatible helper'
     assert (root/'release/Release.ps1').read_bytes()==(exe.parent/'release/Release.ps1').read_bytes()
+    assert (root/'launch.ps1').read_bytes()==(exe.parent/'launch.ps1').read_bytes()
+    assert (root/'launch.ps1.previous').read_bytes()==b'old launcher'
     assert refresh_committed_library(exe,'1.0.6')=='unchanged'
     assert json.loads((root/'data/settings.json').read_text())=={'user':True}
 
@@ -36,6 +40,7 @@ def test_no_refresh_before_commit_or_outside_installation(tmp_path,case):
     if case=='source':exe=tmp_path/'app/python.exe'
     assert refresh_committed_library(exe,'1.0.6')!='refreshed'
     assert (root/'release/Release.ps1').read_bytes()==b'old compatible helper'
+    assert (root/'launch.ps1').read_bytes()==b'old launcher'
 
 
 def test_failed_atomic_replace_leaves_old_library_usable(tmp_path,monkeypatch):

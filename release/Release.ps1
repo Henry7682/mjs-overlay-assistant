@@ -1,5 +1,5 @@
 # Shared by download.ps1 and the portable launcher. Windows PowerShell 5.1.
-# MJS_DOWNLOAD_LIBRARY: 2
+# MJS_DOWNLOAD_LIBRARY: 3
 Set-StrictMode -Version 2
 $ErrorActionPreference='Stop'
 $script:ReleaseOwner='Henry7682/mjs-overlay-assistant'
@@ -86,7 +86,7 @@ function Get-RemoteBytes([string]$Url,[int]$Timeout=5000,[int]$Limit=1048576) {
         finally { $stream.Dispose();$memory.Dispose() }
     } finally { $response.Dispose() }
 }
-function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory='') {
+function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory='',[switch]$All) {
     if ($OfflineDirectory) {
         $path=Join-Path $OfflineDirectory 'release.json';$bytes=[IO.File]::ReadAllBytes($path)
         Assert-Signature $bytes ([IO.File]::ReadAllText((Join-Path $OfflineDirectory 'release.sig'))) $KeyPath
@@ -108,11 +108,15 @@ function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory
                 $sig=[Text.Encoding]::UTF8.GetString((Get-RemoteBytes ($url -replace '\.json$','.sig') ([Math]::Min(2500,$left))))
                 Assert-Signature $bytes $sig $KeyPath
                 $m=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
-                if ($m.schema_version -eq 1 -and $m.channel -eq 'stable' -and $m.version -match '^\d+\.\d+\.\d+$') { $found+=,$m }
+                if ($m.schema_version -eq 1 -and $m.channel -eq 'stable' -and $m.version -match '^\d+\.\d+\.\d+$') {
+                    $m|Add-Member -NotePropertyName discovery_source -NotePropertyValue $(if($url -match '^https://gitee.com/'){'Gitee'}else{'GitHub'}) -Force
+                    $found+=,$m
+                }
                 Write-ReleaseEvent 'metadata' 'verified' $url $m.version
             } catch { Write-ReleaseEvent 'metadata' 'unavailable' $url;Write-Host ('Source unavailable: '+$url+' ('+$_.Exception.Message+')') }
         }
         if (-not $found) { throw 'No verified release source available.' }
+        if ($All) { return @($found|Where-Object {$_.minimum_launcher -le 1}) }
         $latest=$found|Sort-Object {[version]$_.version} -Descending|Select-Object -First 1
         $manifest=@($found|Where-Object {$_.version -eq $latest.version})[0]
         # Same-version signed mirror metadata may arrive before GitHub is synced.
@@ -149,7 +153,7 @@ function Test-SlowTransfer([double]$Seconds,[long]$Received,[long]$Remaining) {
     return $Seconds -ge 8 -and $Remaining -gt 1MB -and ($Received/[Math]::Max(1,$Seconds)) -lt 256KB
 }
 function New-DownloadRequest([string]$Url) { return [Net.HttpWebRequest]::Create($Url) }
-function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]$OfflineDirectory='',[datetime]$Deadline=([datetime]::UtcNow.AddSeconds(180))) {
+function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]$OfflineDirectory='',[datetime]$Deadline=([datetime]::UtcNow.AddSeconds(180)),[switch]$FallbackAvailable) {
     if ($Asset.name -notmatch '^[A-Za-z0-9_.-]+$' -or $Asset.sha256 -notmatch '^[a-f0-9]{64}$' -or $Asset.bytes -le 0 -or $Asset.bytes -gt 2000000000) { throw 'Invalid asset manifest.' }
     [IO.Directory]::CreateDirectory($Directory)|Out-Null;$target=Join-Path $Directory $Asset.name
     if (Test-Path -LiteralPath $target) { try { Assert-Hash $target $Asset;return $target } catch { Remove-Item -LiteralPath $target } }
@@ -171,7 +175,7 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
         for ($routeIndex=0;$routeIndex -lt $routes.Count;$routeIndex++) {
             Test-Cancel
             if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
-            $route=$routes[$routeIndex];$alternative=$routeIndex -lt $routes.Count-1
+            $route=$routes[$routeIndex];$alternative=($routeIndex -lt $routes.Count-1) -or $FallbackAvailable
             $routeDeadline=$Deadline
             if ($alternative) {
                 $seconds=[Math]::Min(45,($Deadline-[datetime]::UtcNow).TotalSeconds/2)
@@ -180,7 +184,7 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
             try {
                 if ($route.parts) {
                     $partials=@()
-                    foreach ($part in $Asset.parts) { $partials+=Get-AssetFile $part $Directory $Source $OfflineDirectory $routeDeadline }
+                    foreach ($part in $Asset.parts) { $partials+=Get-AssetFile $part $Directory $Source $OfflineDirectory $routeDeadline -FallbackAvailable:$alternative }
                     $output=[IO.File]::Create($target)
                     try { foreach ($p in $partials) { $input=[IO.File]::OpenRead($p);try { $input.CopyTo($output) } finally { $input.Dispose() } } } finally { $output.Dispose() }
                 } else {
@@ -198,9 +202,138 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
             }
             if ($OfflineDirectory) { break }
         }
-        if ($OfflineDirectory) { break }
+        if ($OfflineDirectory -or $FallbackAvailable) { break }
     }
     throw ('Unable to obtain verified asset: '+$Asset.name)
+}
+function Test-AssetRoute($Asset,[string]$Source) {
+    if (@(Get-SourceUrls $Asset $Source).Count) { return $true }
+    if (-not $Asset.PSObject.Properties['parts'] -or -not $Asset.parts.Count) { return $false }
+    foreach ($part in $Asset.parts) { if (-not @(Get-SourceUrls $part $Source).Count) { return $false } }
+    return $true
+}
+function Test-GiteeLocation([string]$Url) {
+    try {
+        $uri=[uri]$Url
+        return $uri.Scheme -eq 'https' -and $uri.Host -eq 'gitee.com' -and -not $uri.UserInfo -and $uri.IsDefaultPort -and
+            ($uri.AbsolutePath.StartsWith('/'+$script:MirrorOwner+'/',[StringComparison]::OrdinalIgnoreCase) -or $uri.AbsolutePath.StartsWith('/attachments/download/'))
+    } catch { return $false }
+}
+function Get-ReleaseAttachments($Row) {
+    if (-not $Row.PSObject.Properties['assets']) { return @() }
+    # Gitee API uses an array; GitHub uses an assets array too. Ignore archives,
+    # duplicate names and arbitrary off-project links, never synthesize asset IDs.
+    return @($Row.assets|Where-Object {$_.PSObject.Properties['name'] -and $_.PSObject.Properties['browser_download_url'] -and (Test-GiteeLocation $_.browser_download_url)})
+}
+function Add-DiscoveredLocations($Asset,$Attachments) {
+    $attachmentMatches=@($Attachments|Where-Object {$_.name -ceq $Asset.name})
+    if ($attachmentMatches.Count -eq 1) { $Asset.urls=@(@($Asset.urls)+@($attachmentMatches[0].browser_download_url)|Select-Object -Unique) }
+    if ($Asset.PSObject.Properties['parts']) { foreach ($part in $Asset.parts) { Add-DiscoveredLocations $part $Attachments } }
+}
+function Get-GiteeReleaseList([datetime]$Deadline) {
+    $remaining=[int]($Deadline-[datetime]::UtcNow).TotalMilliseconds
+    if ($remaining -le 0) { return @() }
+    $url='https://gitee.com/api/v5/repos/'+$script:MirrorOwner+'/releases?page=1&per_page=100'
+    $bytes=Get-RemoteBytes $url ([Math]::Min(2500,$remaining))
+    $rows=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
+    return @($rows|Where-Object {
+        $_.PSObject.Properties['tag_name'] -and $_.tag_name -cmatch '^v\d+\.\d+\.\d+$' -and
+        (-not $_.PSObject.Properties['draft'] -or -not $_.draft) -and
+        (-not $_.PSObject.Properties['prerelease'] -or -not $_.prerelease)
+    }|Sort-Object {[version]$_.tag_name.Substring(1)} -Descending)
+}
+function Get-GiteeManifest($Row,$Known,[string]$KeyPath,[datetime]$Deadline) {
+    $version=$Row.tag_name.Substring(1)
+    $existing=@($Known|Where-Object {$_.version -eq $version})
+    if ($existing.Count) { return ($existing[0]|ConvertTo-Json -Depth 30|ConvertFrom-Json) }
+    $attachments=@(Get-ReleaseAttachments $Row)
+    $json=@($attachments|Where-Object {$_.name -ceq 'release.json'})
+    $sig=@($attachments|Where-Object {$_.name -ceq 'release.sig'})
+    $locations=@()
+    if ($json.Count -eq 1 -and $sig.Count -eq 1) { $locations+=,@($json[0].browser_download_url,$sig[0].browser_download_url) }
+    # Immutable signed history survives main advancing before the mirror assets.
+    $base='https://gitee.com/'+$script:MirrorOwner+'/raw/main/release/history/'+$version
+    $locations+=,@(($base+'.json'),($base+'.sig'))
+    foreach ($location in $locations) {
+        Test-Cancel
+        try {
+            $remaining=[int]($Deadline-[datetime]::UtcNow).TotalMilliseconds
+            if ($remaining -le 0) { break }
+            $bytes=Get-RemoteBytes $location[0] ([Math]::Min(2000,$remaining))
+            $remaining=[int]($Deadline-[datetime]::UtcNow).TotalMilliseconds
+            if ($remaining -le 0) { break }
+            $signature=[Text.Encoding]::UTF8.GetString((Get-RemoteBytes $location[1] ([Math]::Min(2000,$remaining))))
+            Assert-Signature $bytes $signature $KeyPath
+            $manifest=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
+            if ($manifest.schema_version -ne 1 -or $manifest.channel -ne 'stable' -or $manifest.version -ne $version -or $manifest.minimum_launcher -gt 1) { throw 'Release metadata version/protocol mismatch.' }
+            return $manifest
+        } catch { Write-ReleaseEvent 'release_discovery' 'metadata_unavailable' $location[0] $version;Test-Cancel }
+    }
+    return $null
+}
+function Find-ReleaseCandidates([string]$Source,[string]$KeyPath,[string]$CurrentVersion='0.0.0',[string]$OfflineDirectory='',[string]$Role='portable') {
+    Assert-Version $CurrentVersion
+    $known=@();$candidates=@()
+    try { $known=@(Read-Release $Source $KeyPath $OfflineDirectory -All) }
+    catch { Write-ReleaseEvent 'metadata' 'main_unavailable';Write-Host $_.Exception.Message;Test-Cancel }
+    foreach ($manifest in $known) {
+      try {
+        if ([version]$manifest.version -le [version]$CurrentVersion) { continue }
+        $origin=$Source
+        if ($Source -eq 'Auto' -and $manifest.PSObject.Properties['discovery_source']) { $origin=$manifest.discovery_source }
+        if ($OfflineDirectory -or (Test-AssetRoute $manifest.assets.$Role $origin)) {
+            $candidates+=,[pscustomobject]@{manifest=$manifest;source=$origin}
+        }
+      } catch { Write-ReleaseEvent 'metadata' 'candidate_invalid';Test-Cancel }
+    }
+    if (-not $OfflineDirectory -and $Source -in @('Auto','Gitee')) {
+        # Separate from GitHub availability: a failed/advanced GitHub channel
+        # never prevents discovering the newest signed Gitee release we can use.
+        $deadline=[datetime]::UtcNow.AddSeconds(8)
+        try {
+            $rows=@(Get-GiteeReleaseList $deadline)
+            foreach ($row in $rows) {
+              try {
+                Test-Cancel
+                if ([datetime]::UtcNow -ge $deadline) { break }
+                if ([version]$row.tag_name.Substring(1) -le [version]$CurrentVersion) { continue }
+                $manifest=Get-GiteeManifest $row $known $KeyPath $deadline
+                if (-not $manifest) { continue }
+                $attachments=@(Get-ReleaseAttachments $row)
+                foreach ($roleName in $manifest.assets.PSObject.Properties.Name) { Add-DiscoveredLocations $manifest.assets.$roleName $attachments }
+                if (-not (Test-AssetRoute $manifest.assets.$Role 'Gitee')) { continue }
+                $candidates=@($candidates|Where-Object {-not ($_.source -eq 'Gitee' -and $_.manifest.version -eq $manifest.version)})
+                $candidates+=,[pscustomobject]@{manifest=$manifest;source='Gitee'}
+                Write-ReleaseEvent 'release_discovery' 'candidate' 'https://gitee.com/' $manifest.version
+                # Keep at most three signed domestic fallbacks, never scan an
+                # unbounded release history during startup.
+                if (@($candidates|Where-Object {$_.source -eq 'Gitee'}).Count -ge 3) { break }
+              } catch { Write-ReleaseEvent 'release_discovery' 'candidate_invalid' 'https://gitee.com/';Test-Cancel }
+            }
+        } catch { Write-ReleaseEvent 'release_discovery' 'unavailable' 'https://gitee.com/';Test-Cancel }
+    }
+    return @($candidates|Sort-Object @{Expression={[version]$_.manifest.version};Descending=$true},@{Expression={$_.source};Descending=$true})
+}
+function Get-UpdatePackage([string]$Source,[string]$KeyPath,[string]$Directory,[string]$CurrentVersion='0.0.0',[string]$OfflineDirectory='',[string]$BlockedVersion='',[string]$Role='portable',[int]$DownloadSeconds=180) {
+    $candidates=@(Find-ReleaseCandidates $Source $KeyPath $CurrentVersion $OfflineDirectory $Role|Where-Object {$_.manifest.version -ne $BlockedVersion})
+    if (-not $candidates.Count) { return $null }
+    $deadline=[datetime]::UtcNow.AddSeconds($DownloadSeconds)
+    for ($i=0;$i -lt $candidates.Count;$i++) {
+        Test-Cancel
+        $candidate=$candidates[$i];$remaining=$i -lt $candidates.Count-1
+        try {
+            Write-Host ('Downloading '+$candidate.manifest.version+' from '+$candidate.source+'. S: skip.')
+            $routeDeadline=$deadline
+            if ($remaining) { $routeDeadline=[datetime]::UtcNow.AddSeconds([Math]::Min(45,($deadline-[datetime]::UtcNow).TotalSeconds/2)) }
+            $archive=Get-AssetFile $candidate.manifest.assets.$Role $Directory $candidate.source $OfflineDirectory $routeDeadline -FallbackAvailable:$remaining
+            return [pscustomobject]@{manifest=$candidate.manifest;archive=$archive;source=$candidate.source}
+        } catch {
+            Test-Cancel
+            Write-ReleaseEvent 'update_candidate' 'download_failed' '' $candidate.manifest.version
+            Write-Host ('Candidate unavailable: '+$candidate.manifest.version+'; '+$_.Exception.Message)
+        }
+    }
+    throw 'No newer verified version could be downloaded; keeping installed version.'
 }
 function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline,[switch]$SwitchOnSlow) {
     Test-Cancel
@@ -352,25 +485,32 @@ function Restore-UserData([string]$Root,[string]$Backup) {
 function Test-DownloadLibrary([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
     $match=[regex]::Match([IO.File]::ReadAllText($Path),'(?m)^# MJS_DOWNLOAD_LIBRARY: (\d+)\r?$')
-    if (-not $match.Success -or [long]$match.Groups[1].Value -lt 2) { return $false }
+    if (-not $match.Success -or [long]$match.Groups[1].Value -lt 3) { return $false }
     $errors=$null;$tokens=$null
     [Management.Automation.Language.Parser]::ParseFile($Path,[ref]$tokens,[ref]$errors)|Out-Null
     return -not $errors
 }
 function Install-DownloadLibrary([string]$Payload,[string]$Root) {
     # Called only after signature/hash, extraction and startup self-check passed.
-    # Replace ONE protocol-compatible library atomically, never the public key,
-    # launch entrypoint, user configuration or installed version files.
+    # Never replace the public key, user configuration or installed version files.
+    # The compatible
+    # protocol-1 entrypoint is refreshed after the library, never before it.
     $source=Join-Path $Payload 'release\Release.ps1'
     if (-not (Test-DownloadLibrary $source)) { return }
     $destination=Join-Path $Root 'release\Release.ps1'
-    if ((Get-Sha256 $source) -eq (Get-Sha256 $destination)) { return }
-    $temp=$destination+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
-    $backup=$destination+'.previous'
-    try {
-        [IO.File]::Copy($source,$temp)
-        [IO.File]::Replace($temp,$destination,$backup)
-    } finally { Remove-Item -LiteralPath $temp -ErrorAction SilentlyContinue }
+    $pairs=@();$pairs+=,@($source,$destination)
+    $launcher=Join-Path $Payload 'launch.ps1'
+    if ((Test-Path -LiteralPath $launcher) -and [IO.File]::ReadAllText($launcher) -match '(?m)^# MJS_LAUNCH_PROTOCOL: 1\r?$') {
+        $pairs+=,@($launcher,(Join-Path $Root 'launch.ps1'))
+    }
+    # Library FIRST: old entrypoints work with the new library, the inverse is
+    # not guaranteed. Each atomic replacement retains an independent backup.
+    foreach ($pair in $pairs) {
+        if ((Get-Sha256 $pair[0]) -eq (Get-Sha256 $pair[1])) { continue }
+        $temp=$pair[1]+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+        try { [IO.File]::Copy($pair[0],$temp);[IO.File]::Replace($temp,$pair[1],($pair[1]+'.previous')) }
+        finally { Remove-Item -LiteralPath $temp -ErrorAction SilentlyContinue }
+    }
 }
 
 # A fixed outer launch.cmd/launch.ps1 can outlive many application versions.
