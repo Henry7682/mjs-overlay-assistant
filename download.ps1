@@ -49,7 +49,8 @@ if ($Mode -eq 'Portable') {
         }
         throw 'Portable self-check failed; current version retained.'
     }
-    # Existing fixed launchers stay intact; protocol upgrades use a new full install.
+    # Fixed entrypoints stay intact. The compatible download library is refreshed
+    # separately so future versions do not remain stuck on the original downloader.
     foreach ($name in @('launch.cmd','launch.ps1')) {
         $out=Join-Path $Destination $name
         if (-not (Test-Path -LiteralPath $out)) { Copy-Item -LiteralPath (Join-Path $versionDir $name) -Destination $out }
@@ -59,6 +60,7 @@ if ($Mode -eq 'Portable') {
         $out=Join-Path $Destination ('release\'+$name)
         if (-not (Test-Path -LiteralPath $out)) { Copy-Item -LiteralPath (Join-Path $versionDir ('release\'+$name)) -Destination $out }
     }
+    Install-DownloadLibrary $versionDir $Destination
     $previous=if($old -and $old.version -ne $manifest.version){$old.version}else{$null}
     Write-AtomicJson (Join-Path $Destination 'current.json') @{version=$manifest.version;previous=$previous}
     Write-Host ('Installed. Run: '+(Join-Path $Destination 'launch.cmd'))

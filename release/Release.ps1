@@ -1,4 +1,5 @@
 # Shared by download.ps1 and the portable launcher. Windows PowerShell 5.1.
+# MJS_DOWNLOAD_LIBRARY: 2
 Set-StrictMode -Version 2
 $ErrorActionPreference='Stop'
 $script:ReleaseOwner='Henry7682/mjs-overlay-assistant'
@@ -99,9 +100,11 @@ function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory
             Test-Cancel
             $left=8000-[int]$timer.ElapsedMilliseconds
             if ($left -le 0) { break }
+            # Reserve a metadata slot for the other origin, including its signature.
+            $slotEnd=[Math]::Min(8000,$timer.ElapsedMilliseconds+[int](8000/$origins.Count))
             try {
-                $bytes=Get-RemoteBytes $url ([Math]::Min(3500,$left))
-                $left=8000-[int]$timer.ElapsedMilliseconds;if ($left -le 0) { break }
+                $bytes=Get-RemoteBytes $url ([Math]::Min(2500,$left))
+                $left=[int]($slotEnd-$timer.ElapsedMilliseconds);if ($left -le 0) { throw 'Metadata source time budget exceeded.' }
                 $sig=[Text.Encoding]::UTF8.GetString((Get-RemoteBytes ($url -replace '\.json$','.sig') ([Math]::Min(2500,$left))))
                 Assert-Signature $bytes $sig $KeyPath
                 $m=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
@@ -110,12 +113,42 @@ function Read-Release([string]$Source,[string]$KeyPath,[string]$OfflineDirectory
             } catch { Write-ReleaseEvent 'metadata' 'unavailable' $url;Write-Host ('Source unavailable: '+$url+' ('+$_.Exception.Message+')') }
         }
         if (-not $found) { throw 'No verified release source available.' }
-        $manifest=$found|Sort-Object {[version]$_.version} -Descending|Select-Object -First 1
+        $latest=$found|Sort-Object {[version]$_.version} -Descending|Select-Object -First 1
+        $manifest=@($found|Where-Object {$_.version -eq $latest.version})[0]
+        # Same-version signed mirror metadata may arrive before GitHub is synced.
+        # Only union locations of byte-identical assets; never mix versions/content.
+        foreach ($other in $found) {
+            if ($other.version -ne $manifest.version -or $other.minimum_launcher -ne $manifest.minimum_launcher) { continue }
+            if (-not $manifest.PSObject.Properties['assets'] -or -not $other.PSObject.Properties['assets']) { continue }
+            foreach ($role in $manifest.assets.PSObject.Properties.Name) {
+                if ($other.assets.PSObject.Properties[$role]) { Merge-AssetLocations $manifest.assets.$role $other.assets.$role }
+            }
+        }
     }
     if ($manifest.schema_version -ne 1 -or $manifest.channel -ne 'stable' -or $manifest.version -notmatch '^\d+\.\d+\.\d+$') { throw 'Unsupported manifest.' }
     if ($manifest.minimum_launcher -gt 1) { throw 'Please download a new complete launcher.' }
     return $manifest
 }
+function Merge-AssetLocations($Asset,$Other) {
+    if ($Asset.name -ne $Other.name -or $Asset.bytes -ne $Other.bytes -or $Asset.sha256 -ne $Other.sha256) { return }
+    $Asset.urls=@(@($Asset.urls)+@($Other.urls)|Select-Object -Unique)
+    if ($Other.PSObject.Properties['parts'] -and $Other.parts.Count) {
+        if (-not $Asset.PSObject.Properties['parts'] -or -not $Asset.parts.Count) {
+            $Asset|Add-Member -NotePropertyName parts -NotePropertyValue $Other.parts -Force
+        } elseif ($Asset.parts.Count -eq $Other.parts.Count) {
+            for ($i=0;$i -lt $Asset.parts.Count;$i++) { Merge-AssetLocations $Asset.parts[$i] $Other.parts[$i] }
+        }
+    }
+}
+function Get-SourceUrls($Asset,[string]$Source) {
+    @($Asset.urls|Where-Object { $Source -eq 'Auto' -or ($Source -eq 'GitHub' -and $_ -match '^https://(github\.com|objects\.githubusercontent\.com)/') -or ($Source -eq 'Gitee' -and $_ -match '^https://gitee\.com/') }|Select-Object -Unique)
+}
+function Test-SlowTransfer([double]$Seconds,[long]$Received,[long]$Remaining) {
+    # Grace period and a minimum remaining size prevent switching a tiny/nearly
+    # finished file. Rate is based on this request, not previous resumed bytes.
+    return $Seconds -ge 8 -and $Remaining -gt 1MB -and ($Received/[Math]::Max(1,$Seconds)) -lt 256KB
+}
+function New-DownloadRequest([string]$Url) { return [Net.HttpWebRequest]::Create($Url) }
 function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]$OfflineDirectory='',[datetime]$Deadline=([datetime]::UtcNow.AddSeconds(180))) {
     if ($Asset.name -notmatch '^[A-Za-z0-9_.-]+$' -or $Asset.sha256 -notmatch '^[a-f0-9]{64}$' -or $Asset.bytes -le 0 -or $Asset.bytes -gt 2000000000) { throw 'Invalid asset manifest.' }
     [IO.Directory]::CreateDirectory($Directory)|Out-Null;$target=Join-Path $Directory $Asset.name
@@ -124,36 +157,78 @@ function Get-AssetFile($Asset,[string]$Directory,[string]$Source='Auto',[string]
         $local=Join-Path $OfflineDirectory $Asset.name
         if (Test-Path -LiteralPath $local) { Copy-Item -LiteralPath $local -Destination $target;Assert-Hash $target $Asset;return $target }
     }
-    $urls=@($Asset.urls|Where-Object { $Source -eq 'Auto' -or ($Source -eq 'GitHub' -and $_ -match '^https://(github.com|objects.githubusercontent.com)/') -or ($Source -eq 'Gitee' -and $_ -match '^https://gitee.com/') })
-    if (-not $OfflineDirectory) {
-        for ($attempt=0;$attempt -lt 2;$attempt++) {
-            foreach ($url in $urls) {
-                try { Write-ReleaseEvent 'download' 'attempt' $url;Receive-File $url $target $Asset $Deadline;Write-ReleaseEvent 'download' 'verified' $url;return $target } catch { Write-ReleaseEvent 'download' 'failed' $url;Write-Host $_.Exception.Message;Test-Cancel }
-                if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
-            }
-        }
-    }
+    $routes=@()
+    if (-not $OfflineDirectory) { foreach ($url in @(Get-SourceUrls $Asset $Source)) { $routes+=,[pscustomobject]@{url=$url;parts=$false} } }
     if ($Asset.PSObject.Properties['parts'] -and $Asset.parts.Count) {
-        $partials=@()
-        foreach ($part in $Asset.parts) { $partials+=Get-AssetFile $part $Directory $Source $OfflineDirectory $Deadline }
-        $output=[IO.File]::Create($target)
-        try { foreach ($p in $partials) { $input=[IO.File]::OpenRead($p);try { $input.CopyTo($output) } finally { $input.Dispose() } } } finally { $output.Dispose() }
-        Assert-Hash $target $Asset;return $target
+        $available=$true
+        foreach ($part in $Asset.parts) {
+            if (-not $OfflineDirectory -and -not @(Get-SourceUrls $part $Source).Count) { $available=$false }
+        }
+        if ($available) { $routes+=,[pscustomobject]@{url='';parts=$true} }
+    }
+    # Try every distinct route (including Gitee parts) BEFORE retrying GitHub.
+    for ($attempt=0;$attempt -lt 2;$attempt++) {
+        for ($routeIndex=0;$routeIndex -lt $routes.Count;$routeIndex++) {
+            Test-Cancel
+            if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
+            $route=$routes[$routeIndex];$alternative=$routeIndex -lt $routes.Count-1
+            $routeDeadline=$Deadline
+            if ($alternative) {
+                $seconds=[Math]::Min(45,($Deadline-[datetime]::UtcNow).TotalSeconds/2)
+                $routeDeadline=[datetime]::UtcNow.AddSeconds($seconds)
+            }
+            try {
+                if ($route.parts) {
+                    $partials=@()
+                    foreach ($part in $Asset.parts) { $partials+=Get-AssetFile $part $Directory $Source $OfflineDirectory $routeDeadline }
+                    $output=[IO.File]::Create($target)
+                    try { foreach ($p in $partials) { $input=[IO.File]::OpenRead($p);try { $input.CopyTo($output) } finally { $input.Dispose() } } } finally { $output.Dispose() }
+                } else {
+                    Write-ReleaseEvent 'download' 'attempt' $route.url
+                    Receive-File $route.url $target $Asset $routeDeadline -SwitchOnSlow:$alternative
+                }
+                Assert-Hash $target $Asset
+                Write-ReleaseEvent 'download' 'verified' $route.url
+                return $target
+            } catch {
+                # A failed part assembly/hash must not block the next full route.
+                Remove-Item -LiteralPath $target -ErrorAction SilentlyContinue
+                Write-ReleaseEvent 'download' 'failed' $route.url;Write-Host $_.Exception.Message;Test-Cancel
+                if ($alternative) { Write-ReleaseEvent 'download' 'switch_source' $route.url;Write-Host 'Trying alternate verified download source.' }
+            }
+            if ($OfflineDirectory) { break }
+        }
+        if ($OfflineDirectory) { break }
     }
     throw ('Unable to obtain verified asset: '+$Asset.name)
 }
-function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline) {
+function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline,[switch]$SwitchOnSlow) {
     Test-Cancel
     if ([datetime]::UtcNow -ge $Deadline) { throw 'Download time budget exceeded.' }
     if (-not $Url.StartsWith('https://')) { throw 'HTTPS required.' }
-    $partial=$Target+'.partial';$etagFile=$partial+'.json';$offset=0;$etag=$null
+    # Each signed URL has its own resume cache. Switching sources must not erase
+    # useful progress or append bytes from an unrelated ETag.
+    $sha=[Security.Cryptography.SHA256]::Create()
+    try { $sourceKey=([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Url)))).Replace('-','').Substring(0,16) } finally { $sha.Dispose() }
+    $partial=$Target+'.'+$sourceKey+'.partial';$etagFile=$partial+'.json';$offset=0;$etag=$null
+    $legacy=$Target+'.partial'
+    if (-not (Test-Path -LiteralPath $partial) -and (Test-Path -LiteralPath $legacy) -and (Test-Path -LiteralPath ($legacy+'.json'))) {
+        try {
+            $old=Get-Content -Raw -LiteralPath ($legacy+'.json')|ConvertFrom-Json
+            if ($old.url -eq $Url -and $old.hash -eq $Asset.sha256) {
+                Move-Item -LiteralPath $legacy -Destination $partial
+                Move-Item -LiteralPath ($legacy+'.json') -Destination $etagFile
+            }
+        } catch { Write-ReleaseEvent 'transfer' 'legacy_cache_unavailable' $Url }
+    }
     if ((Test-Path $partial) -and (Test-Path $etagFile)) {
         $info=Get-Content -Raw -LiteralPath $etagFile|ConvertFrom-Json
         if ($info.url -eq $Url -and $info.hash -eq $Asset.sha256 -and $info.etag) { $offset=(Get-Item $partial).Length;$etag=$info.etag }
     }
     if ($offset -ge $Asset.bytes) { $offset=0 }
+    $watch=[Diagnostics.Stopwatch]::StartNew();$received=0L
     $remaining=[Math]::Max(1,[int]($Deadline-[datetime]::UtcNow).TotalMilliseconds)
-    $request=[Net.HttpWebRequest]::Create($Url);$request.Timeout=[Math]::Min(5000,$remaining);$request.ReadWriteTimeout=[Math]::Min(15000,$remaining);$request.UserAgent='MjsOverlay/1.0.0'
+    $request=New-DownloadRequest $Url;$request.Timeout=[Math]::Min(5000,$remaining);$request.ReadWriteTimeout=[Math]::Min(15000,$remaining);$request.UserAgent='MjsOverlay/1.0.0'
     if ($offset -gt 0) { $request.AddRange($offset);$request.Headers['If-Range']=$etag }
     $response=$request.GetResponse()
     try {
@@ -171,7 +246,12 @@ function Receive-File([string]$Url,[string]$Target,$Asset,[datetime]$Deadline) {
                 if ($stream.CanTimeout) { $stream.ReadTimeout=[Math]::Min(15000,$remaining) }
                 $count=$stream.Read($buffer,0,$buffer.Length);if($count -le 0){break}
                 $output.Write($buffer,0,$count);$offset+=$count
+                $received+=$count
                 if ($offset -gt $Asset.bytes) { throw 'Download exceeds declared size.' }
+                if ($SwitchOnSlow -and (Test-SlowTransfer $watch.Elapsed.TotalSeconds $received ($Asset.bytes-$offset))) {
+                    Write-ReleaseEvent 'transfer' 'slow' $Url
+                    throw 'Download stays below 256 KiB/s; trying another verified source.'
+                }
                 Write-Progress -Activity $Asset.name -Status 'S: skip / cancel' -PercentComplete ([Math]::Min(100,100*$offset/$Asset.bytes))
             }
         } finally { $stream.Dispose();$output.Dispose();Write-Progress -Activity $Asset.name -Completed }
@@ -267,4 +347,43 @@ function Restore-UserData([string]$Root,[string]$Backup) {
         $old=Join-Path $backupPath $name
         if (Test-Path -LiteralPath $old) { Copy-Item -LiteralPath $old -Destination (Join-Path $Root 'data') -Recurse }
     }
+}
+
+function Test-DownloadLibrary([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    $match=[regex]::Match([IO.File]::ReadAllText($Path),'(?m)^# MJS_DOWNLOAD_LIBRARY: (\d+)\r?$')
+    if (-not $match.Success -or [long]$match.Groups[1].Value -lt 2) { return $false }
+    $errors=$null;$tokens=$null
+    [Management.Automation.Language.Parser]::ParseFile($Path,[ref]$tokens,[ref]$errors)|Out-Null
+    return -not $errors
+}
+function Install-DownloadLibrary([string]$Payload,[string]$Root) {
+    # Called only after signature/hash, extraction and startup self-check passed.
+    # Replace ONE protocol-compatible library atomically, never the public key,
+    # launch entrypoint, user configuration or installed version files.
+    $source=Join-Path $Payload 'release\Release.ps1'
+    if (-not (Test-DownloadLibrary $source)) { return }
+    $destination=Join-Path $Root 'release\Release.ps1'
+    if ((Get-Sha256 $source) -eq (Get-Sha256 $destination)) { return }
+    $temp=$destination+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
+    $backup=$destination+'.previous'
+    try {
+        [IO.File]::Copy($source,$temp)
+        [IO.File]::Replace($temp,$destination,$backup)
+    } finally { Remove-Item -LiteralPath $temp -ErrorAction SilentlyContinue }
+}
+
+# A fixed outer launch.cmd/launch.ps1 can outlive many application versions.
+# Follow only committed, protocol-compatible libraries in the installed payload.
+# Old payloads without this marker keep using this library. No network code is
+# executed; these are the same local files already trusted to launch the EXE.
+$libraryRoot=Split-Path $PSScriptRoot -Parent
+$libraryState=Join-Path $libraryRoot 'current.json'
+if (Test-Path -LiteralPath $libraryState) {
+    try {
+        $installed=Get-Content -Raw -LiteralPath $libraryState|ConvertFrom-Json
+        Assert-Version $installed.version
+        $library=Join-Path $libraryRoot ('versions\'+$installed.version+'\release\Release.ps1')
+        if (Test-DownloadLibrary $library) { . $library }
+    } catch { Write-Warning 'Installed download library unavailable; using outer library.' }
 }

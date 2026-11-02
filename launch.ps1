@@ -78,6 +78,11 @@ try {
         if ($success) {
             Write-ReleaseEvent 'startup' 'committed' '' $manifest.version
             Remove-Item -LiteralPath $pendingPath
+            # Update is already committed; a read-only outer directory must not
+            # roll back a healthy application. The next launch also delegates to
+            # the library in current.json's verified payload when possible.
+            try { Install-DownloadLibrary $target $homePath }
+            catch { Write-ReleaseEvent 'download_library' 'retained';Write-Warning $_.Exception.Message }
         } else {
             if ($process -and -not $process.HasExited) { $process.Kill();$process.WaitForExit(3000)|Out-Null }
             Restore-UserData $homePath $backup
