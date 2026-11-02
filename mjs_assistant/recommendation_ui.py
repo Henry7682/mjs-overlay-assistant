@@ -10,13 +10,15 @@ class RecommendationSettings(QDialog):
     def __init__(self,settings,parent=None,bound_hwnd=None):
         super().__init__(parent);self.original_settings=dict(settings);self.setWindowTitle('小程序配阵设置');self.resize(620,460)
         layout=QVBoxLayout(self)
-        text=QLabel('普通排位将完整原始游戏 PNG 临时保存并交给“名将小助手”，可能包含昵称，小程序可能上传并保留副本。巅峰楚汉只通过公开选将页输入已确认姓名。助手不操作微信登录或游戏选将。')
+        text=QLabel('普通排位默认将完整原始游戏 PNG 临时保存并交给“名将小助手”，可能包含昵称，小程序可能上传并保留副本。巅峰楚汉只通过公开选将页输入已确认姓名。助手不操作微信登录或游戏选将。')
         text.setWordWrap(True);layout.addWidget(text)
         self.enabled=QCheckBox('启用以上小程序配阵方式');self.enabled.setChecked(settings.get('enabled',True));layout.addWidget(self.enabled)
         self.guides=QCheckBox('开启攻略浮窗（关闭时停止查询；本地武将统计不受影响）')
         self.guides.setChecked(settings.get('guides_enabled',True));layout.addWidget(self.guides)
+        self.ranked_search=QCheckBox('普通排位楚汉使用逐名搜索（不上传图片；需本地确认8名候选，最多15秒）')
+        self.ranked_search.setChecked(settings.get('ranked_search',False));layout.addWidget(self.ranked_search)
         self.auto=QCheckBox('自动查询：选将一次；普通排位战斗另查敌方一次');self.auto.setChecked(settings.get('automatic',True));layout.addWidget(self.auto)
-        note=QLabel('数据统计直接查询本地官方榜单，无需小程序。攻略需打开“名将小助手 → 一键配阵”，选择“按强度／位置不限”。普通排位传原始 PNG，最多15秒；巅峰提交已确认姓名，最多40秒。未读完会保留部分攻略并注明；战斗自动收起。普通战斗只补查敌方一次，巅峰只用缓存。键鼠操作不直接取消；输入阶段离开小程序等待恢复，提交后可以只读结果。')
+        note=QLabel('数据统计直接查询本地官方榜单，无需小程序。攻略需打开“名将小助手 → 一键配阵”，选择“按强度／位置不限”。普通排位默认传原始 PNG，也可切换逐名搜索，最多15秒；巅峰提交已确认姓名，最多40秒。未读完会保留部分攻略并注明；战斗自动收起。普通战斗只补查敌方一次，巅峰只用缓存。键鼠操作不直接取消；输入阶段离开小程序等待恢复，提交后可以只读结果。')
         note.setWordWrap(True);layout.addWidget(note)
         form=QFormLayout();self.keys={}
         from .mini_windows import mini_windows
@@ -39,7 +41,7 @@ class RecommendationSettings(QDialog):
             parsed=[parse_hotkey(v) for v in values.values()]
             if len(set(parsed))!=3:raise ValueError('三个快捷键不能相同')
             self.result_settings=dict(self.original_settings,enabled=self.enabled.isChecked(),guides_enabled=self.guides.isChecked(),automatic=self.auto.isChecked(),
-                hotkeys=values,panel_anchor=[self.x.value()/100,self.y.value()/100],privacy_notice_version=1)
+                ranked_search=self.ranked_search.isChecked(),hotkeys=values,panel_anchor=[self.x.value()/100,self.y.value()/100],privacy_notice_version=1)
             self.selected_hwnd=self.connection.currentData()
             self.accept()
         except ValueError as error:QMessageBox.warning(self,'快捷键无效',str(error))

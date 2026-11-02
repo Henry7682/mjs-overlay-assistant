@@ -111,7 +111,7 @@ class WeChatMiniProgramProvider(QObject):
         import win32gui
         if win32gui.GetForegroundWindow()!=game_hwnd:raise RuntimeError('请返回游戏后按配阵热键')
         began=time.monotonic();request_id=uuid.uuid4().hex
-        picker=snapshot.context.mode_id=='peak_chuhan_2v2' or snapshot.purpose=='enemy_battle'
+        picker=not snapshot.image_only
         budget=40 if snapshot.context.mode_id=='peak_chuhan_2v2' else 15
         names=sorted(set(snapshot.own_pool+snapshot.ally_pool+((snapshot.ally_locked,) if snapshot.ally_locked else ())))
         if not picker and self.images is None:self.images=ManagedImages(self.folder)

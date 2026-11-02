@@ -105,10 +105,11 @@ class GuideController:
         if scene=='selection' and self.previous_scene=='battle':self.reset_round('新一局选将')
         names=tuple(dict.fromkeys(d.name for d in data.get('items',()) if d.confirmed and d.name))
         if not hasattr(self,'candidate_stability'):self.candidate_stability=CandidateStability(hold_seconds=0)
-        eligible=mode==PEAK_CHUHAN and scene=='selection' and phase in ('ban','selection','transition')
+        ranked_search=mode==RANKED_CHUHAN and self.config.get('recommendation',{}).get('ranked_search',False)
+        eligible=(mode==PEAK_CHUHAN or ranked_search) and scene=='selection' and phase in ('ban','selection','transition')
         # Names here already passed the recognition worker's two-frame check.
         # Do not add another one-second hold on top of that evidence.
-        if eligible and getattr(self,'selection_started_at',None) is None:
+        if eligible and mode==PEAK_CHUHAN and getattr(self,'selection_started_at',None) is None:
             self.selection_started_at=data['stamp']
             logging.info('peak selection first observed: round=%s stamp=%.3f',self.game_id,data['stamp'])
         self.peak_auto_ready=self.candidate_stability.update(names if eligible else (),time.monotonic(),
@@ -131,8 +132,8 @@ class GuideController:
             self.maybe_enemy_query();return
         self.previous_scene='selection'
         now=time.monotonic()
-        image_only=mode==RANKED_CHUHAN
-        if image_only:
+        image_only=mode==RANKED_CHUHAN and not ranked_search
+        if mode==RANKED_CHUHAN:
             self.ranked_scene_frames=getattr(self,'ranked_scene_frames',0)+1 if phase=='selection' else 0
             revision,changed=self.selection_guard.update(data['frame'],data['items'],mode,scene,phase,image_only=True)
             seats=data.get('seats',(None,None))
@@ -154,7 +155,7 @@ class GuideController:
         self.snapshot=SelectionSnapshot(ModeContext(mode,self.game_id,scene,self.mode_evidence),names,names,
             phase=phase,own_seat=seats[0],ally_seat=seats[1],captured_at=data['stamp'],
             remaining_seconds=data.get('remaining'),reference_only=True,image_only=image_only,
-            shared_pool_assumed=image_only,visual_revision=revision)
+            shared_pool_assumed=mode==RANKED_CHUHAN,visual_revision=revision)
         if self.provider.busy and image_only and not self.ranked_request_changed:
             self.provider.update_evidence(self.snapshot)
         if image_only and self.overlay.recommendation and not self.ranked_request_changed:
@@ -221,7 +222,7 @@ class GuideController:
             self.auto_launch_id=self.request_id if automatic else None
             query=self.provider.active['query'];self.guide_cache.begin(query)
             self.guide_cache.local_incomplete=(not self.snapshot.image_only and
-                len(query.submitted)<(14 if self.snapshot.phase in ('ban','transition') else draft_count(self.latest.get('layout')) or 14))
+                len(query.submitted)<(8 if self.snapshot.context.mode_id==RANKED_CHUHAN else 14 if self.snapshot.phase in ('ban','transition') else draft_count(self.latest.get('layout')) or 14))
             self.overlay.recommendation=None
         except Exception as error:
             if automatic and not started:self.retry_auto_launch(str(error))
