@@ -6,6 +6,35 @@ UIA. Never interpret that state as an ordinary page-loading delay.
 import time
 
 
+def filename_edits(dialog):
+    """Native file-name Edit may be several levels below its ComboBoxEx host.
+
+    Never pick the shell Search edit merely because it is visible.
+    """
+    found=[]
+    for edit in dialog.descendants(class_name='Edit'):
+        if not edit.is_visible() or not edit.is_enabled():continue
+        current=edit;seen=set()
+        for _ in range(12):
+            if current.handle==dialog.handle or current.handle in seen:break
+            seen.add(current.handle)
+            if current.control_id() in (1148,1152):
+                found.append(edit);break
+            current=current.parent()
+            if current is None:break
+    return found
+
+
+def validate_image_path(path):
+    from pathlib import Path
+    if path is None:raise RuntimeError('上传图片路径为空，请重新配阵')
+    target=Path(path).resolve()
+    if not target.is_file() or target.stat().st_size==0:
+        raise RuntimeError('临时游戏截图不存在或为空，请检查数据目录权限后重试')
+    if target.suffix.lower()!='.png':raise RuntimeError('上传文件不是游戏PNG截图')
+    return str(target)
+
+
 def dialog_state(mini,gui=None):
     """Return (ready pickers, owned native dialogs), including loading modals."""
     if gui is None:
@@ -17,7 +46,12 @@ def dialog_state(mini,gui=None):
                     and gui.GetAncestor(hwnd,3)==mini):
                 owned.append(hwnd)
                 # Standard Open dialog: Open, Cancel, File name, File type.
-                if all(gui.GetDlgItem(hwnd,i) for i in (1,2,1148,1136)):found.append(hwnd)
+                ids={i for i in (1,2,1148,1152) if gui.GetDlgItem(hwnd,i)}
+                if hasattr(gui,'EnumChildWindows'):
+                    def collect(child,_):
+                        ids.add(gui.GetDlgCtrlID(child));return True
+                    gui.EnumChildWindows(hwnd,collect,None)
+                if {1,2}<=ids and ids.intersection((1148,1152)):found.append(hwnd)
         except Exception:pass  # A window can disappear during enumeration.
         return True
     gui.EnumWindows(visit,None)

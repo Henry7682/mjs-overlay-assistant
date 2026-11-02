@@ -560,6 +560,8 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
                 result['input_incomplete']=True;result['complete']=False
             result.update(seconds=time.monotonic()-start,status='success',source='名将小助手',route='public_picker')
             return
+        from .mini_dialogs import filename_edits,validate_image_path
+        path=validate_image_path(path)
         stage('清除上次搜索');set_search('')
         from .mini_dialogs import open_image_dialog
         dialog_hwnd=open_image_dialog(mini,lambda:click('📷 相册'),guard,deadline,stage,win32gui)
@@ -569,11 +571,10 @@ def _worker(connection, path, expected, picker_only=False,physical_stop=None,bou
         edits=[]
         while time.monotonic()<deadline:
             guard()
-            edits=[e for e in dialog.descendants(class_name='Edit') if e.is_visible()
-                   and (e.control_id()==1148 or e.parent().control_id()==1148)]
+            edits=filename_edits(dialog)
             if len(edits)==1: break
             time.sleep(.05)
-        if len(edits)!=1: raise RuntimeError('无法唯一定位文件名输入框')
+        if len(edits)!=1: raise RuntimeError('文件选择框已打开，但无法唯一定位文件名输入框；可在配阵设置启用普通楚汉逐名搜索')
         guard();edits[0].set_edit_text(str(path))
         # Submit to the verified Open button, not whichever edit currently has
         # keyboard focus (the shell may focus its Search box while loading).
