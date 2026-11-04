@@ -46,7 +46,19 @@ def run(output, sample=None):
         settings=RecommendationSettings({})
         assert settings.enabled.isChecked() and settings.guides.isChecked() and settings.auto.isChecked()
         assert settings.keys['request'].text()=='Ctrl+Alt+P'
+        assert settings.source.currentData()=='wechat'
+        settings.source.setCurrentIndex(settings.source.findData('jiangce'))
+        settings.save()
+        assert settings.result_settings['source']=='jiangce' and not settings.ranked_search.isEnabled()
         settings.close()
+    from mjs_assistant.jiangce import GuideBook, SEED
+    from mjs_assistant.jiangce_update import verify
+    seed_meta,_=verify((SEED.parent/'channel.json').read_bytes(),(SEED.parent/'channel.sig').read_bytes())
+    import hashlib
+    assert hashlib.sha256(SEED.read_bytes()).hexdigest()==seed_meta['sha256']
+    book=GuideBook(SEED)
+    assert len(book.cards)==seed_meta['count']
+
     from mjs_assistant.app import MainWindow
     from mjs_assistant.storage import user_dir,write_json,read_json
     # Full settings construction, without game/mini windows, hotkeys, updates,
@@ -64,7 +76,7 @@ def run(output, sample=None):
     from mjs_assistant.build_identity import get_build_identity
     result={'build':get_build_identity().to_dict(),'offline':True,'qt_version':qVersion(),'models':{x.name:x.stat().st_size for x in (ASSETS/'models').glob('*.onnx')},
             'board_rows':{key:len(b['heroes']) for key,b in boards.items()},'words':[x.text for x in words],
-            'uia_initialized':True,'entry_detection_bundled':True,
+            'jiangce_guides':len(book.cards),'jiangce_signed_seed':True,'uia_initialized':True,'entry_detection_bundled':True,
             'yingzheng_alias':True,'gongsunzan_alias':True,'guides_default_on':True,
             'query_default_on':True,'automatic_default_on':True,'request_hotkey':'Ctrl+Alt+P',
             'query_optimizations_bundled':True,'settings_constructed':True,'statistics_toggle_bundled':True}

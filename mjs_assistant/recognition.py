@@ -126,7 +126,7 @@ class Recognizer:
 
     def analyze(self, frame, scene_override='auto', profiles=None, mode_id=MINGDAO):
         self.layout='default';self.phase='unknown';self.seats=(None,None);self.self_locked=False;self.remaining=None
-        self.entry_mode=None;self.in_entry=False;self.empty_panels=False;self.battle_badges={};self.locked_names=();self.round_end=False
+        self.entry_mode=None;self.in_entry=False;self.empty_panels=False;self.battle_badges={};self.locked_names=();self.locked_by_side=None;self.round_end=False
         self.name_regions=()
         h, w = frame.shape[:2]
         # Scene title is separate from chat, tooltips and the card OCR canvas.
@@ -417,7 +417,7 @@ class Recognizer:
         return scene,detected,header
 
     def read_locked_names(self,frame):
-        h,w=frame.shape[:2];found=[];signature=[]
+        h,w=frame.shape[:2];found=[];signature=[];self.locked_by_side={}
         for side,x in (('own',.850),('ally',.073)):
             lock=self.read_region('lock_panel_'+side,frame[int(h*.85):int(h*.92),int(w*x):int(w*(x+.10))])
             if not any('已确认' in t.text and t.confidence>=.9 for t in lock):continue
@@ -427,7 +427,8 @@ class Recognizer:
             name=self.names.resolve(raw)
             if name and words and min(t.confidence for t in words)>=NAME_MIN_CONFIDENCE:
                 signature.append((side,name))
-                if (side,name) in getattr(self,'_locked_previous',()):found.append(name)
+                if (side,name) in getattr(self,'_locked_previous',()):
+                    found.append(name);self.locked_by_side[side]=name
         self._locked_previous=tuple(signature)
         return tuple(found)
 

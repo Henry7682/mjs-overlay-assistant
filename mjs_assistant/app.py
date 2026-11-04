@@ -19,7 +19,8 @@ from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBo
 from .storage import BoardStore,user_dir,read_json,write_json,ASSETS,migrate_settings
 from .modes import MODES,MINGDAO,board_mode
 from .stats_source import statistics_mode,source_label
-from .guide_controller import GuideController
+from .guide_controller import GuideController, local_source
+from .jiangce_update import DailyCheck
 from .statistics_toggle import StatisticsToggle
 from .ocr import Names,Ocr
 from .capture import Capture,windows,client_rect,foreground
@@ -62,7 +63,7 @@ class RecognitionThread(QThread):
     def __init__(self):
         super().__init__();self.lock=threading.Lock();self.hwnd=0;self.enabled=True;self.scene='auto';self.profiles={};self.extra=[];self.generation=0
         self.stabilizer=Stabilizer();self.correction=None;self.mode_id=None;self.allow_background=False
-        self.progress=None;self.models_ready=False
+        self.progress=None;self.models_ready=False;self.need_local_lock=False
 
     def configure(self,hwnd,enabled,scene,profiles,extra,mode_id=None):
         with self.lock:
@@ -83,7 +84,7 @@ class RecognitionThread(QThread):
                 with self.lock:
                     hwnd,enabled,scene,profiles,extra,gen=self.hwnd,self.enabled,self.scene,self.profiles,self.extra,self.generation
                     correction=self.correction;self.correction=None
-                    mode=self.mode_id;allow_background=self.allow_background
+                    mode=self.mode_id;allow_background=self.allow_background;need_lock=self.need_local_lock
                 if gen!=lastgen:
                     self.stabilizer.clear();recognizer.names=Names(extra);lastgen=gen
                 if correction:self.stabilizer.overrides[(correction[0],correction[1])]=correction[2]
@@ -108,6 +109,14 @@ class RecognitionThread(QThread):
                         self.msleep(600);continue
                     self.progress=dict(active=True,generation=gen,stamp=stamp,began=time.monotonic())
                     found,items,words=recognizer.analyze(frame,scene,profiles,mode)
+                    ally_locked=None
+                    if need_lock and found=='selection' and recognizer.phase=='selection' and mode in RECOMMENDATION_MODES:
+                        try:
+                            if recognizer.locked_by_side is None:recognizer.read_locked_names(frame)
+                            ally_locked=recognizer.locked_by_side.get('ally')
+                        except Exception:
+                            logging.debug('optional ally lock unavailable',exc_info=True)
+                    elif need_lock:recognizer._locked_previous=()
                     items=self.stabilizer.update(found,items,max_gap=4.5 if mode=='peak_chuhan_2v2' and found=='selection' else 3)
                     # Fourteen-card cold/repair passes measured up to 3.5s in
                     # the authorized sequence; do not discard every slow ban frame.
@@ -119,7 +128,7 @@ class RecognitionThread(QThread):
                     self.result.emit({'frame':frame,'rect':rect,'scene':found,'items':items,'generation':gen,'stamp':stamp,'seconds':elapsed,'processed_at':time.monotonic(),
                                       'mode_id':mode,'layout':recognizer.layout,'phase':recognizer.phase,
                                       'seats':recognizer.seats,'self_locked':recognizer.self_locked,'remaining':recognizer.remaining,
-                                      'empty_panels':recognizer.empty_panels,'battle_badges':recognizer.battle_badges,'locked_names':recognizer.locked_names,
+                                      'empty_panels':recognizer.empty_panels,'battle_badges':recognizer.battle_badges,'locked_names':recognizer.locked_names,'ally_locked':ally_locked,
                                       'entry_mode':recognizer.entry_mode,'in_entry':recognizer.in_entry,'round_end':recognizer.round_end})
                     label=('模式入口识别' if found=='entry' else '傀儡三选一识别' if recognizer.phase=='puppet' else
                            '等待选将／战斗界面' if found=='unknown' else ('选将识别' if found=='selection' else '战场识别'))
@@ -192,6 +201,9 @@ class MainWindow(GuideController,QMainWindow):
         self.mode_evidence='unknown';self.auto_mode=None;self.entry_candidate=None;self.entry_hits=0
         self.observed_seats=(None,None)
         self.init_guides()
+        self.jiangce_check=DailyCheck(self.folder)
+        self.jiangce_timer=QTimer(self);self.jiangce_timer.timeout.connect(self.jiangce_check.check)
+        self.jiangce_timer.start(60000);QTimer.singleShot(2000,self.jiangce_check.check)
         self.statistics_button=StatisticsToggle(self.config.get("statistics_button_anchor",(.93,.38)))
         self.statistics_button.toggled.connect(self.toggle_statistics)
         self.statistics_button.position_saved.connect(self.save_statistics_position)
@@ -216,15 +228,15 @@ class MainWindow(GuideController,QMainWindow):
         layout.addLayout(row)
         stats_row=QHBoxLayout();self.statistics_btn=QPushButton();self.statistics_btn.clicked.connect(self.toggle_statistics)
         stats_row.addWidget(self.statistics_btn);stats_row.addWidget(QLabel('仅控制武将数据；识别与攻略继续运行'),1);layout.addLayout(stats_row)
-        self.guide_check=QCheckBox('开启攻略浮窗（需配合名将小助手；关闭不影响本地武将统计）')
+        self.guide_check=QCheckBox('开启攻略浮窗（来源可选；关闭不影响武将统计）')
         self.guide_check.setChecked(self.guides_enabled());self.guide_check.toggled.connect(self.set_guides_enabled)
         layout.addWidget(self.guide_check)
         rec_row=QHBoxLayout()
-        for label,callback in [('小程序配阵设置',self.recommendation_settings),('确认禁将后名单',self.confirm_peak_roster),('重新配阵',self.request_recommendation),('取消配阵',self.cancel_recommendation)]:
+        for label,callback in [('配阵设置',self.recommendation_settings),('确认禁将后名单',self.confirm_peak_roster),('重新配阵',self.request_recommendation),('取消配阵',self.cancel_recommendation)]:
             button=QPushButton(label);button.clicked.connect(callback);rec_row.addWidget(button)
         layout.addLayout(rec_row)
         self.rec_status=QLabel('小程序配阵未启用');self.rec_status.setWordWrap(True);layout.addWidget(self.rec_status)
-        self.provider.status.connect(lambda text:self.safe_guide_call(self.recommendation_status,text))
+        self.provider.status.connect(lambda text:None if local_source(self) else self.safe_guide_call(self.recommendation_status,text))
         self.provider.finished.connect(lambda result:self.safe_guide_call(self.recommendation_finished,result))
         self.provider.launch_failed.connect(lambda event:self.safe_guide_call(self.recommendation_launch_failed,event))
         self.status=QLabel('准备连接…');self.status.setObjectName('status');layout.addWidget(self.status)
@@ -293,6 +305,7 @@ class MainWindow(GuideController,QMainWindow):
         self.configure_worker()
 
     def configure_worker(self):
+        with self.worker.lock:self.worker.need_local_lock=local_source(self) and self.guides_enabled()
         self.worker.configure(self.window_box.currentData() or 0,self.enabled,self.scene_box.currentData(),self.profiles(),
             [x['name'] for x in self.store.board['heroes']],self.current_mode())
 
@@ -376,6 +389,7 @@ class MainWindow(GuideController,QMainWindow):
         period=(f'{b["period_start"]} — {b["period_end"]}' if b.get('heroes') else '暂无已复核榜单') if mode else '暂无对应统计'
         lines=[f'{choice} · {mode_text} · {period}']
         if not self.guides_enabled():guide='已关闭'
+        elif local_source(self):guide='已开启，使用将策本地库'
         elif not self.config.get('recommendation',{}).get('enabled',True):guide='已开启，小程序查询未启用'
         elif self.provider.busy:guide='正在查询'
         elif mode not in RECOMMENDATION_MODES:guide='当前模式不支持配阵'
@@ -418,6 +432,7 @@ class MainWindow(GuideController,QMainWindow):
 
     def present_guides(self,rect,data):
         if self.guides_enabled() and self.current_mode() in RECOMMENDATION_MODES and data['scene'] in ('selection','battle'):
+            self.guide_panel.title.setText('配阵参考 · '+('将策本地库' if local_source(self) else '名将小助手')+'  ↔ 拖动')
             self.guide_panel.set_content(data['scene'],self.guide_html(data['scene']),data['scene']=='battle' and self.current_mode()=='ranked_chuhan_2v2')
             self.guide_panel.present(rect)
         else:self.guide_panel.hide()
@@ -453,6 +468,8 @@ class MainWindow(GuideController,QMainWindow):
 
     def set_guides_enabled(self,enabled):
         self.config.setdefault('recommendation',{})['guides_enabled']=bool(enabled)
+        if hasattr(self,'worker'):
+            with self.worker.lock:self.worker.need_local_lock=bool(enabled) and local_source(self)
         write_json(self.folder/'settings.json',self.config)
         if not enabled:
             self.safe_guide_call(self.invalidate_recommendation,'攻略浮窗已关闭；本地统计继续，已读攻略保留')
@@ -520,9 +537,26 @@ class MainWindow(GuideController,QMainWindow):
     def recommendation_settings(self):
         dialog=RecommendationSettings(self.config.get('recommendation',{}),self,bound_hwnd=self.provider.bound_hwnd)
         if dialog.exec()==QDialog.DialogCode.Accepted:
+            changed=self.config.get('recommendation',{}).get('source','wechat')!=dialog.result_settings.get('source','wechat')
             self.config['recommendation']=dialog.result_settings;write_json(self.folder/'settings.json',self.config)
+            if changed:
+                # Keep the current round's ban decision and roster, revoke the old request.
+                self.request_id=self.auto_launch_id=None
+                if self.provider.busy:self.provider.cancel('已切换攻略来源')
+                from .guide_state import RoundGuideCache
+                self.guide_cache=RoundGuideCache(self.current_mode(),self.game_id)
+                if self.peak_draft.frozen:self.guide_cache.freeze(self.peak_draft.excluded)
+                self.enemy_cache=RoundGuideCache(self.current_mode(),self.game_id)
+                self.auto_attempted=self.enemy_attempted=False
+                self.auto_launch_count=0;self.auto_retry_at=0;self.local_key=None
+                self.overlay.recommendation=None;self.overlay.recommendation_status=''
+                self.ranked_request_changed=False;self.confirmed_snapshot=None
+            with self.worker.lock:self.worker.need_local_lock=local_source(self) and self.guides_enabled()
             self.provider.bound_hwnd=dialog.selected_hwnd
-            self.safe_guide_call(self.invalidate_recommendation,'配阵设置已更新');self.install_hotkeys();self.sync_controls();self.tick()
+            self.safe_guide_call(self.invalidate_recommendation,'配阵设置已更新');self.install_hotkeys();self.sync_controls()
+            if changed and self.latest and self.latest.get('scene') in ('selection','battle'):
+                self.safe_guide_call(self.update_selection,self.latest)
+            self.tick()
 
     def install_hotkeys(self):
         if self.hotkeys:self.hotkeys.close()
@@ -531,6 +565,8 @@ class MainWindow(GuideController,QMainWindow):
         self.guide_panel.anchor=tuple(settings.get('panel_anchor',settings.get('anchor',[.015,.4])))
         self.hotkeys=Hotkeys(QApplication.instance(),[(keys.get('request','Ctrl+Alt+P'),self.request_recommendation),
             (keys.get('details','Ctrl+Alt+D'),self.toggle_details),(keys.get('cancel','Ctrl+Alt+X'),self.cancel_recommendation)])
+        if local_source(self) and self.guides_enabled():
+            self.rec_status.setText('将策本地配阵 · '+self.jiangce_check.last.get('status','等待检查更新'));return
         self.rec_status.setText('攻略浮窗已关闭；本地统计继续' if not self.guides_enabled() else '；'.join(self.hotkeys.errors) if self.hotkeys.errors else
             (('配阵已启用；排位确认选将即传图，巅峰确认姓名后查询' if settings.get('automatic',True) else
               '配阵已启用；按 '+keys.get('request','Ctrl+Alt+P')+' 查询') if settings.get('enabled',True) else '小程序配阵未启用'))
