@@ -11,16 +11,19 @@ class RecommendationSettings(QDialog):
         super().__init__(parent);self.original_settings=dict(settings);self.setWindowTitle('配阵设置');self.resize(620,460)
         layout=QVBoxLayout(self)
         self.source=QComboBox()
-        self.source.addItem('名将小助手（微信小程序）','wechat')
-        self.source.addItem('将策本地库（离线查询）','jiangce')
-        self.source.setCurrentIndex(max(0,self.source.findData(settings.get('source','wechat'))))
+        from .guide_source import LOCAL_LABEL, WECHAT_LABEL, selected_source
+        self.source.addItem(LOCAL_LABEL+' · 离线查询','jiangce')
+        self.source.addItem(WECHAT_LABEL,'wechat')
+        self.source.setCurrentIndex(self.source.findData(selected_source(settings)))
         layout.addWidget(self.source)
         from .jiangce import preferred
         try:book_date=preferred(parent.folder).date if parent is not None else '未知'
         except Exception:book_date='不可用'
         state=getattr(getattr(parent,'jiangce_check',None),'last',{})
-        self.book_label=QLabel('将策组合库 · '+book_date+' · '+state.get('status','等待检查更新'))
+        self.book_label=QLabel('《名将小助手》小程序组合库 · '+book_date+' · '+state.get('status','等待检查更新'))
         layout.addWidget(self.book_label)
+        local_note=QLabel('内置数据库可离线查询，无需打开微信。来源为《名将小助手》小程序；按已确认武将及原始站位显示组合参考，数据库更新后从下一局生效。')
+        local_note.setWordWrap(True);layout.addWidget(local_note)
         text=QLabel('普通排位默认将完整原始游戏 PNG 临时保存并交给“名将小助手”，可能包含昵称，小程序可能上传并保留副本。巅峰楚汉只通过公开选将页输入已确认姓名。助手不操作微信登录或游戏选将。')
         text.setWordWrap(True);layout.addWidget(text)
         self.enabled=QCheckBox('启用以上小程序配阵方式');self.enabled.setChecked(settings.get('enabled',True));layout.addWidget(self.enabled)
@@ -41,6 +44,8 @@ class RecommendationSettings(QDialog):
         def refresh_source():
             mini=self.source.currentData()=='wechat'
             for control in (text,note,self.connection,self.enabled,self.ranked_search):control.setEnabled(mini)
+            for control in (text,note):control.setVisible(mini)
+            local_note.setVisible(not mini)
             self.book_label.setVisible(not mini)
             self.auto.setText('自动查询已确认的候选及战斗阵容' if not mini else '自动查询：选将一次；普通排位战斗另查敌方一次')
         self.source.currentIndexChanged.connect(refresh_source);refresh_source()

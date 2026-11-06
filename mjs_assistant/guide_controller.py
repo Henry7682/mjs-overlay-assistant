@@ -14,10 +14,11 @@ from .capture import foreground
 from .provider import input_idle_seconds
 from .storage import write_json
 from .peak_layout import draft_count
+from .guide_source import selected_source
 
 
 def local_source(controller):
-    return getattr(controller,'config',{}).get('recommendation',{}).get('source')=='jiangce'
+    return selected_source(getattr(controller,'config',{}).get('recommendation',{}))=='jiangce'
 
 
 class GuideController:
@@ -32,10 +33,22 @@ class GuideController:
         if scene=='selection' and (not snap or snap.phase not in ('ban','transition','selection')):
             return
         confirmed=self.confirmed_snapshot
-        if scene=='selection' and confirmed and confirmed.context.game_id==self.game_id and confirmed.visual_revision==snap.visual_revision:
+        if confirmed and (confirmed.context.game_id!=self.game_id or not snap or confirmed.visual_revision!=snap.visual_revision):
+            confirmed=None
+        if scene=='selection' and confirmed:
             snap=confirmed
+        own=set(snap.own_pool) if snap else set()
+        ally=set(snap.ally_pool) if snap else set()
+        locked=snap.ally_locked if snap else None
+        if scene=='selection' and self.current_mode()==PEAK_CHUHAN and not confirmed:
+            # Query the round pool, not a flickering frame. Freeze only the ban
+            # exclusion view; later locks/OCR loss must not delete cached guides.
+            pool=self.peak_draft.ban_seen | self.peak_draft.selection_seen | self.peak_draft.locked_seen
+            own=ally=pool if self.peak_draft.frozen else pool | own | ally
+            locked=None
+        if locked:ally.add(locked)
         key=(self.game_id,scene,repr(roster) if scene=='battle' else
-             (snap.phase,tuple(sorted(snap.own_pool)),tuple(sorted(snap.ally_pool)),snap.ally_locked,snap.own_seat,snap.ally_seat),
+             (snap.phase,tuple(sorted(own)),tuple(sorted(ally)),locked,snap.own_seat,snap.ally_seat),
              self.guide_cache.excluded)
         if key==getattr(self,'local_key',None) and not force:return
         self.local_key=key
@@ -43,30 +56,27 @@ class GuideController:
             try:self.local_book=preferred(self.folder)
             except Exception:
                 logging.exception('local guide unavailable')
-                self.recommendation_status('将策库无法读取，请检查组合库或在设置中切换来源')
+                self.recommendation_status('《名将小助手》小程序内置库无法读取，请检查组合库或在设置中切换来源')
                 return
             self.book_round=self.game_id
         book=self.local_book
         if scene=='selection':
-            own=set(snap.own_pool)
-            ally=set(snap.ally_pool)
-            if self.current_mode()==PEAK_CHUHAN and not confirmed:
-                own.update(self.peak_draft.ban_seen)
-                ally.update(self.peak_draft.ban_seen)
-            if snap.ally_locked:ally.add(snap.ally_locked)
-            cards=book.selection(own,ally,snap.ally_locked)
+            cards=book.selection(own,ally,locked)
             self.guide_cache.raw_cards=cards
             self.guide_cache.received=True
             n=len(own|ally)
             progress=f'{n}/8' if self.current_mode()==RANKED_CHUHAN else str(n)
-            status=f'将策库 {book.date} · 已识别 {progress} 名 · {len(self.guide_cache.visible_cards())} 篇攻略'
+            status=f'《名将小助手》小程序内置库 {book.date} · 已识别 {progress} 名 · {len(self.guide_cache.visible_cards())} 篇攻略'
+            if self.current_mode()==PEAK_CHUHAN:
+                ban_status=f'已排除 {len(self.guide_cache.excluded)} 名禁将' if self.guide_cache.frozen else '禁将筛选待确认'
+                status=f'《名将小助手》小程序内置库 {book.date} · 本局缓存 {n} 名 · {ban_status} · {len(self.guide_cache.visible_cards())} 篇攻略'
             if n<2:status+=' · 等待至少两名候选'
         else:
             if self.guide_cache.frozen:self.enemy_cache.freeze(self.guide_cache.excluded)
             for cache,names,partial in ((self.guide_cache,roster.friendly,True),(self.enemy_cache,roster.enemy,False)):
                 cache.raw_cards=book.battle(names,partial)
                 cache.received=True
-            status=f'将策库 {book.date} · 按已确认阵营查询'
+            status=f'《名将小助手》小程序内置库 {book.date} · 按已确认阵营查询'
         self.recommendation_status(status)
 
     def current_mode(self):
@@ -382,7 +392,7 @@ class GuideController:
         cache=self.guide_cache
         if scene=='battle':
             if local_source(self) and getattr(self,'book_round',None)!=self.game_id:
-                return '<h3>将策本地库</h3><p>'+escape(self.overlay.recommendation_status or '等待本地查询')+'</p>'
+                return '<h3>《名将小助手》小程序内置库</h3><p>'+escape(self.overlay.recommendation_status or '等待本地查询')+'</p>'
             roster=self.battle_tracker.roster
             if not roster.camp:return '<h3>战斗组合攻略</h3><p>等待己方阵营确认，不按位置猜测。</p>'
             sections=[]
@@ -392,7 +402,7 @@ class GuideController:
                 partial=label.startswith('己方') and len(names)==1
                 cards=current.hero_cards(names[0]) if partial else current.pair_cards(names,seats)
                 color='#9bd9bd' if label.startswith('己方') else '#f0b1a3'
-                status='将策库未找到适用组合' if local_source(self) else current.empty_message()
+                status='《名将小助手》小程序内置库未找到适用组合' if local_source(self) else current.empty_message()
                 if current is self.enemy_cache and not current.received:status=self.enemy_status
                 seat_note=('当前座次：'+'、'.join(f'{n} {s}' for n,s in zip(names,seats))) if len(names)==2 and all(seats) else '当前座次未确认；以下保留来源原始方向'
                 if partial:seat_note='己方另一名武将待识别；以下为包含已识别武将的缓存参考，尚未确认实际组合'
@@ -404,13 +414,13 @@ class GuideController:
             if local_source(self):sections.insert(0,'<p>'+escape(self.overlay.recommendation_status)+'</p>')
             return ''.join(sections)
         cards=cache.visible_cards()
-        source='将策' if local_source(self) else '名将小助手'
+        source='《名将小助手》小程序' if local_source(self) else '名将小助手'
         parts=[f'<h3>组合参考 · 来源：{source}</h3>']
         if cache.mode_id==PEAK_CHUHAN:parts.append('<p>'+escape(self.peak_draft.message)+'</p>')
         if cache.local_incomplete:parts.append('<p>本地提交名单不完整，缓存不包含未提交武将的搭配；可用热键重查。</p>')
         if self.overlay.recommendation_status:parts.append('<p>'+escape(self.overlay.recommendation_status)+'</p>')
         seat_pair=(self.snapshot.own_seat,self.snapshot.ally_seat) if local_source(self) and self.snapshot else ()
         known_ally={self.snapshot.ally_locked:self.snapshot.ally_seat} if seat_pair and self.snapshot.ally_locked else {}
-        parts.append(card_html(cards,known_ally,seat_pair=seat_pair) if cards else '<p>'+escape('当前候选暂无将策攻略' if local_source(self) else cache.empty_message())+'</p>')
+        parts.append(card_html(cards,known_ally,seat_pair=seat_pair) if cards else '<p>'+escape('当前候选暂无《名将小助手》小程序攻略' if local_source(self) else cache.empty_message())+'</p>')
         parts.append('<p>'+escape('；'.join(cache.limits))+'</p>')
         return ''.join(parts)

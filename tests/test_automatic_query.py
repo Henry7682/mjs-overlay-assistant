@@ -27,7 +27,7 @@ def test_wait_for_mini_then_automatically_start_once_without_clock(mode,monkeypa
     calls=[];ready=[False];status=[]
     provider=SimpleNamespace(busy=False,connection_status=lambda:(ready[0],'等待小程序'),
         start=lambda snap,frame,hwnd:(calls.append((snap,hwnd)) or 'request-1'))
-    host=SimpleNamespace(config={'recommendation':{'enabled':True,'automatic':True}},
+    host=SimpleNamespace(config={'recommendation':{'source':'wechat','enabled':True,'automatic':True}},
         auto_attempted=False,provider=provider,snapshot=snapshot(mode),ranked_scene_frames=2,peak_auto_ready=True,game_id='test-game',
         window_box=SimpleNamespace(currentData=lambda:42),rec_status=SimpleNamespace(setText=status.append),
         latest={'stamp':time.monotonic(),'frame':object()},overlay=SimpleNamespace(recommendation=None),

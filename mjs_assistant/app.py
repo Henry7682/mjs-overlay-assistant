@@ -20,6 +20,7 @@ from .storage import BoardStore,user_dir,read_json,write_json,ASSETS,migrate_set
 from .modes import MODES,MINGDAO,board_mode
 from .stats_source import statistics_mode,source_label
 from .guide_controller import GuideController, local_source
+from .guide_source import selected_source
 from .jiangce_update import DailyCheck
 from .statistics_toggle import StatisticsToggle
 from .ocr import Names,Ocr
@@ -392,7 +393,7 @@ class MainWindow(GuideController,QMainWindow):
         period=(f'{b["period_start"]} — {b["period_end"]}' if b.get('heroes') else '暂无已复核榜单') if mode else '暂无对应统计'
         lines=[f'{choice} · {mode_text} · {period}']
         if not self.guides_enabled():guide='已关闭'
-        elif local_source(self):guide='已开启，使用将策本地库'
+        elif local_source(self):guide='已开启，使用《名将小助手》小程序内置库'
         elif not self.config.get('recommendation',{}).get('enabled',True):guide='已开启，小程序查询未启用'
         elif self.provider.busy:guide='正在查询'
         elif mode not in RECOMMENDATION_MODES:guide='当前模式不支持配阵'
@@ -435,7 +436,7 @@ class MainWindow(GuideController,QMainWindow):
 
     def present_guides(self,rect,data):
         if self.guides_enabled() and self.current_mode() in RECOMMENDATION_MODES and data['scene'] in ('selection','battle'):
-            self.guide_panel.title.setText('配阵参考 · '+('将策本地库' if local_source(self) else '名将小助手')+'  ↔ 拖动')
+            self.guide_panel.title.setText('配阵参考 · '+('《名将小助手》小程序内置库' if local_source(self) else '名将小助手')+'  ↔ 拖动')
             self.guide_panel.set_content(data['scene'],self.guide_html(data['scene']),data['scene']=='battle' and self.current_mode()=='ranked_chuhan_2v2')
             self.guide_panel.present(rect)
         else:self.guide_panel.hide()
@@ -540,7 +541,7 @@ class MainWindow(GuideController,QMainWindow):
     def recommendation_settings(self):
         dialog=RecommendationSettings(self.config.get('recommendation',{}),self,bound_hwnd=self.provider.bound_hwnd)
         if dialog.exec()==QDialog.DialogCode.Accepted:
-            changed=self.config.get('recommendation',{}).get('source','wechat')!=dialog.result_settings.get('source','wechat')
+            changed=selected_source(self.config.get('recommendation',{}))!=selected_source(dialog.result_settings)
             self.config['recommendation']=dialog.result_settings;write_json(self.folder/'settings.json',self.config)
             if changed:
                 # Keep the current round's ban decision and roster, revoke the old request.
@@ -569,7 +570,7 @@ class MainWindow(GuideController,QMainWindow):
         self.hotkeys=Hotkeys(QApplication.instance(),[(keys.get('request','Ctrl+Alt+P'),self.request_recommendation),
             (keys.get('details','Ctrl+Alt+D'),self.toggle_details),(keys.get('cancel','Ctrl+Alt+X'),self.cancel_recommendation)])
         if local_source(self) and self.guides_enabled():
-            self.rec_status.setText('将策本地配阵 · '+self.jiangce_check.last.get('status','等待检查更新'));return
+            self.rec_status.setText('《名将小助手》小程序本地配阵 · '+self.jiangce_check.last.get('status','等待检查更新'));return
         self.rec_status.setText('攻略浮窗已关闭；本地统计继续' if not self.guides_enabled() else '；'.join(self.hotkeys.errors) if self.hotkeys.errors else
             (('配阵已启用；排位确认选将即传图，巅峰确认姓名后查询' if settings.get('automatic',True) else
               '配阵已启用；按 '+keys.get('request','Ctrl+Alt+P')+' 查询') if settings.get('enabled',True) else '小程序配阵未启用'))

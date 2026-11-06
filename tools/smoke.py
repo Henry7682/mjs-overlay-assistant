@@ -46,7 +46,7 @@ def run(output, sample=None):
         settings=RecommendationSettings({})
         assert settings.enabled.isChecked() and settings.guides.isChecked() and settings.auto.isChecked()
         assert settings.keys['request'].text()=='Ctrl+Alt+P'
-        assert settings.source.currentData()=='wechat'
+        assert settings.source.currentData()=='jiangce'
         settings.source.setCurrentIndex(settings.source.findData('jiangce'))
         settings.save()
         assert settings.result_settings['source']=='jiangce' and not settings.ranked_search.isEnabled()

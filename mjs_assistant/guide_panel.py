@@ -29,7 +29,7 @@ def card_html(cards, current_seats=None, seat_pair=()):
                 lines.append((0 if match else 1 if suited else 2,escape(label)+'　'+escape(variant.get('rating','评分未提供'))))
             seats='<br>'.join(line for _,line in sorted(lines,key=lambda row:row[0]))
             blocks.append(f'<p><b>{i}. {escape(pair)}</b><br>'+escape(card['reason']).replace(chr(10),'<br>')+
-                          '<br>'+seats+'<br>将策 · 分享者：'+escape(card['author'])+
+                          '<br>'+seats+'<br>《名将小助手》小程序 · 分享者：'+escape(card['author'])+
                           ' · <a href="'+escape(card['url'],quote=True)+'">来源详情</a></p>')
             continue
         seats='；'.join(f'{a} {sa}、{b} {sb}' for a,sa,b,sb in card.get('seats',[]))

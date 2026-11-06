@@ -45,7 +45,7 @@ try {$r.FromXmlString($v.key); if(-not $r.VerifyData([Convert]::FromBase64String
     m=json.loads(raw)
     filename=f"{m['version']}-{m['sha256']}.sqlite"
     if m.get('kind')!='jiangce-v1' or not FILENAME.fullmatch(filename) or not 0<m['size']<=MAX_BYTES:
-        raise ValueError('不兼容的将策更新清单')
+        raise ValueError('不兼容的《名将小助手》小程序更新清单')
     return m,filename
 
 

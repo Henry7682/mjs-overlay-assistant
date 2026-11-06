@@ -155,16 +155,14 @@ class PeakDraft:
             if phase == 'battle': self.phase = 'battle'
             return
         if phase == 'battle':
-            self.phase = 'battle'; self.message = '禁将筛选未确认，缓存仍保留'
+            self.phase = 'battle'; self.auto_closed = True; self.message = '禁将筛选未确认，缓存仍保留'
             return
         if self.auto_closed:
             return  # A late OCR recovery/dropout must never become a new ban.
-        if self.selection_started is not None and now-self.selection_started>3:
-            self.auto_closed=True;self.phase='selection'
-            self.message='禁将筛选待确认；阶段已结束，保留全部缓存，可手动确认'
-            return
         if self.selection_started is not None and phase!='selection':
             return  # Once the selection landmark is seen, never re-enter ban.
+        if phase == 'selection' and layout == 'ban14':
+            layout = 'draft14'  # A clear selection landmark outranks card count.
         if layout == 'ban14':
             self.ban_seen.update(names)
             if phase == 'ban': self.phase = 'ban'
@@ -192,7 +190,8 @@ class PeakDraft:
         if self.selection_started is None:
             self.selection_started = now
         self.locked_seen.update(locked)
-        # Require every slot in the visually confirmed 6–13-card layout. Locked hero
+        # Wait for the original full 6–14-card roster even if OCR takes >3s.
+        # Never lower the expected count because later portraits disappear. Locked hero
         # evidence may replace a missing portrait only when separately confirmed.
         self.selection_seen.update(names)
         remaining = self.selection_seen | self.locked_seen

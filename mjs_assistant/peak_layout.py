@@ -8,8 +8,8 @@ from .region_geometry import center_x
 def draft_count(layout):
     match = re.fullmatch(r'draft(\d+)', layout or '')
     count = int(match[1]) if match else 0
-    # A recorded post-ban selection has 6+7 cards; 7+7 is still the ban grid.
-    return count if 6 <= count <= 13 else 0
+    # Card count is geometry, not phase: 7+7 can also be a selection roster.
+    return count if 6 <= count <= 14 else 0
 
 
 def row_starts(count):
@@ -20,13 +20,16 @@ def draft_regions(layout):
     count = draft_count(layout)
     if not count:
         return []
+    if count == 14:
+        # Keep room for both the taller ban-grid and compact draft nameplates.
+        return [(x,y,x+.019,end) for y,end in ((.195,.303),(.444,.559)) for x in row_starts(7)]
     return [(x, y, x + .019, end)
             for n, y, end in ((count // 2, .195, .273), ((count + 1) // 2, .444, .523))
             for x in row_starts(n)]
 
 
 def detect_draft_layout(frame):
-    """Read card silhouettes across the full two-row 6–13 candidate area.
+    """Read card silhouettes across the full two-row 6–14 candidate area.
 
     Paper gaps split portraits; validate widths, spacing AND centering. Missing
     middle portraits or tooltip occlusion therefore cannot silently shrink the

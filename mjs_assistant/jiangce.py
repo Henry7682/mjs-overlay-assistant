@@ -16,7 +16,7 @@ class GuideBook:
         with closing(sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro&immutable=1',uri=True)) as db:
             db.execute('PRAGMA trusted_schema=OFF')
             if db.execute('PRAGMA quick_check').fetchone()!=('ok',):
-                raise ValueError('将策库完整性检查失败')
+                raise ValueError('《名将小助手》小程序内置库完整性检查失败')
             self.date,self.content_hash=db.execute('SELECT date,content_hash FROM meta').fetchone()
             self.cards=[]
             bodies=[]
@@ -25,22 +25,22 @@ class GuideBook:
                 if (c['id']!=ident or not re.fullmatch('[0-9A-Z]{26}',ident)
                         or c['url']!=f'https://www.jiangce.online/combos/{ident}'
                         or len(c['heroes'])!=2 or len(set(c['heroes']))!=2):
-                    raise ValueError('无效的将策组合')
+                    raise ValueError('无效的《名将小助手》小程序组合')
                 c['seats']=[(a,sa,b,sb) for v in c['variants'] if v.get('seats')
                             for (a,sa),(b,sb) in [v['seats']]]
                 for v in c['variants']:
                     seats=v.get('seats',[])
                     if seats and (len(seats)!=2 or {h for h,s in seats}!=set(c['heroes'])
                                   or len({s for h,s in seats})!=2 or any(s not in (1,2,3,4) for h,s in seats)):
-                        raise ValueError('将策站位无效')
+                        raise ValueError('《名将小助手》小程序站位无效')
                     if v.get('rating') and not re.fullmatch('[0-5]/5',v['rating']):
-                        raise ValueError('将策评分无效')
+                        raise ValueError('《名将小助手》小程序评分无效')
                 self.cards.append(c)
                 bodies.append(body)
             if hashlib.sha256('\n'.join(bodies).encode()).hexdigest()!=self.content_hash:
-                raise ValueError('将策库内容校验失败')
+                raise ValueError('《名将小助手》小程序内置库内容校验失败')
             if not self.cards:
-                raise ValueError('将策库没有攻略')
+                raise ValueError('《名将小助手》小程序内置库没有攻略')
 
     def selection(self, own, ally, locked=None):
         own=set(own)
