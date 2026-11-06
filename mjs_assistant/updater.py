@@ -13,8 +13,9 @@ import httpx
 from bs4 import BeautifulSoup
 
 from .boards import decode_image, parse_words, validate_board
+from .board_verification import PARSER_VERSION, verify_chart
 from .storage import write_json, read_json
-from .modes import MODES, MINGDAO, identify_chart, board_mode
+from .modes import MODES, MINGDAO, PEAK_SHUANGLONG, identify_chart, board_mode
 
 OFFICIAL_LIST = "https://www.taptap.cn/app/737825/topic?type=official&page={}"
 
@@ -72,6 +73,10 @@ class Updater:
         try:
             result=self._check(current,progress)
             state.update(status='cancelled' if self.cancelled() else ('partial' if self.failures else 'success'),last_error=self.failures[:3])
+            drafts=result[0] or []
+            if isinstance(drafts,dict):drafts=[drafts]
+            state['auto_ready_count']=sum(not validate_board(b) for b in drafts)
+            state['pending_count']=sum(bool(validate_board(b)) for b in drafts)
             if state['status']=='success':state['last_success']=dt.datetime.now(dt.timezone.utc).isoformat()
             return result
         except Exception as error:
@@ -158,12 +163,22 @@ class Updater:
                         year_match = re.search(r"_(20\d{2})\d{4}", url)
                         from .storage import ASSETS
                         model_manifest=read_json(ASSETS/'models/manifest.json',{})
-                        parse_key=hashlib.sha256(json.dumps([url,hashlib.sha256(data).hexdigest(),model_manifest,sorted(self.names.names),self.names.aliases,'parser-v1'],sort_keys=True).encode()).hexdigest()
+                        parse_key=hashlib.sha256(json.dumps([url,hashlib.sha256(data).hexdigest(),model_manifest,sorted(self.names.names),self.names.aliases,PARSER_VERSION],sort_keys=True).encode()).hexdigest()
                         parsed_path=self.folder/'update-cache'/(parse_key+'.parsed.json')
                         draft=read_json(parsed_path)
                         if not draft:
                             if not self._idle(progress):return None,'已取消检查'
                             draft = parse_words(self.ocr.document(img), img.shape[1], self.names, link, hashlib.sha256(data).hexdigest(), int(year_match[1]) if year_match else None)
+                            def before_row():
+                                if not self._idle(progress):raise RuntimeError('已取消榜单复核')
+                            progress('正在自动放大复读疑点行并交叉核验两榜…')
+                            draft = verify_chart(draft,img,self.ocr,self.names,before_row)
+                            if mode == PEAK_SHUANGLONG and board_mode(draft) == mode:
+                                # Only this period's explicit chart title is evidence.
+                                # Never treat generic 巅峰身份 as a permanent alias.
+                                draft['mode_evidence'] = dict(status='source-reviewed',source_url=link,
+                                    period_start=draft['period_start'],period_end=draft['period_end'],
+                                    basis='本期官方榜单图中明确识别到巅峰与双龙争鼎标题')
                             write_json(parsed_path,draft)
                         draft=copy.deepcopy(draft)
                         if draft["period_end"] and draft["period_end"] <= baseline.get("period_end", ""):

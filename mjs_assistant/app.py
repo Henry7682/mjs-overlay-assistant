@@ -70,7 +70,7 @@ class RecognitionThread(QThread):
             self.hwnd=hwnd;self.enabled=enabled;self.scene=scene;self.profiles=copy.deepcopy(profiles);self.extra=list(extra);self.mode_id=mode_id;self.generation+=1
 
     def run(self):
-        cap=None;bound=0;lastgen=-1;laststatus=''
+        cap=None;bound=0;lastgen=-1;laststatus='';lastnames=None
         def status(s):
             nonlocal laststatus
             if s!=laststatus:
@@ -86,7 +86,10 @@ class RecognitionThread(QThread):
                     correction=self.correction;self.correction=None
                     mode=self.mode_id;allow_background=self.allow_background;need_lock=self.need_local_lock
                 if gen!=lastgen:
-                    self.stabilizer.clear();recognizer.names=Names(extra);lastgen=gen
+                    self.stabilizer.clear();recognizer.names=Names(extra);lastgen=gen;lastnames=extra
+                elif extra!=lastnames:
+                    # A new official dictionary must not reset the current round.
+                    recognizer.names=Names(extra);lastnames=extra
                 if correction:self.stabilizer.overrides[(correction[0],correction[1])]=correction[2]
                 if not enabled or not hwnd:
                     if cap:cap.stop();cap=None;bound=0
@@ -625,17 +628,37 @@ class MainWindow(GuideController,QMainWindow):
     def data_done(self,board,message):
         self.check_btn.setEnabled(True);self.import_btn.setEnabled(True);self.data_status.setText(message)
         if board:
+            installed=[];pending=[];failed=[]
             for draft in (board if isinstance(board,list) else [board]):
-                if not validate_board(draft) and self.data_worker.path is None:
-                    self.store.install(draft)
-                else:
-                    mode=board_mode(draft)
-                    path=BoardStore(self.folder,mode).pending_path if mode else self.folder/'boards/unassigned/pending.json'
-                    write_json(path,draft)
-                    if mode==statistics_mode(self.current_mode()) or mode is None:self.pending=draft
-                    self.tray.showMessage('榜单需要复核','对应模式的新榜单已暂存，当前数据继续有效。')
+                mode=board_mode(draft)
+                label=MODES.get(mode,'未确认模式')
+                try:
+                    problems=validate_board(draft)
+                    path=self.folder/'boards'/(mode or 'unassigned')/'pending.json'
+                    if not problems and self.data_worker.path is None:
+                        self.store.install(draft)
+                        write_json(path,None)
+                        installed.append(label)
+                        logging.info('official board installed: mode=%s period=%s/%s count=%s verification=%s',
+                            mode,draft['period_start'],draft['period_end'],len(draft['heroes']),draft.get('review_status'))
+                    else:
+                        write_json(path,draft)
+                        pending.append(label+'：'+('；'.join(problems[:2]) or '手动导入待确认'))
+                except Exception as error:
+                    logging.exception('official board installation failed: %s',mode)
+                    failed.append(label+'：'+str(error)[:160])
             self.store.select(statistics_mode(self.current_mode()) or MINGDAO)
-            self.update_board_label();self.configure()
+            self.pending=read_json(self.store.pending_path)
+            self.update_board_label()
+            if installed:
+                with self.worker.lock:self.worker.extra=[x['name'] for x in self.store.board['heroes']]
+                self.overlay.update()
+            summary=f'自动更新 {len(installed)} 个模式；待核验 {len(pending)} 个；失败 {len(failed)} 个。'
+            details='\n'.join(['已更新：'+ '、'.join(installed)] if installed else [])
+            details+='\n'+'\n'.join(pending+failed)
+            self.data_status.setText(summary+details)
+            self.data_status.setToolTip(summary+details)
+            if installed:self.tray.showMessage('官方榜单已自动更新','、'.join(installed)+'；已保留上一期供回退。')
 
     def import_board(self):
         path,_=QFileDialog.getOpenFileName(self,'导入官方榜单','','图片 (*.png *.jpg *.jpeg *.webp)')
