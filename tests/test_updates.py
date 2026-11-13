@@ -60,6 +60,7 @@ def test_new_period_validation_and_pending(tmp_path,monkeypatch,bad):
               '<h1>名将杀 · 武将胜率</h1><img alt="名将杀 · 武将胜率 1" src="https://img2-tc.tapimg.com/moment/etag/test_20261026110504.jpg/_tap_ugc.jpg">')
     monkeypatch.setattr('mjs_assistant.updater.decode_image',lambda data:np.ones((300,800,3),np.uint8))
     monkeypatch.setattr('mjs_assistant.updater.parse_words',lambda *a,**k:new)
+    monkeypatch.setattr('mjs_assistant.board_completeness.inspect_end',lambda *a:{'complete':True})
     draft,message=Updater(tmp_path,Ocr(),Names()).check(old,True)
     assert draft['period_end']=='2026-10-25'
     assert ('复核' in message)==bad

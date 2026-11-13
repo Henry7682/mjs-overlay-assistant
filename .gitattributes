@@ -1,0 +1,5 @@
+
+# Signed guide manifests are verified byte-for-byte on Windows and Linux.
+assets/jiangce/channel.json -text
+assets/jiangce/channel.sig -text
+assets/jiangce/guides.sqlite binary

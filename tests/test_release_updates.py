@@ -18,7 +18,7 @@ def test_update_attempt_does_not_overwrite_last_success(tmp_path,monkeypatch):
     with pytest.raises(ValueError):u.check({},True)
     state=read_json(tmp_path/'update_state.json')
     assert state['last_success']==original and state['last_attempt'] and state['status']=='error'
-    assert '24' in u.check({},False)[1]
+    assert '重试' in u.check({},False)[1]
     monkeypatch.setattr(u,'_check',lambda *a:(None,'ok'))
     u.check({},True)
     assert read_json(tmp_path/'update_state.json')['last_success']!=original
@@ -74,7 +74,7 @@ def test_one_list_failure_still_checks_other_official_pages(tmp_path,monkeypatch
     monkeypatch.setattr(module,'post_links',lambda text:['https://www.taptap.cn/moment/123'])
     current={mode:{'heroes':[1],'source_url':'https://www.taptap.cn/moment/123'} for mode in module.MODES}
     with pytest.raises(ValueError,match='部分官方来源'):u.check(current,True)
-    assert len(calls)==3
+    assert len(calls)==4  # recheck the known official post when discovery is partial
     assert read_json(tmp_path/'update_state.json')['status']=='error'
 
 def test_import_legacy_single_board_preserves_period_and_previous(tmp_path):

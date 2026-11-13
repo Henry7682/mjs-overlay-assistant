@@ -60,6 +60,8 @@ def validate_board(board):
     if board.get("issues"):
         problems.extend(board["issues"])
     if board.get('review_status')=='pending_full_review': problems.append('尚未完成全表复核')
+    if 'completeness' in board and not board['completeness'].get('complete'):
+        problems.append('榜单完整性证据未通过')
     if not board.get("source_url"):
         problems.append("缺少来源地址或本地图片路径")
     return problems
@@ -88,7 +90,7 @@ def parse_words(words, width, names: Names, source_url, image_hash="", year=None
             end = dt.date(year, m2, d2).isoformat()
         except ValueError:
             pass
-    left, right, issues = [], [], []
+    left, right = [], []
     for side in (0, 1):
         candidates = [w for w in words if ((w.box[0] + w.box[2]) / 2 < width * .49) == (side == 0)]
         rows = []
@@ -122,20 +124,41 @@ def parse_words(words, width, names: Names, source_url, image_hash="", year=None
                     continue
                 name = names.resolve(raw_name) or raw_name
                 right.append({"name": name, "pick_rank": rank, "raw_name": raw_name, "y": cy})
-            if names.resolve(raw_name) is None:
-                issues.append(f"第{rank}名姓名待核对：{raw_name}")
-            if min(w.confidence for w in row) < .85:
-                issues.append(f"{'胜率' if side == 0 else '出场'}第{rank}名识别置信度不足")
+            record = (left if side == 0 else right)[-1]
+            record['confidence'] = min(w.confidence for w in row)
+            record['name_confidence'] = min(w.confidence for w in row[1:])
+            if side == 0:
+                record['rate_confidence'] = min((w.confidence for w in row if '%' in w.text or '％' in w.text), default=0)
+    draft = {"schema_version": 2, "mode_id":mode_id, "mode": MODES.get(mode_id,"未确认模式"), "period_start": start, "period_end": end,
+             "source_url": source_url, "image_sha256": image_hash, "review_status": "ocr",
+             "raw_win_rows": left, "raw_pick_rows": right}
+    return assemble_rows(draft, names)
+
+
+def assemble_rows(draft, names, verified=(), verified_names=()):
+    """Rebuild all structural checks after evidence-backed row recovery."""
+    left, right = draft['raw_win_rows'], draft['raw_pick_rows']
+    issues = []
+    for side, rows in (('win', left), ('pick', right)):
+        for row in rows:
+            rank = row[side + '_rank']
+            if names.resolve(row['raw_name']) is None and row['name'] not in verified_names:
+                issues.append(f"第{rank}名姓名待核对：{row['raw_name']}")
+            if row.get('confidence', 0) < .85 and (side, rank) not in verified:
+                issues.append(f"{'胜率' if side == 'win' else '出场'}第{rank}名识别置信度不足")
     picks = {x["name"]: x["pick_rank"] for x in right}
     heroes = [{"name": x["name"], "win_rate": x["win_rate"], "win_rank": x["win_rank"], "pick_rank": picks.get(x["name"])} for x in left]
     if len(set(x["pick_rank"] for x in right)) != len(right):
         issues.append("出场榜存在重复排名")
     if len(right) != len(left):
         issues.append("两份榜单条数不一致")
-    return {"schema_version": 2, "mode_id":mode_id, "mode": MODES.get(mode_id,"未确认模式"), "period_start": start, "period_end": end,
-            "source_url": source_url, "image_sha256": image_hash,
-            "expected_count": max([x["win_rank"] for x in left] + [0]), "heroes": heroes,
-            "issues": sorted(set(issues)), "review_status": "ocr", "raw_win_rows": left, "raw_pick_rows": right}
+    if len({x['name'] for x in right}) != len(right):
+        issues.append('出场榜存在重复姓名')
+    if {x['name'] for x in left} != {x['name'] for x in right}:
+        issues.append('两份榜单姓名集合不一致')
+    draft.update(expected_count=max([x['win_rank'] for x in left] + [0]), heroes=heroes,
+                 issues=sorted(set(issues)))
+    return draft
 
 
 def import_image(path, ocr, names, source_url=None):

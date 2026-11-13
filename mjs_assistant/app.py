@@ -19,7 +19,9 @@ from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBo
 from .storage import BoardStore,user_dir,read_json,write_json,ASSETS,migrate_settings
 from .modes import MODES,MINGDAO,board_mode
 from .stats_source import statistics_mode,source_label
-from .guide_controller import GuideController
+from .guide_controller import GuideController, local_source
+from .guide_source import selected_source
+from .jiangce_update import DailyCheck
 from .statistics_toggle import StatisticsToggle
 from .ocr import Names,Ocr
 from .capture import Capture,windows,client_rect,foreground
@@ -62,14 +64,14 @@ class RecognitionThread(QThread):
     def __init__(self):
         super().__init__();self.lock=threading.Lock();self.hwnd=0;self.enabled=True;self.scene='auto';self.profiles={};self.extra=[];self.generation=0
         self.stabilizer=Stabilizer();self.correction=None;self.mode_id=None;self.allow_background=False
-        self.progress=None;self.models_ready=False
+        self.progress=None;self.models_ready=False;self.need_local_lock=False
 
     def configure(self,hwnd,enabled,scene,profiles,extra,mode_id=None):
         with self.lock:
             self.hwnd=hwnd;self.enabled=enabled;self.scene=scene;self.profiles=copy.deepcopy(profiles);self.extra=list(extra);self.mode_id=mode_id;self.generation+=1
 
     def run(self):
-        cap=None;bound=0;lastgen=-1;laststatus=''
+        cap=None;bound=0;lastgen=-1;laststatus='';lastnames=None
         def status(s):
             nonlocal laststatus
             if s!=laststatus:
@@ -83,9 +85,12 @@ class RecognitionThread(QThread):
                 with self.lock:
                     hwnd,enabled,scene,profiles,extra,gen=self.hwnd,self.enabled,self.scene,self.profiles,self.extra,self.generation
                     correction=self.correction;self.correction=None
-                    mode=self.mode_id;allow_background=self.allow_background
+                    mode=self.mode_id;allow_background=self.allow_background;need_lock=self.need_local_lock
                 if gen!=lastgen:
-                    self.stabilizer.clear();recognizer.names=Names(extra);lastgen=gen
+                    self.stabilizer.clear();recognizer.names=Names(extra);lastgen=gen;lastnames=extra
+                elif extra!=lastnames:
+                    # A new official dictionary must not reset the current round.
+                    recognizer.names=Names(extra);lastnames=extra
                 if correction:self.stabilizer.overrides[(correction[0],correction[1])]=correction[2]
                 if not enabled or not hwnd:
                     if cap:cap.stop();cap=None;bound=0
@@ -108,6 +113,14 @@ class RecognitionThread(QThread):
                         self.msleep(600);continue
                     self.progress=dict(active=True,generation=gen,stamp=stamp,began=time.monotonic())
                     found,items,words=recognizer.analyze(frame,scene,profiles,mode)
+                    ally_locked=None
+                    if need_lock and found=='selection' and recognizer.phase=='selection' and mode in RECOMMENDATION_MODES:
+                        try:
+                            if recognizer.locked_by_side is None:recognizer.read_locked_names(frame)
+                            ally_locked=recognizer.locked_by_side.get('ally')
+                        except Exception:
+                            logging.debug('optional ally lock unavailable',exc_info=True)
+                    elif need_lock:recognizer._locked_previous=()
                     items=self.stabilizer.update(found,items,max_gap=4.5 if mode=='peak_chuhan_2v2' and found=='selection' else 3)
                     # Fourteen-card cold/repair passes measured up to 3.5s in
                     # the authorized sequence; do not discard every slow ban frame.
@@ -119,7 +132,7 @@ class RecognitionThread(QThread):
                     self.result.emit({'frame':frame,'rect':rect,'scene':found,'items':items,'generation':gen,'stamp':stamp,'seconds':elapsed,'processed_at':time.monotonic(),
                                       'mode_id':mode,'layout':recognizer.layout,'phase':recognizer.phase,
                                       'seats':recognizer.seats,'self_locked':recognizer.self_locked,'remaining':recognizer.remaining,
-                                      'empty_panels':recognizer.empty_panels,'battle_badges':recognizer.battle_badges,'locked_names':recognizer.locked_names,
+                                      'empty_panels':recognizer.empty_panels,'battle_badges':recognizer.battle_badges,'locked_names':recognizer.locked_names,'ally_locked':ally_locked,
                                       'entry_mode':recognizer.entry_mode,'in_entry':recognizer.in_entry,'round_end':recognizer.round_end})
                     label=('模式入口识别' if found=='entry' else '傀儡三选一识别' if recognizer.phase=='puppet' else
                            '等待选将／战斗界面' if found=='unknown' else ('选将识别' if found=='selection' else '战场识别'))
@@ -171,7 +184,27 @@ class DataThread(QThread):
                 self.progress.emit('正在识别导入的官方图片…')
                 board=import_image(self.path,engine,names);message='导入完成，请复核'
             else:
-                board,message=Updater(self.folder,engine,names,self.isInterruptionRequested,self.busy.is_set).check(self.board,self.force,self.progress.emit)
+                from .board_channel import discover
+                from .update_state import due
+                signed=[]
+                if due(read_json(self.folder/'update_state.json',{}),force=self.force):
+                    try:
+                        self.progress.emit('正在检查签名官方榜单通道…')
+                        signed,_=discover(self.folder,self.board)
+                    except Exception:
+                        logging.exception('signed board channel unavailable')
+                current=dict(self.board)
+                current.update({b['mode_id']:b for b in signed})
+                try:
+                    board,message=Updater(self.folder,engine,names,self.isInterruptionRequested,self.busy.is_set).check(current,self.force,self.progress.emit)
+                    merged={b['mode_id']:b for b in signed}
+                    for candidate in (board or []):
+                        mode=candidate.get('mode_id')
+                        if mode not in merged or not validate_board(candidate):merged[mode]=candidate
+                    board=list(merged.values()) or None
+                except Exception as error:
+                    board=signed or None
+                    message='官方直连暂不可用；'+('使用已核验签名榜单；' if signed else '保留现有榜单；')+str(error)
             self.done.emit(board,message)
         except Exception as e:
             logging.exception('data update');self.done.emit(None,'更新失败，保留原榜单：'+str(e))
@@ -192,6 +225,9 @@ class MainWindow(GuideController,QMainWindow):
         self.mode_evidence='unknown';self.auto_mode=None;self.entry_candidate=None;self.entry_hits=0
         self.observed_seats=(None,None)
         self.init_guides()
+        self.jiangce_check=DailyCheck(self.folder)
+        self.jiangce_timer=QTimer(self);self.jiangce_timer.timeout.connect(self.jiangce_check.check)
+        self.jiangce_timer.start(60000);QTimer.singleShot(2000,self.jiangce_check.check)
         self.statistics_button=StatisticsToggle(self.config.get("statistics_button_anchor",(.93,.38)))
         self.statistics_button.toggled.connect(self.toggle_statistics)
         self.statistics_button.position_saved.connect(self.save_statistics_position)
@@ -216,15 +252,15 @@ class MainWindow(GuideController,QMainWindow):
         layout.addLayout(row)
         stats_row=QHBoxLayout();self.statistics_btn=QPushButton();self.statistics_btn.clicked.connect(self.toggle_statistics)
         stats_row.addWidget(self.statistics_btn);stats_row.addWidget(QLabel('仅控制武将数据；识别与攻略继续运行'),1);layout.addLayout(stats_row)
-        self.guide_check=QCheckBox('开启攻略浮窗（需配合名将小助手；关闭不影响本地武将统计）')
+        self.guide_check=QCheckBox('开启攻略浮窗（来源可选；关闭不影响武将统计）')
         self.guide_check.setChecked(self.guides_enabled());self.guide_check.toggled.connect(self.set_guides_enabled)
         layout.addWidget(self.guide_check)
         rec_row=QHBoxLayout()
-        for label,callback in [('小程序配阵设置',self.recommendation_settings),('确认禁将后名单',self.confirm_peak_roster),('重新配阵',self.request_recommendation),('取消配阵',self.cancel_recommendation)]:
+        for label,callback in [('配阵设置',self.recommendation_settings),('确认禁将后名单',self.confirm_peak_roster),('重新配阵',self.request_recommendation),('取消配阵',self.cancel_recommendation)]:
             button=QPushButton(label);button.clicked.connect(callback);rec_row.addWidget(button)
         layout.addLayout(rec_row)
         self.rec_status=QLabel('小程序配阵未启用');self.rec_status.setWordWrap(True);layout.addWidget(self.rec_status)
-        self.provider.status.connect(lambda text:self.safe_guide_call(self.recommendation_status,text))
+        self.provider.status.connect(lambda text:None if local_source(self) else self.safe_guide_call(self.recommendation_status,text))
         self.provider.finished.connect(lambda result:self.safe_guide_call(self.recommendation_finished,result))
         self.provider.launch_failed.connect(lambda event:self.safe_guide_call(self.recommendation_launch_failed,event))
         self.status=QLabel('准备连接…');self.status.setObjectName('status');layout.addWidget(self.status)
@@ -232,6 +268,7 @@ class MainWindow(GuideController,QMainWindow):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch);self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows);self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers);layout.addWidget(self.table,1)
         row=QHBoxLayout()
         self.check_btn=QPushButton('检查新榜单');self.check_btn.clicked.connect(lambda:self.start_data(force=True));row.addWidget(self.check_btn)
+        updates_button=QPushButton('更新与数据');updates_button.clicked.connect(self.open_update_status);row.addWidget(updates_button)
         self.import_btn=QPushButton('导入官方图片');self.import_btn.clicked.connect(self.import_board);row.addWidget(self.import_btn)
         self.review_btn=QPushButton('复核待确认榜单');self.review_btn.clicked.connect(self.review);row.addWidget(self.review_btn)
         self.rollback_btn=QPushButton('回退上一期');self.rollback_btn.clicked.connect(self.rollback);row.addWidget(self.rollback_btn);layout.addLayout(row)
@@ -251,7 +288,7 @@ class MainWindow(GuideController,QMainWindow):
         self.worker.result.connect(self.receive);self.worker.status.connect(self.status.setText)
         self.timer=QTimer(self);self.timer.timeout.connect(self.tick);self.timer.start(120)
         self.scan_timer=QTimer(self);self.scan_timer.timeout.connect(self.refresh_windows);self.scan_timer.start(3000)
-        self.update_timer=QTimer(self);self.update_timer.timeout.connect(lambda:self.start_data());self.update_timer.start(86400000)
+        self.update_timer=QTimer(self);self.update_timer.timeout.connect(lambda:self.start_data());self.update_timer.start(60000)
         self.install_hotkeys();self.update_board_label();self.refresh_windows();self.worker.start();QTimer.singleShot(1500,lambda:self.start_data(force=True))
         feedback=QPushButton('反馈问题／本地诊断');feedback.clicked.connect(self.open_feedback);layout.addWidget(feedback)
         migrate=QPushButton('导入旧版 data 配置');migrate.clicked.connect(self.import_previous);layout.addWidget(migrate)
@@ -293,6 +330,7 @@ class MainWindow(GuideController,QMainWindow):
         self.configure_worker()
 
     def configure_worker(self):
+        with self.worker.lock:self.worker.need_local_lock=local_source(self) and self.guides_enabled()
         self.worker.configure(self.window_box.currentData() or 0,self.enabled,self.scene_box.currentData(),self.profiles(),
             [x['name'] for x in self.store.board['heroes']],self.current_mode())
 
@@ -376,6 +414,7 @@ class MainWindow(GuideController,QMainWindow):
         period=(f'{b["period_start"]} — {b["period_end"]}' if b.get('heroes') else '暂无已复核榜单') if mode else '暂无对应统计'
         lines=[f'{choice} · {mode_text} · {period}']
         if not self.guides_enabled():guide='已关闭'
+        elif local_source(self):guide='已开启，使用《名将小助手》小程序内置库'
         elif not self.config.get('recommendation',{}).get('enabled',True):guide='已开启，小程序查询未启用'
         elif self.provider.busy:guide='正在查询'
         elif mode not in RECOMMENDATION_MODES:guide='当前模式不支持配阵'
@@ -418,6 +457,7 @@ class MainWindow(GuideController,QMainWindow):
 
     def present_guides(self,rect,data):
         if self.guides_enabled() and self.current_mode() in RECOMMENDATION_MODES and data['scene'] in ('selection','battle'):
+            self.guide_panel.title.setText('配阵参考 · '+('《名将小助手》小程序内置库' if local_source(self) else '名将小助手')+'  ↔ 拖动')
             self.guide_panel.set_content(data['scene'],self.guide_html(data['scene']),data['scene']=='battle' and self.current_mode()=='ranked_chuhan_2v2')
             self.guide_panel.present(rect)
         else:self.guide_panel.hide()
@@ -453,6 +493,8 @@ class MainWindow(GuideController,QMainWindow):
 
     def set_guides_enabled(self,enabled):
         self.config.setdefault('recommendation',{})['guides_enabled']=bool(enabled)
+        if hasattr(self,'worker'):
+            with self.worker.lock:self.worker.need_local_lock=bool(enabled) and local_source(self)
         write_json(self.folder/'settings.json',self.config)
         if not enabled:
             self.safe_guide_call(self.invalidate_recommendation,'攻略浮窗已关闭；本地统计继续，已读攻略保留')
@@ -520,9 +562,26 @@ class MainWindow(GuideController,QMainWindow):
     def recommendation_settings(self):
         dialog=RecommendationSettings(self.config.get('recommendation',{}),self,bound_hwnd=self.provider.bound_hwnd)
         if dialog.exec()==QDialog.DialogCode.Accepted:
+            changed=selected_source(self.config.get('recommendation',{}))!=selected_source(dialog.result_settings)
             self.config['recommendation']=dialog.result_settings;write_json(self.folder/'settings.json',self.config)
+            if changed:
+                # Keep the current round's ban decision and roster, revoke the old request.
+                self.request_id=self.auto_launch_id=None
+                if self.provider.busy:self.provider.cancel('已切换攻略来源')
+                from .guide_state import RoundGuideCache
+                self.guide_cache=RoundGuideCache(self.current_mode(),self.game_id)
+                if self.peak_draft.frozen:self.guide_cache.freeze(self.peak_draft.excluded)
+                self.enemy_cache=RoundGuideCache(self.current_mode(),self.game_id)
+                self.auto_attempted=self.enemy_attempted=False
+                self.auto_launch_count=0;self.auto_retry_at=0;self.local_key=None
+                self.overlay.recommendation=None;self.overlay.recommendation_status=''
+                self.ranked_request_changed=False;self.confirmed_snapshot=None
+            with self.worker.lock:self.worker.need_local_lock=local_source(self) and self.guides_enabled()
             self.provider.bound_hwnd=dialog.selected_hwnd
-            self.safe_guide_call(self.invalidate_recommendation,'配阵设置已更新');self.install_hotkeys();self.sync_controls();self.tick()
+            self.safe_guide_call(self.invalidate_recommendation,'配阵设置已更新');self.install_hotkeys();self.sync_controls()
+            if changed and self.latest and self.latest.get('scene') in ('selection','battle'):
+                self.safe_guide_call(self.update_selection,self.latest)
+            self.tick()
 
     def install_hotkeys(self):
         if self.hotkeys:self.hotkeys.close()
@@ -531,6 +590,8 @@ class MainWindow(GuideController,QMainWindow):
         self.guide_panel.anchor=tuple(settings.get('panel_anchor',settings.get('anchor',[.015,.4])))
         self.hotkeys=Hotkeys(QApplication.instance(),[(keys.get('request','Ctrl+Alt+P'),self.request_recommendation),
             (keys.get('details','Ctrl+Alt+D'),self.toggle_details),(keys.get('cancel','Ctrl+Alt+X'),self.cancel_recommendation)])
+        if local_source(self) and self.guides_enabled():
+            self.rec_status.setText('《名将小助手》小程序本地配阵 · '+self.jiangce_check.last.get('message','等待检查更新'));return
         self.rec_status.setText('攻略浮窗已关闭；本地统计继续' if not self.guides_enabled() else '；'.join(self.hotkeys.errors) if self.hotkeys.errors else
             (('配阵已启用；排位确认选将即传图，巅峰确认姓名后查询' if settings.get('automatic',True) else
               '配阵已启用；按 '+keys.get('request','Ctrl+Alt+P')+' 查询') if settings.get('enabled',True) else '小程序配阵未启用'))
@@ -579,8 +640,16 @@ class MainWindow(GuideController,QMainWindow):
             QMessageBox.information(self,'配置已导入','原配置备份已保存。退出后重新启动生效。\n'+str(backup))
         except Exception as error:QMessageBox.warning(self,'导入失败',str(error))
 
+    def open_update_status(self):
+        from .update_ui import UpdateDialog
+        dialog=UpdateDialog(self)
+        dialog.exec()
+        dialog.timer.stop();dialog.deleteLater()
+
     def start_data(self,force=False,path=None):
         if self.data_worker and self.data_worker.isRunning():return
+        from .update_state import due
+        if not path and not due(read_json(self.folder/'update_state.json',{}),force=force):return
         self.check_btn.setEnabled(False);self.import_btn.setEnabled(False)
         if not hasattr(self,'data_busy'):self.data_busy=threading.Event()
         if self.provider.busy or (self.latest and self.latest.get('scene')=='selection'):self.data_busy.set()
@@ -589,17 +658,37 @@ class MainWindow(GuideController,QMainWindow):
     def data_done(self,board,message):
         self.check_btn.setEnabled(True);self.import_btn.setEnabled(True);self.data_status.setText(message)
         if board:
+            installed=[];pending=[];failed=[]
             for draft in (board if isinstance(board,list) else [board]):
-                if not validate_board(draft) and self.data_worker.path is None:
-                    self.store.install(draft)
-                else:
-                    mode=board_mode(draft)
-                    path=BoardStore(self.folder,mode).pending_path if mode else self.folder/'boards/unassigned/pending.json'
-                    write_json(path,draft)
-                    if mode==statistics_mode(self.current_mode()) or mode is None:self.pending=draft
-                    self.tray.showMessage('榜单需要复核','对应模式的新榜单已暂存，当前数据继续有效。')
+                mode=board_mode(draft)
+                label=MODES.get(mode,'未确认模式')
+                try:
+                    problems=validate_board(draft)
+                    path=self.folder/'boards'/(mode or 'unassigned')/'pending.json'
+                    if not problems and self.data_worker.path is None:
+                        self.store.install(draft)
+                        write_json(path,None)
+                        installed.append(label)
+                        logging.info('official board installed: mode=%s period=%s/%s count=%s verification=%s',
+                            mode,draft['period_start'],draft['period_end'],len(draft['heroes']),draft.get('review_status'))
+                    else:
+                        write_json(path,draft)
+                        pending.append(label+'：'+('；'.join(problems[:2]) or '手动导入待确认'))
+                except Exception as error:
+                    logging.exception('official board installation failed: %s',mode)
+                    failed.append(label+'：'+str(error)[:160])
             self.store.select(statistics_mode(self.current_mode()) or MINGDAO)
-            self.update_board_label();self.configure()
+            self.pending=read_json(self.store.pending_path)
+            self.update_board_label()
+            if installed:
+                with self.worker.lock:self.worker.extra=[x['name'] for x in self.store.board['heroes']]
+                self.overlay.update()
+            summary=f'自动更新 {len(installed)} 个模式；待核验 {len(pending)} 个；失败 {len(failed)} 个。'
+            details='\n'.join(['已更新：'+ '、'.join(installed)] if installed else [])
+            details+='\n'+'\n'.join(pending+failed)
+            self.data_status.setText(summary+details)
+            self.data_status.setToolTip(summary+details)
+            if installed:self.tray.showMessage('官方榜单已自动更新','、'.join(installed)+'；已保留上一期供回退。')
 
     def import_board(self):
         path,_=QFileDialog.getOpenFileName(self,'导入官方榜单','','图片 (*.png *.jpg *.jpeg *.webp)')

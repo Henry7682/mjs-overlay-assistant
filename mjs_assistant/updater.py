@@ -13,8 +13,10 @@ import httpx
 from bs4 import BeautifulSoup
 
 from .boards import decode_image, parse_words, validate_board
+from .board_verification import PARSER_VERSION, verify_chart
 from .storage import write_json, read_json
-from .modes import MODES, MINGDAO, identify_chart, board_mode
+from .update_state import due, finish
+from .modes import MODES, MINGDAO, PEAK_SHUANGLONG, identify_chart, board_mode
 
 OFFICIAL_LIST = "https://www.taptap.cn/app/737825/topic?type=official&page={}"
 
@@ -64,18 +66,25 @@ class Updater:
     def check(self,current,force=False,progress=lambda x:None):
         state_path=self.folder/'update_state.json';state=read_json(state_path,{})
         now=dt.datetime.now(dt.timezone.utc)
+        if 'next_attempt' in state and not due(state, force=force):
+            return None, '等待下次检查／失败重试；可点击立即重试'
         try:
             last=dt.datetime.fromisoformat(state.get('last_attempt',state.get('checked_at','')))
-            if not force and 0<=(now-last).total_seconds()<86400:return None,'最近24小时已检查；可点击手动检查'
+            if 'next_attempt' not in state and not force and state.get('status','success')=='success' and 0<=(now-last).total_seconds()<86400:return None,'最近24小时已检查；可点击手动检查'
         except (ValueError,TypeError):pass
         state.update(last_attempt=now.isoformat(),status='checking');write_json(state_path,state)
         try:
             result=self._check(current,progress)
-            state.update(status='cancelled' if self.cancelled() else ('partial' if self.failures else 'success'),last_error=self.failures[:3])
+            status='cancelled' if self.cancelled() else ('partial' if self.failures else 'success')
+            state=finish(state,status=='success',result[1]);state.update(status=status,last_error=self.failures[:3])
+            drafts=result[0] or []
+            if isinstance(drafts,dict):drafts=[drafts]
+            state['auto_ready_count']=sum(not validate_board(b) for b in drafts)
+            state['pending_count']=sum(bool(validate_board(b)) for b in drafts)
             if state['status']=='success':state['last_success']=dt.datetime.now(dt.timezone.utc).isoformat()
             return result
         except Exception as error:
-            state.update(status='error',last_error=[str(error)[:500]]);raise
+            state=finish(state,False,str(error)[:500]);state.update(status='error',last_error=[str(error)[:500]]);raise
         finally:write_json(state_path,state)
 
     def _html(self,client,url):
@@ -87,6 +96,8 @@ class Updater:
         response=client.get(url,headers=headers) if headers else client.get(url)
         if getattr(response,'status_code',200)==304 and cached.get('text'):return cached['text']
         response.raise_for_status();text=response.text
+        if 'CF_APP_WAF' in text or '验证码' in text and '<h1' not in text:
+            raise ValueError('官方来源访问受限（网页验证），保留旧榜单并稍后重试')
         if len(text)>4_000_000:raise ValueError('官方网页超过大小限制')
         h=getattr(response,'headers',{})
         write_json(path,{'text':text,'etag':h.get('etag'),'modified':h.get('last-modified')})
@@ -115,11 +126,14 @@ class Updater:
                 except (httpx.HTTPError,ValueError) as error:
                     failures.append(str(error));continue
             if not links:
-                raise ValueError("官方列表未解析到榜单帖子，可手动导入；当前榜单已保留")
+                links=[b.get('source_url','') for b in current.values()
+                       if re.fullmatch(r'https://www\.taptap\.cn/moment/\d+',b.get('source_url',''))]
+                if not links:raise ValueError("官方列表未解析到榜单帖子；当前榜单已保留")
+                failures.append('官方列表暂不可用，仅复查已登记官方帖子；不能确认全站最新')
             for link in sorted(set(links), key=lambda s: int(s.rsplit("/", 1)[1]), reverse=True)[:4]:
-                if legacy and link.split('?')[0]==current[MINGDAO].get('source_url','').split('?')[0]:
+                if not failures and legacy and link.split('?')[0]==current[MINGDAO].get('source_url','').split('?')[0]:
                     return None,'已是最新发现的官方榜单'
-                if all(current.get(mode, {}).get("heroes") and link.split("?")[0] == current[mode].get("source_url", "").split("?")[0] for mode in MODES):
+                if not failures and all(current.get(mode, {}).get("heroes") and link.split("?")[0] == current[mode].get("source_url", "").split("?")[0] for mode in MODES):
                     # Links are newest-first. Once every mode already comes
                     # from this official post, older posts cannot add a newer
                     # publication; do not OCR historical charts on every boot.
@@ -158,17 +172,31 @@ class Updater:
                         year_match = re.search(r"_(20\d{2})\d{4}", url)
                         from .storage import ASSETS
                         model_manifest=read_json(ASSETS/'models/manifest.json',{})
-                        parse_key=hashlib.sha256(json.dumps([url,hashlib.sha256(data).hexdigest(),model_manifest,sorted(self.names.names),self.names.aliases,'parser-v1'],sort_keys=True).encode()).hexdigest()
+                        parse_key=hashlib.sha256(json.dumps([url,hashlib.sha256(data).hexdigest(),model_manifest,sorted(self.names.names),self.names.aliases,PARSER_VERSION],sort_keys=True).encode()).hexdigest()
                         parsed_path=self.folder/'update-cache'/(parse_key+'.parsed.json')
                         draft=read_json(parsed_path)
                         if not draft:
                             if not self._idle(progress):return None,'已取消检查'
                             draft = parse_words(self.ocr.document(img), img.shape[1], self.names, link, hashlib.sha256(data).hexdigest(), int(year_match[1]) if year_match else None)
+                            def before_row():
+                                if not self._idle(progress):raise RuntimeError('已取消榜单复核')
+                            progress('正在自动放大复读疑点行并交叉核验两榜…')
+                            draft = verify_chart(draft,img,self.ocr,self.names,before_row)
+                            from .board_completeness import inspect_end
+                            draft['completeness'] = inspect_end(img, {s:draft.get('raw_'+s+'_rows',[]) for s in ('win','pick')})
+                            if not draft['completeness']['complete']:
+                                draft['issues'].append('未取得可信表格末尾证据，保留旧榜单')
+                            if mode == PEAK_SHUANGLONG and board_mode(draft) == mode:
+                                # Only this period's explicit chart title is evidence.
+                                # Never treat generic 巅峰身份 as a permanent alias.
+                                draft['mode_evidence'] = dict(status='source-reviewed',source_url=link,
+                                    period_start=draft['period_start'],period_end=draft['period_end'],
+                                    basis='本期官方榜单图中明确识别到巅峰与双龙争鼎标题')
                             write_json(parsed_path,draft)
                         draft=copy.deepcopy(draft)
                         if draft["period_end"] and draft["period_end"] <= baseline.get("period_end", ""):
                             continue
-                        if draft["expected_count"] < len(baseline.get("heroes", [])):
+                        if draft["expected_count"] < len(baseline.get("heroes", [])) and not draft.get('completeness',{}).get('complete'):
                             draft["issues"].append("新榜单条数少于当前版本，必须对照原图确认是否截断")
                         cache = self.folder / "boards" / (mode or "unassigned")
                         cache.mkdir(parents=True, exist_ok=True)

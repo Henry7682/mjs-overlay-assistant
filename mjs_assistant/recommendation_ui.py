@@ -8,8 +8,22 @@ from .hotkeys import parse_hotkey
 
 class RecommendationSettings(QDialog):
     def __init__(self,settings,parent=None,bound_hwnd=None):
-        super().__init__(parent);self.original_settings=dict(settings);self.setWindowTitle('小程序配阵设置');self.resize(620,460)
+        super().__init__(parent);self.original_settings=dict(settings);self.setWindowTitle('配阵设置');self.resize(620,460)
         layout=QVBoxLayout(self)
+        self.source=QComboBox()
+        from .guide_source import LOCAL_LABEL, WECHAT_LABEL, selected_source
+        self.source.addItem(LOCAL_LABEL+' · 离线查询','jiangce')
+        self.source.addItem(WECHAT_LABEL,'wechat')
+        self.source.setCurrentIndex(self.source.findData(selected_source(settings)))
+        layout.addWidget(self.source)
+        from .jiangce import preferred
+        try:book_date=preferred(parent.folder).date if parent is not None else '未知'
+        except Exception:book_date='不可用'
+        state=getattr(getattr(parent,'jiangce_check',None),'last',{})
+        self.book_label=QLabel('《名将小助手》小程序组合库 · '+book_date+' · '+state.get('status','等待检查更新'))
+        layout.addWidget(self.book_label)
+        local_note=QLabel('内置数据库可离线查询，无需打开微信。来源为《名将小助手》小程序；按已确认武将及原始站位显示组合参考，数据库更新后从下一局生效。')
+        local_note.setWordWrap(True);layout.addWidget(local_note)
         text=QLabel('普通排位默认将完整原始游戏 PNG 临时保存并交给“名将小助手”，可能包含昵称，小程序可能上传并保留副本。巅峰楚汉只通过公开选将页输入已确认姓名。助手不操作微信登录或游戏选将。')
         text.setWordWrap(True);layout.addWidget(text)
         self.enabled=QCheckBox('启用以上小程序配阵方式');self.enabled.setChecked(settings.get('enabled',True));layout.addWidget(self.enabled)
@@ -27,6 +41,14 @@ class RecommendationSettings(QDialog):
         for hwnd in candidates:self.connection.addItem(f'名将小助手 · HWND {hwnd}',hwnd)
         self.connection.setCurrentIndex(max(0,self.connection.findData(bound_hwnd)))
         form.addRow(f'小程序窗口（检测到 {len(candidates)} 个）',self.connection)
+        def refresh_source():
+            mini=self.source.currentData()=='wechat'
+            for control in (text,note,self.connection,self.enabled,self.ranked_search):control.setEnabled(mini)
+            for control in (text,note):control.setVisible(mini)
+            local_note.setVisible(not mini)
+            self.book_label.setVisible(not mini)
+            self.auto.setText('自动查询已确认的候选及战斗阵容' if not mini else '自动查询：选将一次；普通排位战斗另查敌方一次')
+        self.source.currentIndexChanged.connect(refresh_source);refresh_source()
         for key,label,default in [('request','重新配阵','Ctrl+Alt+P'),('details','显示详情','Ctrl+Alt+D'),('cancel','取消','Ctrl+Alt+X')]:
             edit=QLineEdit(settings.get('hotkeys',{}).get(key,default));self.keys[key]=edit;form.addRow(label,edit)
         self.x=QSpinBox();self.x.setRange(0,90);self.x.setValue(round(settings.get('panel_anchor',settings.get('anchor',[.015,.40]))[0]*100))
@@ -40,7 +62,7 @@ class RecommendationSettings(QDialog):
             values={k:v.text().strip() for k,v in self.keys.items()}
             parsed=[parse_hotkey(v) for v in values.values()]
             if len(set(parsed))!=3:raise ValueError('三个快捷键不能相同')
-            self.result_settings=dict(self.original_settings,enabled=self.enabled.isChecked(),guides_enabled=self.guides.isChecked(),automatic=self.auto.isChecked(),
+            self.result_settings=dict(self.original_settings,source=self.source.currentData(),enabled=self.enabled.isChecked(),guides_enabled=self.guides.isChecked(),automatic=self.auto.isChecked(),
                 ranked_search=self.ranked_search.isChecked(),hotkeys=values,panel_anchor=[self.x.value()/100,self.y.value()/100],privacy_notice_version=1)
             self.selected_hwnd=self.connection.currentData()
             self.accept()

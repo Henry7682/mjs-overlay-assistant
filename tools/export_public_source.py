@@ -15,7 +15,8 @@ from mjs_assistant.build_identity import build_identity, METADATA
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = (
-    'smoke.py', 'capture_check.py', 'restore_models.py', 'replay_diagnostics.py',
+    'prepare_boards.py', 'maintain_data.py', 'install-data-task.ps1',
+    'sync_jiangce.py', 'build_jiangce.py', 'prepare_jiangce.py', 'publish_jiangce.py', 'sync-jiangce.ps1', 'smoke.py', 'capture_check.py', 'restore_models.py', 'replay_diagnostics.py',
     'portable_worker_smoke.py', 'probe_focus_roundtrip.py', 'replay_provider.py',
     'package_release.py', 'export_public_source.py',
     'lock_dependencies.py', 'build_release.py', 'collect_dependency_notices.py', 'verify_mirror.py',
@@ -42,6 +43,7 @@ def export(destination, identity=None):
     for folder, patterns in {
         'mjs_assistant': ('*.py',), 'tests': ('*.py',),
         'tests/fixtures': ('*.png', '*.md'),
+        'assets/jiangce': ('guides.sqlite','channel.json','channel.sig','public-key.xml'),
         'assets/boards': ('*.json',), 'assets/sources': ('*.jpg',),
         'assets/licenses': ('*',), 'assets/models': ('manifest.json',),
         'assets/nameplates': ('*.png', '*.md'),
@@ -67,7 +69,7 @@ def export(destination, identity=None):
             text = re.sub(r'(?i)D:[\\/]mjs[\\/]', '', text)
             text = re.sub(r'(?i)(?<![a-z0-9])[A-Z]:[\\/](?!/)[^\s`\"<>，。；、）)]*', '[本机路径已省略]', text)
             body = text.encode('utf8')
-        if path.suffix.lower() not in {'.jpg', '.png'}:
+        if path.suffix.lower() not in {'.jpg', '.png', '.sqlite'}:
             text = body.decode('utf-8-sig')
             if re.search(r'gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{30,}|-----BEGIN (?:RSA )?PRIVATE KEY-----', text):
                 raise ValueError(f'Possible credential: {rel}')

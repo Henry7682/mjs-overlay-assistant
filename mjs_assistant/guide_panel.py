@@ -14,10 +14,24 @@ def clamped_position(rect, size, anchor):
             round(y+max(0,min(max(0,h-ph),anchor[1]*h))))
 
 
-def card_html(cards):
+def card_html(cards, current_seats=None, seat_pair=()):
     blocks=[]
     for i,card in enumerate(cards,1):
         pair=' ＋ '.join(card['heroes'])
+        if 'variants' in card:
+            lines=[]
+            for variant in card['variants']:
+                positions=sorted(variant.get('seats',()),key=lambda row:row[1])
+                label='、'.join(f'{hero} {seat} 位' for hero,seat in positions) or variant['group']+'（站位未提供）'
+                known={h:v for h,v in (current_seats or {}).items() if v}
+                match=bool(known) and all(dict(positions).get(h)==v for h,v in known.items())
+                suited=bool(seat_pair and all(seat_pair) and set(seat_pair)=={v for h,v in positions})
+                lines.append((0 if match else 1 if suited else 2,escape(label)+'　'+escape(variant.get('rating','评分未提供'))))
+            seats='<br>'.join(line for _,line in sorted(lines,key=lambda row:row[0]))
+            blocks.append(f'<p><b>{i}. {escape(pair)}</b><br>'+escape(card['reason']).replace(chr(10),'<br>')+
+                          '<br>'+seats+'<br>《名将小助手》小程序 · 分享者：'+escape(card['author'])+
+                          ' · <a href="'+escape(card['url'],quote=True)+'">来源详情</a></p>')
+            continue
         seats='；'.join(f'{a} {sa}、{b} {sb}' for a,sa,b,sb in card.get('seats',[]))
         rating=card.get('rating')
         blocks.append(f'<p><b>{i}. {escape(pair)}</b><br>原始座次：{escape(seats or "未提供")}'
@@ -72,8 +86,8 @@ class GuidePanel(QWidget):
         layout=QVBoxLayout(self.body);self.body_layout=layout;layout.setContentsMargins(2,2,2,2)
         header=QHBoxLayout();self.header_layout=header;self.title=DragHandle('配阵参考 · 名将小助手  ↔ 拖动',self);header.addWidget(self.title,1)
         minimize=QPushButton('收起');minimize.setFocusPolicy(Qt.FocusPolicy.NoFocus);minimize.clicked.connect(self.toggle);header.addWidget(minimize);layout.addLayout(header)
-        self.browser=QTextBrowser();self.browser.setOpenExternalLinks(False);self.browser.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.browser.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction);layout.addWidget(self.browser,1)
+        self.browser=QTextBrowser();self.browser.setOpenExternalLinks(True);self.browser.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.browser.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse);layout.addWidget(self.browser,1)
         self.retry=QPushButton('重试敌方查询');self.retry.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.retry.clicked.connect(self.retry_enemy);layout.addWidget(self.retry)
         u=ctypes.windll.user32;hwnd=int(self.winId())

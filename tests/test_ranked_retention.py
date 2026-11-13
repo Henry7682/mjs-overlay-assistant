@@ -29,7 +29,7 @@ def host(busy=False,mode='ranked_chuhan_2v2'):
         selection_guard=NS(update=Mock(return_value=('2',True)),reason='visual',clear=Mock()),
         observed_seats=(1,4),provider=NS(busy=busy,cancel=Mock(),update_evidence=Mock(),active={'snapshot':snap}),
         overlay=NS(recommendation=None if busy else result(snap),recommendation_status=''),
-        config={'recommendation':{'hotkeys':{'request':'Ctrl+Alt+P'}}},
+        config={'recommendation':{'source':'wechat','hotkeys':{'request':'Ctrl+Alt+P'}}},
         rec_status=NS(setText=Mock()),snapshot=snap,confirmed_snapshot=None,mode_evidence='manual',
         worker=NS(lock=threading.Lock(),allow_background=True),request_id='request',
         maybe_auto_recommend=Mock(),tick=Mock())

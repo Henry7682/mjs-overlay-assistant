@@ -50,7 +50,7 @@ def test_unknown_camp_breaks_consecutive_evidence_but_preserves_known_team():
     assert t.update([],{}).friendly==('孙权','孙策')
 
 
-@pytest.mark.parametrize('count',range(6,14))
+@pytest.mark.parametrize('count',range(6,15))
 def test_postban_early_evidence_is_frozen_once_and_never_reduced(count):
     p=PeakDraft();pool=tuple(f'将{i}' for i in range(14))
     p.update('ban','ban14',pool,14,0)
@@ -70,7 +70,7 @@ def test_selection_landmark_cannot_reopen_ban_or_use_late_disappearance():
     p.update('ban','ban14',('新名字',),14,2)
     assert '新名字' not in p.ban_seen
     p.update('selection','draft9',pool[:9],9,5)
-    assert p.auto_closed and not p.frozen and not p.excluded
+    assert p.frozen and p.excluded==set(pool[9:])
     assert peak_phase('',False,'楚汉汉楚',draft_layout='draft9')==('unknown','unknown')
     assert peak_phase('其他玩家选择中',False,'',draft_layout='draft9')==('selection','draft9')
     assert peak_phase('请等待其他玩家选择武将',False,'楚汉汉楚',draft_layout='draft12')==('selection','draft12')
@@ -83,7 +83,7 @@ def test_early_portrait_disappearance_cannot_shrink_expected_roster():
     p.update('selection','draft8',pool[:8],8,2.6)
     assert not p.frozen and p.selection_count==9
     p.update('selection','draft8',pool[:8],8,5)
-    assert p.auto_closed and not p.excluded
+    assert not p.frozen and not p.excluded
 
 
 def test_scroll_anchor_uses_visible_results_after_heading_has_left_screen():

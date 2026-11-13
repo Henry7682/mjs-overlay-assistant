@@ -20,13 +20,13 @@ def panel(count, width=1280, height=667):
     return frame
 
 
-@pytest.mark.parametrize('count',range(6,14))
+@pytest.mark.parametrize('count',range(6,15))
 @pytest.mark.parametrize('size',[(1280,667),(1920,1080),(2560,1334),(2560,1440)])
-def test_draft_extent_counts_six_through_thirteen(count,size):
+def test_draft_extent_counts_six_through_fourteen(count,size):
     image=panel(count,*size)
     assert detect_draft_layout(image)==f'draft{count}'
     assert len(draft_regions(f'draft{count}'))==count
-    assert not draft_count('draft5') and not draft_count('draft14')
+    assert not draft_count('draft5') and not draft_count('draft15')
 
 
 def test_missing_inner_portrait_or_tooltip_does_not_invent_smaller_roster():
@@ -38,18 +38,16 @@ def test_missing_inner_portrait_or_tooltip_does_not_invent_smaller_roster():
     assert detect_draft_layout(np.full_like(image,215)) is None
 
 
-@pytest.mark.parametrize('count',range(6,14))
-def test_peak_filter_never_uses_late_ocr_after_transition_window(count):
+@pytest.mark.parametrize('count',range(6,15))
+def test_peak_filter_waits_for_complete_initial_roster(count):
     p=PeakDraft();pool=tuple(f'将{i}' for i in range(14))
     p.update('ban','ban14',pool,14,0)
     for now in (1,3,5):p.update('selection',f'draft{count}',pool[:count-1],count,now)
     assert not p.frozen
-    p.update('selection',f'draft{count}',pool[:count],count,6)
-    assert not p.frozen
-    p.update('selection',f'draft{count}',pool[:count],count,7.5)
-    assert not p.frozen and p.auto_closed and not p.excluded
-    p.update('selection',f'draft{count}',pool[:2],2,9)
-    assert not p.excluded
+    p.update('selection',f'draft{count}',pool[:count],count,11.5)
+    assert p.frozen and p.excluded==set(pool[count:])
+    p.update('selection',f'draft{count}',pool[:2],2,20)
+    assert p.excluded==set(pool[count:])
 
 
 def test_slow_peak_frames_confirm_but_long_gap_does_not():
@@ -85,7 +83,7 @@ def test_thirteen_selection_landmark_overrides_coarse_outer_card_probe():
     assert peak_phase('请禁止武将', True, '', draft_layout='draft13') == ('ban', 'ban14')
     assert peak_phase('', True, '', draft_layout='draft13') == ('transition', 'ban14')
     assert peak_phase('请选择本局要使用的武将', False, '', draft_layout=None) == ('unknown', 'unknown')
-    assert detect_draft_layout(panel(14, 2560, 1440)) is None
+    assert detect_draft_layout(panel(14, 2560, 1440)) == 'draft14'
 
 
 def test_thirteen_filter_keeps_raw_cache_and_filters_late_guides_once():
