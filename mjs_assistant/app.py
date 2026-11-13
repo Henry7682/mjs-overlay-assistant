@@ -184,7 +184,27 @@ class DataThread(QThread):
                 self.progress.emit('正在识别导入的官方图片…')
                 board=import_image(self.path,engine,names);message='导入完成，请复核'
             else:
-                board,message=Updater(self.folder,engine,names,self.isInterruptionRequested,self.busy.is_set).check(self.board,self.force,self.progress.emit)
+                from .board_channel import discover
+                from .update_state import due
+                signed=[]
+                if due(read_json(self.folder/'update_state.json',{}),force=self.force):
+                    try:
+                        self.progress.emit('正在检查签名官方榜单通道…')
+                        signed,_=discover(self.folder,self.board)
+                    except Exception:
+                        logging.exception('signed board channel unavailable')
+                current=dict(self.board)
+                current.update({b['mode_id']:b for b in signed})
+                try:
+                    board,message=Updater(self.folder,engine,names,self.isInterruptionRequested,self.busy.is_set).check(current,self.force,self.progress.emit)
+                    merged={b['mode_id']:b for b in signed}
+                    for candidate in (board or []):
+                        mode=candidate.get('mode_id')
+                        if mode not in merged or not validate_board(candidate):merged[mode]=candidate
+                    board=list(merged.values()) or None
+                except Exception as error:
+                    board=signed or None
+                    message='官方直连暂不可用；'+('使用已核验签名榜单；' if signed else '保留现有榜单；')+str(error)
             self.done.emit(board,message)
         except Exception as e:
             logging.exception('data update');self.done.emit(None,'更新失败，保留原榜单：'+str(e))
@@ -248,6 +268,7 @@ class MainWindow(GuideController,QMainWindow):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch);self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows);self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers);layout.addWidget(self.table,1)
         row=QHBoxLayout()
         self.check_btn=QPushButton('检查新榜单');self.check_btn.clicked.connect(lambda:self.start_data(force=True));row.addWidget(self.check_btn)
+        updates_button=QPushButton('更新与数据');updates_button.clicked.connect(self.open_update_status);row.addWidget(updates_button)
         self.import_btn=QPushButton('导入官方图片');self.import_btn.clicked.connect(self.import_board);row.addWidget(self.import_btn)
         self.review_btn=QPushButton('复核待确认榜单');self.review_btn.clicked.connect(self.review);row.addWidget(self.review_btn)
         self.rollback_btn=QPushButton('回退上一期');self.rollback_btn.clicked.connect(self.rollback);row.addWidget(self.rollback_btn);layout.addLayout(row)
@@ -267,7 +288,7 @@ class MainWindow(GuideController,QMainWindow):
         self.worker.result.connect(self.receive);self.worker.status.connect(self.status.setText)
         self.timer=QTimer(self);self.timer.timeout.connect(self.tick);self.timer.start(120)
         self.scan_timer=QTimer(self);self.scan_timer.timeout.connect(self.refresh_windows);self.scan_timer.start(3000)
-        self.update_timer=QTimer(self);self.update_timer.timeout.connect(lambda:self.start_data());self.update_timer.start(86400000)
+        self.update_timer=QTimer(self);self.update_timer.timeout.connect(lambda:self.start_data());self.update_timer.start(60000)
         self.install_hotkeys();self.update_board_label();self.refresh_windows();self.worker.start();QTimer.singleShot(1500,lambda:self.start_data(force=True))
         feedback=QPushButton('反馈问题／本地诊断');feedback.clicked.connect(self.open_feedback);layout.addWidget(feedback)
         migrate=QPushButton('导入旧版 data 配置');migrate.clicked.connect(self.import_previous);layout.addWidget(migrate)
@@ -570,7 +591,7 @@ class MainWindow(GuideController,QMainWindow):
         self.hotkeys=Hotkeys(QApplication.instance(),[(keys.get('request','Ctrl+Alt+P'),self.request_recommendation),
             (keys.get('details','Ctrl+Alt+D'),self.toggle_details),(keys.get('cancel','Ctrl+Alt+X'),self.cancel_recommendation)])
         if local_source(self) and self.guides_enabled():
-            self.rec_status.setText('《名将小助手》小程序本地配阵 · '+self.jiangce_check.last.get('status','等待检查更新'));return
+            self.rec_status.setText('《名将小助手》小程序本地配阵 · '+self.jiangce_check.last.get('message','等待检查更新'));return
         self.rec_status.setText('攻略浮窗已关闭；本地统计继续' if not self.guides_enabled() else '；'.join(self.hotkeys.errors) if self.hotkeys.errors else
             (('配阵已启用；排位确认选将即传图，巅峰确认姓名后查询' if settings.get('automatic',True) else
               '配阵已启用；按 '+keys.get('request','Ctrl+Alt+P')+' 查询') if settings.get('enabled',True) else '小程序配阵未启用'))
@@ -619,8 +640,16 @@ class MainWindow(GuideController,QMainWindow):
             QMessageBox.information(self,'配置已导入','原配置备份已保存。退出后重新启动生效。\n'+str(backup))
         except Exception as error:QMessageBox.warning(self,'导入失败',str(error))
 
+    def open_update_status(self):
+        from .update_ui import UpdateDialog
+        dialog=UpdateDialog(self)
+        dialog.exec()
+        dialog.timer.stop();dialog.deleteLater()
+
     def start_data(self,force=False,path=None):
         if self.data_worker and self.data_worker.isRunning():return
+        from .update_state import due
+        if not path and not due(read_json(self.folder/'update_state.json',{}),force=force):return
         self.check_btn.setEnabled(False);self.import_btn.setEnabled(False)
         if not hasattr(self,'data_busy'):self.data_busy=threading.Event()
         if self.provider.busy or (self.latest and self.latest.get('scene')=='selection'):self.data_busy.set()

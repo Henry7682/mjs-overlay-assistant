@@ -1,4 +1,4 @@
-param([switch]$SkipUpdate)
+﻿param([switch]$SkipUpdate)
 # MJS_LAUNCH_PROTOCOL: 1
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'release\Release.ps1')
@@ -35,13 +35,18 @@ try {
     }
     $candidate=$null;$manifest=$null
     if (-not $SkipUpdate) {
+        $softwareStatePath=Join-Path $dataPath 'software-check.json'
+        $softwareState=@{last_attempt=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();status='checking';message='启动前正在检查签名软件版本';source='Auto: GitHub/Gitee'}
+        try { Write-AtomicJson $softwareStatePath $softwareState } catch { Write-Warning 'Could not save update status.' }
         try {
             Write-Host 'Checking update before startup (S: skip).'
             $failed=Join-Path $homePath 'failed-update.json'
             $blocked=if(Test-Path -LiteralPath $failed){Get-Content -Raw -LiteralPath $failed|ConvertFrom-Json}else{$null}
             $blockedVersion=if($blocked){$blocked.version}else{''}
             $package=Get-UpdatePackage 'Auto' (Join-Path $homePath 'release\public-key.xml') (Join-Path $homePath 'download-cache') $state.version '' $blockedVersion
+            $softwareState.status='checked';$softwareState.message='启动检查结束，未安装新版本；当前版本 '+$state.version
             if ($package) {
+                $softwareState.last_success=[DateTimeOffset]::UtcNow.ToUnixTimeSeconds();$softwareState.message='已核验新版 '+$package.manifest.version+'，等待启动验证'
                 $manifest=$package.manifest;$archive=$package.archive
                 $target=Join-Path $homePath ('versions\'+$manifest.version)
                 if (-not (Test-Path -LiteralPath $target)) { Expand-VerifiedZip $archive $target }
@@ -49,7 +54,8 @@ try {
                 $candidate=Join-Path $target 'MjsOverlay.exe'
                 if (-not (Test-Path -LiteralPath $candidate)) { throw 'New program missing.' }
             }
-        } catch { $candidate=$null;Write-Host ('Update unavailable; using installed version. '+$_.Exception.Message) }
+        } catch { $candidate=$null;$softwareState.status='unavailable';$softwareState.message='更新暂不可用，保留当前版本';Write-Host ('Update unavailable; using installed version. '+$_.Exception.Message) }
+        try { Write-AtomicJson $softwareStatePath $softwareState } catch { Write-Warning 'Could not save update status.' }
     }
     if ($candidate) {
         # No new process has run yet. A full disk or denied backup must not

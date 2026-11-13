@@ -60,6 +60,8 @@ def validate_board(board):
     if board.get("issues"):
         problems.extend(board["issues"])
     if board.get('review_status')=='pending_full_review': problems.append('尚未完成全表复核')
+    if 'completeness' in board and not board['completeness'].get('complete'):
+        problems.append('榜单完整性证据未通过')
     if not board.get("source_url"):
         problems.append("缺少来源地址或本地图片路径")
     return problems

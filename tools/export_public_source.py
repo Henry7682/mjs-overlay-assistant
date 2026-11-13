@@ -15,6 +15,7 @@ from mjs_assistant.build_identity import build_identity, METADATA
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = (
+    'prepare_boards.py', 'maintain_data.py', 'install-data-task.ps1',
     'sync_jiangce.py', 'build_jiangce.py', 'prepare_jiangce.py', 'publish_jiangce.py', 'sync-jiangce.ps1', 'smoke.py', 'capture_check.py', 'restore_models.py', 'replay_diagnostics.py',
     'portable_worker_smoke.py', 'probe_focus_roundtrip.py', 'replay_provider.py',
     'package_release.py', 'export_public_source.py',

@@ -50,11 +50,13 @@ def test_invalid_update_keeps_current(tmp_path, board, mutation):
 
 def test_rollback_and_corrupt_current(tmp_path, board):
     store = BoardStore(tmp_path)
+    seed=copy.deepcopy(store.board)
+    store.install(board)
     new = copy.deepcopy(board); new['period_start'] = '2026-10-09'
     store.install(new); store.rollback()
     assert store.board == board
     store.path.write_text('{broken', encoding='utf8')
-    assert BoardStore(tmp_path).board == board
+    assert BoardStore(tmp_path).board == seed
 
 
 def test_temporal_confirmation_and_replacement():

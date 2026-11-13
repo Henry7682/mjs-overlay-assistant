@@ -93,8 +93,7 @@ def test_daily_check_survives_restart_and_failed_source(tmp_path,monkeypatch):
     check.thread.join(2)
     update.DailyCheck(tmp_path).check()
     assert calls==[tmp_path]
-    check.last['date']='2000-01-01'
-    check.check()
+    check.check(force=True)
     check.thread.join(2)
     assert calls==[tmp_path,tmp_path]
 

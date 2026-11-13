@@ -14,7 +14,7 @@ import cv2
 from .boards import assemble_rows, parse_words
 from .ocr import Word
 
-PARSER_VERSION = 'table-consensus-2'
+PARSER_VERSION = 'table-consensus-3'
 MAX_RECHECK_ROWS = 40
 
 

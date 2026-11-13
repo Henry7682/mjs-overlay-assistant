@@ -19,6 +19,7 @@ os.environ['PATH'] = os.pathsep.join(str(p) for p in (
     Path(os.environ['SystemRoot'])/'System32', Path(os.environ['SystemRoot'])))
 
 datas = [('assets', 'assets'), (str(identity_path), '.')]
+datas += [(str(Path('release') / name), 'release') for name in ('check.ps1','Release.ps1','public-key.xml')]
 datas += collect_data_files('rapidocr', excludes=['models/*'])
 datas += copy_metadata('rapidocr')
 hidden = collect_submodules('rapidocr') + collect_submodules('pywinauto')
