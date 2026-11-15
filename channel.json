@@ -1,9 +1,9 @@
 {
   "kind": "jiangce-v1",
-  "version": "20261104092914",
-  "sha256": "1a092bdecca1219ad239269d998ae225a5b74d320ac5caf2962154bdb80002d1",
-  "size": 368640,
-  "date": "2026-11-04",
-  "count": 641,
-  "content_hash": "d37156b9913c8516ef08c1e3cd25e2501a670c7b827a92fe1be07bfab29c9161"
+  "version": "20261115210614",
+  "sha256": "8501e35b98ed202cc0173488b332e7dd2f00863b044a6492e558f8b51f6b0e10",
+  "size": 380928,
+  "date": "2026-11-15",
+  "count": 656,
+  "content_hash": "ea6dbf470fd6dc841b2547b8cd647a4211134c5acf3ac65f7ceec02832e989ff"
 }
