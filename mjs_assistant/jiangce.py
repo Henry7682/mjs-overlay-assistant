@@ -55,13 +55,19 @@ class GuideBook:
         return tuple(c for c in self.cards if heroes==set(c['heroes'])) if len(heroes)==2 else ()
 
 
-def preferred(folder):
+def preferred(folder, custom=True):
     """Only finalized, hash-named files can be visible to a new round."""
     from .jiangce_update import installed
     for path in installed(folder):
         try:
-            return GuideBook(path)
+            book = GuideBook(path)
+            break
         except (OSError,sqlite3.Error,ValueError,TypeError,KeyError):
             continue
-    return GuideBook(SEED)
+    else:
+        book = GuideBook(SEED)
+    if custom:
+        from .custom_guides import CustomGuides
+        book.cards = CustomGuides(folder).merge(book.cards)
+    return book
 

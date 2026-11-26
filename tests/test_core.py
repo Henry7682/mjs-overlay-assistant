@@ -129,7 +129,7 @@ def test_missing_model_is_actionable(tmp_path,monkeypatch):
 
 
 def test_parser_rejects_wrong_mode_and_incomplete_chart():
-    words=[Word('争锋 8人身份',1,(0,0,200,20)),Word('10.08-10.21',1,(0,25,200,45)),
+    words=[Word('巅峰 8人身份',1,(0,0,200,20)),Word('10.08-10.21',1,(0,25,200,45)),
            Word('1',1,(10,100,20,120)),Word('司马睿',1,(80,100,140,120)),Word('64.38%',1,(200,100,280,120))]
     draft=parse_words(words,800,Names(),'https://www.taptap.cn/moment/1',year=2026)
     problems=validate_board(draft)

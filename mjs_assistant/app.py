@@ -256,7 +256,7 @@ class MainWindow(GuideController,QMainWindow):
         self.guide_check.setChecked(self.guides_enabled());self.guide_check.toggled.connect(self.set_guides_enabled)
         layout.addWidget(self.guide_check)
         rec_row=QHBoxLayout()
-        for label,callback in [('配阵设置',self.recommendation_settings),('确认禁将后名单',self.confirm_peak_roster),('重新配阵',self.request_recommendation),('取消配阵',self.cancel_recommendation)]:
+        for label,callback in [('编辑本地组合',self.edit_local_guides),('配阵设置',self.recommendation_settings),('确认禁将后名单',self.confirm_peak_roster),('重新配阵',self.request_recommendation),('取消配阵',self.cancel_recommendation)]:
             button=QPushButton(label);button.clicked.connect(callback);rec_row.addWidget(button)
         layout.addLayout(rec_row)
         self.rec_status=QLabel('小程序配阵未启用');self.rec_status.setWordWrap(True);layout.addWidget(self.rec_status)
@@ -558,6 +558,13 @@ class MainWindow(GuideController,QMainWindow):
 
 
 
+
+    def edit_local_guides(self):
+        try:
+            from .guide_editor import GuideEditor
+            GuideEditor(self.folder,self).exec()
+        except Exception as exc:
+            QMessageBox.warning(self,'个人组合无法读取',str(exc)+'；原文件保留，请检查备份。')
 
     def recommendation_settings(self):
         dialog=RecommendationSettings(self.config.get('recommendation',{}),self,bound_hwnd=self.provider.bound_hwnd)
