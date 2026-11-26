@@ -95,7 +95,7 @@ def test_manual_choice_warns_without_switching_and_auto_can_resume(window):
     w=window;w.mode_box.setCurrentIndex(w.mode_box.findData(PEAK_CHUHAN))
     for _ in range(3):d=deliver(w,MINGDAO)
     assert w.current_mode()==PEAK_CHUHAN and w.mode_evidence=='manual'
-    assert '入口是明刀暗箭' in '\n'.join(w.status_lines(d))
+    assert '入口是排位·八人身份' in '\n'.join(w.status_lines(d))
     w.mode_box.setCurrentIndex(0)
     for _ in range(3):deliver(w,MINGDAO)
     assert w.current_mode()==MINGDAO and w.mode_box.currentData() is None

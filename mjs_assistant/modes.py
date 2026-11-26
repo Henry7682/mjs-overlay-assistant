@@ -6,7 +6,7 @@ MINGDAO='ranked_identity_mingdao'
 RANKED_CHUHAN='ranked_chuhan_2v2'
 PEAK_CHUHAN='peak_chuhan_2v2'
 PEAK_SHUANGLONG='peak_identity_shuanglong'
-MODES={MINGDAO:'明刀暗箭·8人身份',RANKED_CHUHAN:'排位·楚汉争霸（二二对战）',
+MODES={MINGDAO:'排位·八人身份',RANKED_CHUHAN:'排位·楚汉争霸（二二对战）',
        PEAK_CHUHAN:'巅峰竞技场·楚汉争霸',PEAK_SHUANGLONG:'巅峰竞技场·双龙争鼎'}
 
 
@@ -16,13 +16,16 @@ def entry_may_override(current_mode, evidence):
 
 def board_mode(board):
     if board.get('schema_version',1)==1:
-        return MINGDAO if board.get('mode')==MODES[MINGDAO] else None
+        return MINGDAO if board.get('mode') in (MODES[MINGDAO],'明刀暗箭·8人身份') else None
     mode=board.get('mode_id')
+    if mode==MINGDAO and board.get('mode') in (MODES[MINGDAO],'明刀暗箭·8人身份'):
+        return mode
     return mode if mode in MODES and board.get('mode')==MODES[mode] else None
 
 def identify_chart(text):
     text=re.sub(r'\s+','',text)
-    if '明刀暗箭' in text and '8人身份' in text: return MINGDAO
+    if any(x in text for x in ('8人身份','八人身份')) and not any(x in text for x in ('巅峰','双龙','兵临城下')):
+        return MINGDAO
     if '巅峰楚汉' in text or ('巅峰' in text and '楚汉争霸' in text): return PEAK_CHUHAN
     if '楚汉争霸' in text and '巅峰' not in text: return RANKED_CHUHAN
     if '双龙争鼎' in text and '巅峰' in text: return PEAK_SHUANGLONG

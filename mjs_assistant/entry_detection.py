@@ -1,4 +1,5 @@
 """Recognize the active tab, not every mode name visible on an entry page."""
+import re
 import cv2
 import numpy as np
 from .modes import MINGDAO, RANKED_CHUHAN, PEAK_CHUHAN, PEAK_SHUANGLONG
@@ -38,5 +39,12 @@ def detect_entry(frame, header, read_region):
     winner=int(scores[1]>scores[0])
     # The selected flame/cyan tab must be distinct; a fade/tooltip is unknown.
     if scores[winner]<.45 or scores[winner]-scores[1-winner]<.20:return True,None
-    if not all(name in text for name,text in zip(names,texts)):return True,None
+    if peak:
+        if not all(name in text for name,text in zip(names,texts)):return True,None
+    else:
+        # Ordinary ranked entry has a fixed 2v2 / identity pair. The identity
+        # season title changes; geometry, neighbouring tab and highlight agree.
+        title=texts[1]
+        if ('楚汉争霸' not in texts[0] or not re.fullmatch(r'[\u3400-\u9fff]{2,12}',title)
+                or any(x in title for x in ('巅峰','楚汉','双龙','兵临'))):return True,None
     return True,modes[winner]
