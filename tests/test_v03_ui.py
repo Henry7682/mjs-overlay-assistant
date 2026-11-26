@@ -40,8 +40,10 @@ def test_main_window_constructs_with_source_mapping_and_keeps_config(monkeypatch
     monkeypatch.setattr(module,'windows',lambda:[])
     monkeypatch.setattr(module.RecognitionThread,'start',lambda self:None)
     monkeypatch.setattr(module.MainWindow,'start_data',lambda self,*a,**kw:None)
+    monkeypatch.setattr(module,'DailyCheck',lambda folder:Mock(check=lambda *a,**k:None,last={}))
     monkeypatch.setattr(module,'Hotkeys',lambda *a:Mock(errors=[]))
     window=module.MainWindow()
+    window.start_data=lambda *a,**k:None
     try:
         window.mode_box.setCurrentIndex(window.mode_box.findData(RANKED_CHUHAN))
         assert window.mode_box.currentData()==RANKED_CHUHAN and window.store.mode_id==PEAK_CHUHAN
@@ -55,5 +57,5 @@ def test_main_window_constructs_with_source_mapping_and_keeps_config(monkeypatch
         assert saved['mode_profiles']==config['mode_profiles']
     finally:
         window.quitting=True
-        for timer in (window.timer,window.scan_timer,window.update_timer):timer.stop()
+        for timer in (window.timer,window.scan_timer,window.update_timer,window.jiangce_timer):timer.stop()
         window.hotkeys.close();window.tray.hide();window.overlay.close();window.guide_panel.close();window.statistics_button.close();window.close()
