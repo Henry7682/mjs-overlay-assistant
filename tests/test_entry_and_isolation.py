@@ -51,6 +51,7 @@ def window(monkeypatch,tmp_path):
     monkeypatch.setattr(module,'windows',lambda:[NS(hwnd=123,title='test')])
     monkeypatch.setattr(module.RecognitionThread,'start',lambda self:None)
     monkeypatch.setattr(module.MainWindow,'start_data',lambda self,*a,**k:None)
+    monkeypatch.setattr(module,'DailyCheck',lambda folder:NS(check=lambda *a,**k:None,last={}))
     monkeypatch.setattr(module,'Hotkeys',lambda *a:Mock(errors=[]))
     monkeypatch.setattr(module,'foreground',lambda hwnd:True)
     monkeypatch.setattr(module,'client_rect',lambda hwnd:(0,0,600,300))
@@ -59,7 +60,7 @@ def window(monkeypatch,tmp_path):
     # The delayed startup callback outlives the fixture's class monkeypatch.
     # Keep this instance offline even if a later Qt test pumps that callback.
     w.start_data=lambda *a,**k:None
-    for timer in (w.timer,w.scan_timer,w.update_timer):timer.stop()
+    for timer in (w.timer,w.scan_timer,w.update_timer,w.jiangce_timer):timer.stop()
     w.overlay.present=Mock();w.guide_panel.present=Mock()
     yield w
     w.quitting=True;w.hotkeys.close();w.tray.hide();w.overlay.close();w.guide_panel.close();w.close()
